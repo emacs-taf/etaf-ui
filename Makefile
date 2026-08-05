@@ -1,5 +1,5 @@
 EMACS ?= emacs
-LOAD_PATH = -L . -L ../etaf -L ../emacs-box
+LOAD_PATH = -L . -L ../etaf -L ../ebox
 
 .PHONY: all compile test check checkdoc load clean
 
