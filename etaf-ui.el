@@ -377,7 +377,11 @@ a stable Host reference."
    (".etaf-data-grid-header-cell" :face bold)
    (".etaf-data-grid-row" :padding (0 1)
     :border ((1) solid "#687386"))
-   (".selected" :color "#2F6B43" :bgcolor "#DCEBDD" :face bold)
+   ;; Keep selection visible without painting the row's stretch remainder as
+   ;; a misleading white bar; the row border and emphasized text are the
+   ;; interaction signal, while cell backgrounds remain transparent.
+   (".selected" :color "#2F6B43"
+    :border ((1) solid "#73A982") :face bold)
    (".etaf-data-grid-error" :color "#FF6B6B"))
   :view
   (column
