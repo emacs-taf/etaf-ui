@@ -43,9 +43,9 @@ the inherited Theme/default style available. Button has the deliberately small
 set, not a second widget taxonomy.
 
 Enabled buttons and checkboxes expose the same interaction affordances: a hand
-pointer, `mouse-face` hover feedback, a readable `help-echo`, a numeric tab
-stop, and a semantic role. Button presses briefly enter a `pressed` visual
-state. Disabled controls retain their text and disabled appearance but expose
+pointer, native `mouse-face` hover feedback, a readable `help-echo`, a numeric
+tab stop, and a semantic role. Hover ends when the pointer leaves; activation
+does not create retained visual state. Disabled controls retain their text and disabled appearance but expose
 no callback, pointer activation, or tab stop. The Runtime owns composition of
 an explicit `:on-*` callback with a Behavior callback; the UI package only
 declares the control and its visual state.
@@ -69,9 +69,12 @@ have no callback or tab stop. `:row-key` remains a required non-nil stable
 scalar identity for retained rows. DataGrid retains one action closure per
 row key, so selection or data Range updates do not recreate handlers for
 unchanged rows.
+An integer column `:width` is readable character capacity, not a raw pixel
+value. DataGrid passes Ebox's native character unit through and reserves one
+native character between non-final tracks.
 
 `etaf-pagination` is a controlled Data Component. It accepts a Data controller
-plus stable `:previous-ref` and `:next-ref` values, renders readable `‹`/`›`
+plus stable `:previous-ref` and `:next-ref` values, renders readable `←`/`→`
 controls and a `Page N / M` summary, and disables the boundary action while a
 page is loading or already at the first/last page. It owns no page state and
 uses the same Button interaction contract.

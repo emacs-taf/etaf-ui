@@ -210,8 +210,8 @@
       (when-let ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer))))))
 
-(ert-deftest etaf-ui-button-owns-pointer-hover-and-pressed-feedback ()
-  "Buttons expose native pointer/hover affordances and a pressed state."
+(ert-deftest etaf-ui-button-owns-native-hover-and-dispatch ()
+  "Buttons expose native hover affordances without retained press state."
   (let ((buffer-name " *etaf-ui-button-surface-test*")
         (presses 0))
     (unwind-protect
@@ -237,9 +237,13 @@
                                'health 'press)
           (should (= presses 1))
           (should (string-match-p
-                   "pressed"
+                   "enabled"
                    (plist-get (etaf-ui-test--props buffer-name 'health)
                               :class)))
+          (should-not (string-match-p
+                       "pressed"
+                       (plist-get (etaf-ui-test--props buffer-name 'health)
+                                  :class)))
             (should (eq before
                         (cdr (assq 'press
                                    (etaf-runtime-handler-for runtime 'health)))))))
@@ -381,8 +385,10 @@
             (should (equal (plist-get first :tab-index) 0))
             (should (equal (plist-get second :role) 'button))
             (should (equal (plist-get second :tab-index) 0))
-            (should (string-match-p "selected" (plist-get second :class)))
-            (should-not (string-match-p "selected" (plist-get first :class))))
+            (should (string-match-p
+                     "selected" (or (plist-get second :class) "")))
+            (should-not (string-match-p
+                         "selected" (or (plist-get first :class) ""))))
           (let* ((runtime (etaf-runtime-for-buffer buffer-name))
                  (handler (cdr (assq 'press
                                      (etaf-runtime-handler-for runtime
@@ -419,8 +425,8 @@
                         :previous-ref 'page-previous
                         :next-ref 'page-next)))
           (should (string-match-p "Page 1 / 3" (etaf-ui-test--text buffer-name)))
-          (should (string-match-p "‹" (etaf-ui-test--text buffer-name)))
-          (should (string-match-p "›" (etaf-ui-test--text buffer-name)))
+          (should (string-match-p "←" (etaf-ui-test--text buffer-name)))
+          (should (string-match-p "→" (etaf-ui-test--text buffer-name)))
           ;; Live Ebox windows reserve two pixels for the exclusive display
           ;; boundary; the pager must stay inside the corresponding 360px row.
           (ebox-surface-update-buffer-viewport (get-buffer buffer-name) 358 20)
@@ -451,6 +457,40 @@
       (when-let ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-pagination-composes-inside-a-grid-track ()
+  "Pagination must distribute free space inside its assigned Grid track."
+  (let* ((source (etaf-data-memory-source
+                  '((:id 1) (:id 2) (:id 3) (:id 4) (:id 5))
+                  :id-key :id))
+         (controller (etaf-data-controller source :page-size 2 :auto-load t))
+         (buffer-name " *etaf-ui-pagination-grid-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (grid :width '(360)
+                  :grid-template-columns '((80) (200) (80))
+             (text "Left")
+             (column :width 'stretch :padding '(0 2) :border "#CBD5E1"
+              (pagination :controller controller
+                          :previous-ref 'nested-page-previous
+                          :next-ref 'nested-page-next))
+             (text "Right"))))
+          (with-current-buffer buffer-name
+            (goto-char (point-min))
+            (while (< (point) (point-max))
+              (should (<= (ebox-string-pixel-width
+                           (buffer-substring (line-beginning-position)
+                                             (line-end-position)))
+                          360))
+              (forward-line 1))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-data-grid-keeps-long-cells-on-one-line ()
   "Long tabular values use an ellipsis instead of increasing row height."
   (let* ((source (etaf-data-memory-source
@@ -468,8 +508,32 @@
              :columns '((:key :title :label "Title" :width 22))
              :row-key (lambda (row) (plist-get row :id)))))
           (let ((text (etaf-ui-test--text buffer-name)))
-            (should (string-match-p "The Cathedral and th…" text))
+            (should (string-match-p "The Cathedral and the…" text))
             (should-not (string-match-p "The Cathedral and the Bazaar" text))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-data-grid-converts-character-columns-and-keeps-air ()
+  "Character column descriptors become pixel widths with a stable gap."
+  (let* ((source (etaf-data-memory-source
+                  '((:id 1 :progress 64 :kind "Essay")) :id-key :id))
+         (controller (etaf-data-controller source :auto-load t))
+         (buffer-name " *etaf-ui-grid-column-unit-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (data-grid
+             :controller controller
+             :columns '((:key :progress :label "Progress" :width 8)
+                        (:key :kind :label "Kind" :width 7))
+             :row-key (lambda (row) (plist-get row :id)))))
+          (should (string-match-p "Progress[[:space:]]+Kind"
+                                  (etaf-ui-test--text buffer-name))))
       (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)

@@ -38,9 +38,10 @@ Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil pre
 只提供刻意收敛的 `primary`、`secondary`、`ghost` 三种视觉 variant；这是
 视觉状态集合，不是第二套 widget 分类体系。
 
-启用的 button 和 checkbox 共享同一套交互反馈：小手指针、`mouse-face` 悬停
-反馈、可读的 `help-echo`、数字 tab stop 和语义 role。Button 按下时短暂进入
-`pressed` 外观。禁用控件保留文字和禁用样式，但没有回调、指针激活或 tab stop。
+启用的 button 和 checkbox 共享同一套交互反馈：小手指针、原生 `mouse-face`
+悬停反馈、可读的 `help-echo`、数字 tab stop 和语义 role。指针离开后 hover
+自动结束，点击不会产生 retained 视觉状态。禁用控件保留文字和禁用样式，但
+没有回调、指针激活或 tab stop。
 显式 `:on-*` 回调和 Behavior 回调的组合由 Runtime 负责；UI 包只声明控件和
 视觉状态。
 
@@ -59,9 +60,11 @@ DataGrid 支持列描述、函数型 `:row-key`，以及可选的
 行没有回调或 tab stop。`:row-key` 仍然是 retained row 必须具备的非 nil
 稳定标量 identity。DataGrid 按 row key 保留唯一 action closure，因此 selection
 或 Data Range 更新不会为未变化的行重建 handler。
+整数列 `:width` 表示可读字符容量，不是裸像素；DataGrid 原样使用 Ebox 原生字符单位，
+并在非末列之间保留一个原生字符间距。
 
 `etaf-pagination` 是受控 Data Component。它接收 Data controller 以及稳定的
-`:previous-ref`、`:next-ref`，显示易读的 `‹`/`›` 控件和 `Page N / M` 摘要；
+`:previous-ref`、`:next-ref`，显示易读的 `←`/`→` 控件和 `Page N / M` 摘要；
 加载中或已经位于首/末页时会禁用对应动作。它不拥有页码状态，并复用 Button
 的交互契约。
 
