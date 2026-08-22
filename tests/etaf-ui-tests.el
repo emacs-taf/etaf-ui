@@ -185,6 +185,31 @@
       (when-let ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-button-disabled-preserves-explicit-theme-surface ()
+  "A disabled Button keeps explicit dark presentation props in its surface."
+  (let ((buffer-name " *etaf-ui-themed-disabled-button-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (button :label "Unavailable" :ref 'themed-disabled
+                    :disabled t :color "#F4F7FF" :bgcolor "#202C42"
+                    :border "#34435A")))
+          (let ((position
+                 (with-current-buffer buffer-name
+                   (goto-char (point-min))
+                   (search-forward "Unavailable")
+                   (1- (point)))))
+            (with-current-buffer buffer-name
+              (let ((face (get-text-property position 'face)))
+                (should (string-match-p "#202C42" (format "%S" face)))
+                (should (string-match-p "#F4F7FF" (format "%S" face))))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer))))))
+
 (ert-deftest etaf-ui-button-owns-pointer-hover-and-pressed-feedback ()
   "Buttons expose native pointer/hover affordances and a pressed state."
   (let ((buffer-name " *etaf-ui-button-surface-test*")

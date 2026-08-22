@@ -254,6 +254,9 @@ SELECTED-KEY, and ROW-SELECTED-P provide interaction state."
                (variant (and (not disabled) (etaf-current-prop :variant)))
                (variant-values
                 (cond
+                 (disabled
+                  '(:color "#687386" :bgcolor "#E5E7EB"
+                    :border ((1) solid "#9CA3AF") :face normal))
                  ((and (eq variant 'secondary) state-pressed)
                   '(:color "#142235" :bgcolor "#B9DED7"
                     :border ((1) solid "#24736C") :face bold))
@@ -265,7 +268,16 @@ SELECTED-KEY, and ROW-SELECTED-P provide interaction state."
                     :border ((1) solid "#A79F93") :face normal))
                  ((eq variant 'ghost)
                   '(:color "#142235" :bgcolor "#FFFDF8"
-                    :border ((1) solid "#C8C1B6") :face normal)))))
+                    :border ((1) solid "#C8C1B6") :face normal))
+                 ;; The enabled/pressed catalog defaults used to come from
+                 ;; state selectors alone.  Resolve them as props too so an
+                 ;; explicit theme can override the same state boundary.
+                 (state-pressed
+                  '(:color "#FFFFFF" :bgcolor "#1E5A56"
+                    :border ((1) solid "#174A47") :face bold))
+                 (t
+                  '(:color "#FFFFFF" :bgcolor "#2F6B43"
+                    :border ((1) solid "#2F6B43") :face bold)))))
           (etaf-ui--button-view
            label (and press-p press) disabled (etaf-current-prop :ref)
            (let ((custom-class (etaf-current-prop :class)))
@@ -295,12 +307,12 @@ contract; callers can still override presentation with the ordinary props."
   :styles
   (styles
    ("&" :width max-content)
-   ("&.disabled" :color "#687386" :bgcolor "#E5E7EB"
-    :border ((1) solid "#9CA3AF") :padding (0 1) :face normal)
-   ("&.enabled" :color "#FFFFFF" :bgcolor "#2F6B43"
-    :border ((1) solid "#2F6B43") :padding (0 1) :face bold)
-   ("&.pressed" :color "#FFFFFF" :bgcolor "#1E5A56"
-    :border ((1) solid "#174A47") :padding (0 1) :face bold))
+   ;; State classes carry semantic state only.  Resolved presentation props
+   ;; above remain authoritative, so a themed disabled Button cannot inherit
+   ;; the catalog's light default surface.
+   ("&.disabled" :padding (0 1) :face normal)
+   ("&.enabled" :padding (0 1) :face bold)
+   ("&.pressed" :padding (0 1) :face bold))
   :setup
   (etaf-ui--button-setup))
 
