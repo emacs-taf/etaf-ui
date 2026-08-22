@@ -451,6 +451,31 @@
       (when-let ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-data-grid-keeps-long-cells-on-one-line ()
+  "Long tabular values use an ellipsis instead of increasing row height."
+  (let* ((source (etaf-data-memory-source
+                  '((:id 1 :title "The Cathedral and the Bazaar"))
+                  :id-key :id))
+         (controller (etaf-data-controller source :page-size 10 :auto-load t))
+         (buffer-name " *etaf-ui-grid-truncation-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (data-grid
+             :controller controller
+             :columns '((:key :title :label "Title" :width 22))
+             :row-key (lambda (row) (plist-get row :id)))))
+          (let ((text (etaf-ui-test--text buffer-name)))
+            (should (string-match-p "The Cathedral and th…" text))
+            (should-not (string-match-p "The Cathedral and the Bazaar" text))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-data-grid-noninteractive-rows-have-no-focus-contract ()
   "Rows without ON-ROW-PRESS have no role, ref callback, or tab stop."
   (let* ((source (etaf-data-memory-source '((:id 1 :name "Ada"))

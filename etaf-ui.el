@@ -106,6 +106,24 @@ TAB-INDEX, and ARIA-LABEL provide Host identity and presentation."
    ((listp row) (alist-get key row))
    (t nil)))
 
+(defun etaf-ui--grid-display-value (row column)
+  "Return one single-line display value for ROW and COLUMN.
+
+DataGrid columns are tabular tracks, not prose paragraphs.  Keep each cell on
+one visual line and use an ellipsis when a fixed character-width descriptor is
+too small; the original ROW remains intact for selection and callbacks."
+  (let* ((value (format "%s"
+                       (or (etaf-ui--grid-cell-value
+                            row (etaf-ui--column-value column :key)) "")))
+         (width (etaf-ui--column-value column :width)))
+    (if (and (integerp width) (> width 1)
+             (> (string-width value) width))
+        ;; Leave one character of the declared track for inter-column air;
+        ;; Ebox's left justification fills that remainder without changing
+        ;; the stable column geometry.
+        (truncate-string-to-width value (1- width) 0 nil "…")
+      value)))
+
 (defun etaf-ui--grid-header-cell (column)
   "Return one header View for COLUMN."
   (etaf-view
@@ -124,11 +142,9 @@ TAB-INDEX, and ARIA-LABEL provide Host identity and presentation."
 
 (defun etaf-ui--grid-cell (row column)
   "Return one data cell View for ROW and COLUMN."
-  (let ((key (etaf-ui--column-value column :key)))
-    (etaf-view
-     (text :width (etaf-ui--column-value column :width)
-           (expr :value
-                 (format "%s" (or (etaf-ui--grid-cell-value row key) "")))))))
+  (etaf-view
+   (text :width (etaf-ui--column-value column :width)
+         (expr :value (etaf-ui--grid-display-value row column)))))
 
 (defun etaf-ui--grid-cells (row columns)
   "Return data cell Views for ROW and COLUMNS."
