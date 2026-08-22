@@ -66,7 +66,9 @@ row is an interactive button: `:row-ref` is required, must return a non-nil
 stable Host reference for each row, and the row receives role `button` and
 tab index `0`. `:on-row-press` receives the row. Without `:on-row-press`, rows
 have no callback or tab stop. `:row-key` remains a required non-nil stable
-scalar identity for retained rows.
+scalar identity for retained rows. DataGrid retains one action closure per
+row key, so selection or data Range updates do not recreate handlers for
+unchanged rows.
 
 `etaf-pagination` is a controlled Data Component. It accepts a Data controller
 plus stable `:previous-ref` and `:next-ref` values, renders readable `‹`/`›`

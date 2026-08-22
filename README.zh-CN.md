@@ -57,7 +57,8 @@ DataGrid 支持列描述、函数型 `:row-key`，以及可选的
 提供 `:row-ref`，它对每一行返回非 nil 的稳定 Host ref；行会获得
 `button` role 和 `tab-index 0`，且回调接收该行。没有 `:on-row-press` 时，
 行没有回调或 tab stop。`:row-key` 仍然是 retained row 必须具备的非 nil
-稳定标量 identity。
+稳定标量 identity。DataGrid 按 row key 保留唯一 action closure，因此 selection
+或 Data Range 更新不会为未变化的行重建 handler。
 
 `etaf-pagination` 是受控 Data Component。它接收 Data controller 以及稳定的
 `:previous-ref`、`:next-ref`，显示易读的 `‹`/`›` 控件和 `Page N / M` 摘要；

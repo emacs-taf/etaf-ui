@@ -358,14 +358,20 @@
             (should (equal (plist-get second :tab-index) 0))
             (should (string-match-p "selected" (plist-get second :class)))
             (should-not (string-match-p "selected" (plist-get first :class))))
-          (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
-                               'row-1 'press)
-          (should (equal (plist-get pressed :id) 1))
-          (etaf-data-mutate controller 'insert '(:id 3 :name "Alan"))
-          (should (string-match-p "Alan" (etaf-ui-test--text buffer-name)))
-          (should (equal (plist-get (etaf-ui-test--props buffer-name 'row-3)
-                                    :tab-index)
-                         0)))
+          (let* ((runtime (etaf-runtime-for-buffer buffer-name))
+                 (handler (cdr (assq 'press
+                                     (etaf-runtime-handler-for runtime
+                                                               'row-1)))))
+            (etaf-dispatch-event runtime 'row-1 'press)
+            (should (equal (plist-get pressed :id) 1))
+            (etaf-data-mutate controller 'insert '(:id 3 :name "Alan"))
+            (should (eq handler
+                        (cdr (assq 'press
+                                   (etaf-runtime-handler-for runtime 'row-1)))))
+            (should (string-match-p "Alan" (etaf-ui-test--text buffer-name)))
+            (should (equal (plist-get (etaf-ui-test--props buffer-name 'row-3)
+                                      :tab-index)
+                           0))))
       (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
@@ -390,6 +396,17 @@
           (should (string-match-p "Page 1 / 3" (etaf-ui-test--text buffer-name)))
           (should (string-match-p "‹" (etaf-ui-test--text buffer-name)))
           (should (string-match-p "›" (etaf-ui-test--text buffer-name)))
+          ;; Live Ebox windows reserve two pixels for the exclusive display
+          ;; boundary; the pager must stay inside the corresponding 360px row.
+          (ebox-surface-update-buffer-viewport (get-buffer buffer-name) 358 20)
+          (with-current-buffer buffer-name
+            (goto-char (point-min))
+            (while (< (point) (point-max))
+              (should (<= (ebox-string-pixel-width
+                           (buffer-substring (line-beginning-position)
+                                             (line-end-position)))
+                          360))
+              (forward-line 1)))
           (should (eq (nth 0 (etaf-ui-test--surface-properties
                               buffer-name 'page-next))
                       'hand))

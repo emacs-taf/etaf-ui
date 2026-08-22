@@ -139,12 +139,29 @@ TAB-INDEX, and ARIA-LABEL provide Host identity and presentation."
   (or (and row-selected-p (funcall row-selected-p row))
       (and selected-key (equal key selected-key))))
 
+(defun etaf-ui--grid-row-action (cache key row callback)
+  "Return CACHE's stable row action for KEY, refreshing ROW and CALLBACK."
+  (let ((entry (gethash key cache)))
+    (unless entry
+      (setq entry (vector row callback nil))
+      (aset entry 2
+            (lambda ()
+              (let ((current (aref entry 1)))
+                (when current
+                  (funcall current (aref entry 0))))))
+      (puthash key entry cache))
+    (aset entry 0 row)
+    (aset entry 1 callback)
+    (aref entry 2)))
+
 (defun etaf-ui--grid-row
-    (row columns row-key row-ref on-row-press selected-key row-selected-p)
+    (row columns row-key row-ref on-row-press selected-key row-selected-p
+         row-actions)
   "Return a View row for ROW and COLUMNS with the DataGrid contract.
 
 ROW-KEY returns identity; ROW-REF returns the interactive reference;
-ON-ROW-PRESS, SELECTED-KEY, and ROW-SELECTED-P control state."
+ON-ROW-PRESS, SELECTED-KEY, and ROW-SELECTED-P control state.  ROW-ACTIONS
+owns stable keyed callbacks across Range reevaluation."
   (let* ((key (funcall row-key row))
          (interactive-p (not (null on-row-press)))
          (selected-p (etaf-ui--grid-selected-p
@@ -171,8 +188,29 @@ ON-ROW-PRESS, SELECTED-KEY, and ROW-SELECTED-P control state."
         (etaf-ui--interactive-surface-properties
          (format "Row %s" key) nil))
       :on-press (when interactive-p
-                  (lambda () (funcall on-row-press row)))
+                  (etaf-ui--grid-row-action
+                   row-actions key row on-row-press))
       (expr :value (etaf-ui--grid-cells row columns))))))
+
+(defun etaf-ui--grid-rows
+    (items columns row-key row-ref on-row-press selected-key row-selected-p
+           row-actions)
+  "Return keyed item Views and prune ROW-ACTIONS outside current ITEMS.
+COLUMNS and ROW-KEY describe cells and identity.  ROW-REF, ON-ROW-PRESS,
+SELECTED-KEY, and ROW-SELECTED-P provide interaction state."
+  (let ((seen (make-hash-table :test #'equal)))
+    (prog1
+        (mapcar
+         (lambda (item)
+           (puthash (funcall row-key item) t seen)
+           (etaf-ui--grid-row
+            item columns row-key row-ref on-row-press selected-key
+            row-selected-p row-actions))
+         items)
+      (maphash (lambda (key _entry)
+                 (unless (gethash key seen)
+                   (remhash key row-actions)))
+               row-actions))))
 
 (defun etaf-ui--button-setup ()
   "Create the retained renderer for one Button instance."
@@ -377,47 +415,58 @@ a stable Host reference."
    (".etaf-data-grid-header-cell" :face bold)
    (".etaf-data-grid-row" :padding (0 1)
     :border ((1) solid "#687386"))
-   ;; Keep selection visible without painting the row's stretch remainder as
-   ;; a misleading white bar; the row border and emphasized text are the
-   ;; interaction signal, while cell backgrounds remain transparent.
    (".selected" :color "#2F6B43"
-    :border ((1) solid "#73A982") :face bold)
+    :border ((1) solid "#73A982"))
    (".etaf-data-grid-error" :color "#FF6B6B"))
-  :view
-  (column
-   :class "etaf-data-grid"
-   (expr :value (etaf-ui--grid-header columns))
-   (column
-    :class "etaf-data-grid-body"
-    (expr
-     :value
-     (progn
-       (unless (functionp row-key)
-         (error "ETAF DataGrid requires a function-valued :row-key"))
-       (when (and on-row-press (not (functionp on-row-press)))
-         (error "ETAF DataGrid :on-row-press must be a function"))
-       (when (and on-row-press (not (functionp row-ref)))
-         (error "ETAF DataGrid requires :row-ref for interactive rows"))
-       (when (and row-selected-p (not (functionp row-selected-p)))
-         (error "ETAF DataGrid :row-selected-p must be a function"))
-       (let ((status (etaf-value (etaf-data-status controller)))
-             (items (etaf-value (etaf-data-items controller))))
-         (cond
-          ((eq status 'loading)
-           (etaf-view (text (expr :value (or loading-label "Loading...")))))
-          ((eq status 'error)
-           (etaf-view
-            (text :class "etaf-data-grid-error"
-                  (expr :value (or error-label "Unable to load data.")))))
-          ((null items)
-           (etaf-view (text (expr :value (or empty-label "No data.")))))
-          (t
-           (mapcar (lambda (item)
-                     (etaf-ui--grid-row
-                      item columns row-key row-ref on-row-press
-                      selected-key row-selected-p))
-                   items)))))))
-   (slot :name 'footer)))
+  :setup
+  (let ((row-actions (make-hash-table :test #'equal)))
+    (lambda ()
+      (let ((controller (etaf-current-prop :controller))
+            (columns (etaf-current-prop :columns))
+            (row-key (etaf-current-prop :row-key))
+            (row-ref (etaf-current-prop :row-ref))
+            (on-row-press (etaf-current-prop :on-row-press))
+            (selected-key (etaf-current-prop :selected-key))
+            (row-selected-p (etaf-current-prop :row-selected-p))
+            (loading-label (etaf-current-prop :loading-label))
+            (error-label (etaf-current-prop :error-label))
+            (empty-label (etaf-current-prop :empty-label)))
+        (etaf-view
+         (column
+          :class "etaf-data-grid"
+          (expr :value (etaf-ui--grid-header columns))
+          (column
+           :class "etaf-data-grid-body"
+           (expr
+            :value
+            (progn
+              (unless (functionp row-key)
+                (error "ETAF DataGrid requires a function-valued :row-key"))
+              (when (and on-row-press (not (functionp on-row-press)))
+                (error "ETAF DataGrid :on-row-press must be a function"))
+              (when (and on-row-press (not (functionp row-ref)))
+                (error "ETAF DataGrid requires :row-ref for interactive rows"))
+              (when (and row-selected-p (not (functionp row-selected-p)))
+                (error "ETAF DataGrid :row-selected-p must be a function"))
+              (let ((status (etaf-value (etaf-data-status controller)))
+                    (items (etaf-value (etaf-data-items controller))))
+                (cond
+                 ((eq status 'loading)
+                  (etaf-view
+                   (text (expr :value (or loading-label "Loading...")))))
+                 ((eq status 'error)
+                  (etaf-view
+                   (text :class "etaf-data-grid-error"
+                         (expr :value
+                               (or error-label "Unable to load data.")))))
+                 ((null items)
+                  (etaf-view
+                   (text (expr :value (or empty-label "No data.")))))
+                 (t
+                  (etaf-ui--grid-rows
+                   items columns row-key row-ref on-row-press selected-key
+                   row-selected-p row-actions))))))
+          (slot :name 'footer))))))))
 
 ;;;###autoload
 (etaf-define-component etaf-pagination
@@ -432,7 +481,7 @@ the pager participates in keyboard/mouse interaction.  The visible glyphs
 readable in both GUI and text review."
   :styles
   (styles
-   ("&" :width stretch :padding (0 1))
+   ("&" :width stretch)
    (".etaf-pagination-label" :face bold)
    (".etaf-pagination-summary" :color "#526174"))
   :setup
@@ -469,9 +518,11 @@ readable in both GUI and text review."
           (button :label "‹" :ref (etaf-current-prop :previous-ref)
                   :aria-label "Previous page"
                   :disabled previous-disabled
+                  :padding '(0 0)
+                  :border '((0) solid "transparent")
                   :variant 'secondary
                   :on-press (unless previous-disabled previous))
-          (column :width 'stretch
+          (column :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0
            (text :class "etaf-pagination-label" :text-align 'center
                  (expr :value (format "Page %d / %d" page pages)))
            (text :class "etaf-pagination-summary" :text-align 'center
@@ -480,6 +531,8 @@ readable in both GUI and text review."
           (button :label "›" :ref (etaf-current-prop :next-ref)
                   :aria-label "Next page"
                   :disabled next-disabled
+                  :padding '(0 0)
+                  :border '((0) solid "transparent")
                   :variant 'secondary
                   :on-press (unless next-disabled next))))))))
 
