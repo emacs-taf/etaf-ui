@@ -532,23 +532,29 @@ readable in both GUI and text review."
              (first-item (if (zerop total) 0 (1+ (* (1- page) page-size))))
              (last-item (min total (* page page-size)))
              (previous-disabled (or (eq status 'loading) (<= page 1)))
-             (next-disabled (or (eq status 'loading) (>= page pages))))
+             (next-disabled (or (eq status 'loading) (>= page pages)))
+             (parent-color (etaf-current-prop :color))
+             (parent-bgcolor (etaf-current-prop :bgcolor))
+             (arrow-border '((0) solid "transparent")))
         (setq current-controller controller-value)
         (etaf-view
          (row :class (etaf-ui--class-value "etaf-pagination" nil
                                            (etaf-current-prop :class))
               :role 'navigation
               :aria-label (or (etaf-current-prop :aria-label) "Pagination")
-              :color (etaf-current-prop :color)
-              :bgcolor (etaf-current-prop :bgcolor)
+              :color parent-color
+              :bgcolor parent-bgcolor
               :border (etaf-current-prop :border)
-              :padding (etaf-current-prop :padding)
+              :padding (or (etaf-current-prop :padding) '(0 1))
+              :gap '(0 (2))
           (button :label "‹" :ref (etaf-current-prop :previous-ref)
                   :aria-label "Previous page"
                   :disabled previous-disabled
                   :padding '(0 0)
-                  :border '((0) solid "transparent")
-                  :variant 'secondary
+                  :border arrow-border
+                  :color (if previous-disabled "#9CA3AF" parent-color)
+                  :bgcolor parent-bgcolor
+                  :face 'bold
                   :on-press (unless previous-disabled previous))
           (column :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0
            (text :class "etaf-pagination-label" :text-align 'center
@@ -560,8 +566,10 @@ readable in both GUI and text review."
                   :aria-label "Next page"
                   :disabled next-disabled
                   :padding '(0 0)
-                  :border '((0) solid "transparent")
-                  :variant 'secondary
+                  :border arrow-border
+                  :color (if next-disabled "#9CA3AF" parent-color)
+                  :bgcolor parent-bgcolor
+                  :face 'bold
                   :on-press (unless next-disabled next))))))))
 
 (provide 'etaf-ui)
