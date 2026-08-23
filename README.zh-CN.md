@@ -33,6 +33,19 @@ Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 `checkbox` role、稳定的 `:ref` 和 `tab-index 0`；`:on-change` 接收下一个
 布尔值。禁用 checkbox 没有回调或 tab stop。
 
+`etaf-number-input` 是一个受控的轻量输入组件；需要编辑数值时，它使用
+Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`、
+`:max`、`:ref` 和 `:disabled`，回调接收校验后的整数，ref 仍由调用方持有。
+
+目录统一使用语义化的 Theme 色彩 vocabulary，主要 token 包括
+`:ui-fg`、`:ui-bg`、`:ui-border`、`:ui-muted-fg`、`:ui-disabled-*`、
+`:ui-button-primary-*`、`:ui-button-secondary-*`、`:ui-button-ghost-*`、
+`:ui-checkbox-*`、`:ui-grid-*` 和 `:ui-panel-*`。应用通过 ETAF 的
+`etaf-theme-provide` 提供这些 token；旧的 `:ui-button-color` 一类 alias
+仍兼容。`etaf-ui` 不依赖 TP，也不直接依赖 renderer-specific palette
+registry；如果应用想使用 TP 的亮/暗 palette 数据，应先通过可选的
+`etaf-theme-tp` adapter 转成同一份 ETAF Theme plist，再交给 UI 目录。
+
 Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil presentation
 属性会覆盖默认值；省略或传 nil 时，继承的 Theme/默认样式仍可生效。Button
 只提供刻意收敛的 `primary`、`secondary`、`ghost` 三种视觉 variant；这是

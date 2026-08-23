@@ -19,7 +19,17 @@
   (let (found)
     (maphash
      (lambda (_ref props)
-       (when (equal (plist-get props :key) key)
+     (when (equal (plist-get props :key) key)
+         (setq found props)))
+     (etaf-runtime-host-props (etaf-runtime-for-buffer buffer-name)))
+    found))
+
+(defun etaf-ui-test--props-with-class (buffer-name class)
+  "Return mounted Host properties with CLASS in BUFFER-NAME."
+  (let (found)
+    (maphash
+     (lambda (_ref props)
+       (when (equal (plist-get props :class) class)
          (setq found props)))
      (etaf-runtime-host-props (etaf-runtime-for-buffer buffer-name)))
     found))
@@ -59,6 +69,38 @@
         (label :text "Themed" :ref 'themed-label
                :color nil :bgcolor nil)
         (panel :title "Styled panel" :ref 'styled-panel))))))
+
+(etaf-define-component etaf-ui-test-token-theme-fixture ()
+  "Provide explicit UI Button tokens through ETAF Theme."
+  :setup
+  (progn
+    (etaf-theme-provide
+     '(:ui-button-color "token-fg"
+       :ui-button-bgcolor "token-bg"
+       :ui-button-border "token-border"
+       :ui-button-secondary-color "secondary-fg"
+       :ui-button-secondary-bgcolor "secondary-bg"
+       :ui-button-secondary-border "secondary-border"))
+    (lambda ()
+      (etaf-view
+       (row
+        (button :label "Token" :ref 'token-button)
+        (button :label "Secondary" :ref 'token-secondary
+                :variant 'secondary))))))
+
+(etaf-define-component etaf-ui-test-grid-theme-fixture
+    (&key controller theme)
+  "Provide a reactive Theme around one DataGrid for palette tests."
+  :setup
+  (progn
+    (etaf-theme-provide (etaf-current-prop :theme))
+    (lambda ()
+      (etaf-view
+       (data-grid
+        :controller (etaf-current-prop :controller)
+        :columns '((:key :id :label "ID") (:key :name :label "Name"))
+        :row-key (lambda (row) (plist-get row :id))
+         :selected-key 1)))))
 
 (ert-deftest etaf-ui-button-use-behavior-dispatches-through-host ()
   "Install Button `:use' Behavior and dispatch its merged callback."
@@ -101,6 +143,49 @@
             (should (equal (plist-get panel :color) "#252A2E"))
             (should (equal (plist-get panel :bgcolor) "#FFFDF8"))
             (should (equal (plist-get panel :padding) '(1 2)))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-button-reads-variant-tokens-from-theme ()
+  "Resolve Button presentation defaults from inherited Theme tokens."
+  (let ((buffer-name " *etaf-ui-button-token-theme-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer-name
+                      (etaf-view (ui-test-token-theme-fixture)))
+          (let ((token (etaf-ui-test--props buffer-name 'token-button))
+                (secondary (etaf-ui-test--props buffer-name 'token-secondary)))
+            (should (equal "token-fg" (plist-get token :color)))
+            (should (equal "token-bg" (plist-get token :bgcolor)))
+            (should (equal "token-border" (plist-get token :border)))
+            (should (equal "secondary-fg" (plist-get secondary :color)))
+            (should (equal "secondary-bg" (plist-get secondary :bgcolor)))
+            (should (equal "secondary-border"
+                           (plist-get secondary :border)))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-number-input-validates-and-emits-value ()
+  "Prompt-backed number input owns bounds and emits the accepted value."
+  (let ((buffer-name " *etaf-ui-number-input-test*")
+        (value 3))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (number-input :label "Rows" :value value :ref 'rows
+                          :min 1 :max 10
+                          :on-change (lambda (next) (setq value next)))))
+          (cl-letf (((symbol-function 'read-number)
+                     (lambda (&rest _args) 7)))
+            (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
+                                 'rows 'press))
+          (should (= 7 value)))
       (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (when-let ((buffer (get-buffer buffer-name)))
@@ -403,6 +488,48 @@
             (should (equal (plist-get (etaf-ui-test--props buffer-name 'row-3)
                                       :tab-index)
                            0))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-data-grid-follows-inherited-theme-color ()
+  "Re-render DataGrid rows when only inherited Theme color changes."
+  (let* ((theme (etaf-ref '(:color "light-ink"
+                             :ui-grid-border "light-grid-border"
+                             :ui-grid-selected-fg "light-selected"
+                             :ui-grid-selected-bg "light-selected-bg")))
+         (source (etaf-data-memory-source
+                  '((:id 1 :name "Ada") (:id 2 :name "Grace")) :id-key :id))
+         (controller (etaf-data-controller source :auto-load t))
+         (buffer-name " *etaf-ui-grid-theme-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (ui-test-grid-theme-fixture :controller controller :theme theme)))
+          (should (equal "light-selected-bg"
+                         (plist-get (etaf-ui-test--props-with-key buffer-name 1)
+                                    :bgcolor)))
+          (should (equal "light-grid-border"
+                         (plist-get (etaf-ui-test--props-with-key
+                                     buffer-name 1)
+                                    :border-bottom-color)))
+          (should (plist-get (etaf-ui-test--props-with-key buffer-name 1)
+                             :border-bottom-p))
+          (setf (etaf-value theme) '(:color "dark-ink"
+                                      :ui-grid-border "dark-grid-border"
+                                      :ui-grid-selected-fg "dark-selected"
+                                      :ui-grid-selected-bg "dark-selected-bg"))
+          (should (equal "dark-selected-bg"
+                         (plist-get (etaf-ui-test--props-with-key buffer-name 1)
+                                    :bgcolor)))
+          (should (equal "dark-grid-border"
+                         (plist-get (etaf-ui-test--props-with-key
+                                     buffer-name 1)
+                                    :border-bottom-color))))
       (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)

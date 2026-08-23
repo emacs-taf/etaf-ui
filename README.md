@@ -36,6 +36,22 @@ role `checkbox`, a stable `:ref`, and tab index `0` while enabled. Its
 `:on-change` receives the next boolean value; disabled checkboxes have no
 handler or tab stop.
 
+`etaf-number-input` is a small controlled input primitive for values edited
+through Emacs's native minibuffer. It accepts `:value`, `:label`, `:on-change`,
+`:min`, `:max`, `:ref`, and `:disabled`; the callback receives the validated
+integer while the caller remains the owner of the ref.
+
+The catalog uses one semantic Theme vocabulary for color roles. The main
+tokens are `:ui-fg`, `:ui-bg`, `:ui-border`, `:ui-muted-fg`,
+`:ui-disabled-*`, `:ui-button-primary-*`, `:ui-button-secondary-*`,
+`:ui-button-ghost-*`, `:ui-checkbox-*`, `:ui-grid-*`, and
+`:ui-panel-*`. Applications provide these through ETAF's
+`etaf-theme-provide`; legacy `:ui-button-color`-style aliases remain accepted
+for compatibility. `etaf-ui` does not depend on TP or on a renderer-specific
+palette registry. If an application wants TP's light/dark palette data, the
+optional `etaf-theme-tp` adapter converts it into the same ETAF Theme plist
+before the UI catalog sees it.
+
 Component `:styles` declarations own default appearance. A non-nil
 presentation prop supplied by the caller wins; an omitted or nil prop leaves
 the inherited Theme/default style available. Button has the deliberately small
