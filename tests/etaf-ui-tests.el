@@ -43,6 +43,20 @@
             (get-text-property position 'mouse-face)
             (get-text-property position 'help-echo)))))
 
+(defun etaf-ui-test--paint-color (value property)
+  "Return effective paint color from VALUE for Ebox PROPERTY."
+  (if (not (tp-paint-slot-p value))
+      value
+    (let ((spec (tp-paint-slot-spec value)))
+      (pcase property
+        (:color (plist-get spec :foreground))
+        ((or :bgcolor :background-color) (plist-get spec :background))
+        (:border-top-color (plist-get spec :overline))
+        (:border-bottom-color
+         (plist-get (plist-get spec :underline) :color))
+        ((or :border-left-color :border-right-color)
+         (plist-get spec :background))))))
+
 (defvar etaf-ui-test-use-count 0)
 
 (etaf-define-behavior etaf-ui-test-press-behavior (&rest attributes)
@@ -371,6 +385,59 @@
       (when-let ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-checkbox-reactive-value-updates-through-inline-range ()
+  "Update a reactive CHECKED source without rerunning Checkbox Component."
+  (let ((buffer-name " *etaf-ui-reactive-checkbox-test*")
+        (checked (etaf-ref nil))
+        (component-renders 0))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (checkbox :label "Live" :ref 'live-checkbox :checked checked
+                      :on-change (lambda (value)
+                                   (setf (etaf-value checked) value)))))
+          (let ((render (symbol-function
+                         'etaf--runtime-render-dirty-component)))
+            (cl-letf (((symbol-function 'etaf--runtime-render-dirty-component)
+                       (lambda (&rest arguments)
+                         (cl-incf component-renders)
+                         (apply render arguments))))
+              (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
+                                   'live-checkbox 'press)))
+          (should (etaf-value checked))
+          (should (string-match-p "☑ Live"
+                                  (etaf-ui-test--text buffer-name)))
+          (should (zerop component-renders)))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-label-reactive-text-updates-through-inline-range ()
+  "Update reactive Label text without rerunning its Component."
+  (let ((buffer-name " *etaf-ui-reactive-label-test*")
+        (text (etaf-ref "One"))
+        (component-renders 0))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer-name
+                      (etaf-view (label :text text :ref 'live-label)))
+          (let ((render (symbol-function
+                         'etaf--runtime-render-dirty-component)))
+            (cl-letf (((symbol-function 'etaf--runtime-render-dirty-component)
+                       (lambda (&rest arguments)
+                         (cl-incf component-renders)
+                         (apply render arguments))))
+              (setf (etaf-value text) "Two")))
+          (should (equal "Two" (etaf-ui-test--text buffer-name)))
+          (should (zerop component-renders)))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-checkbox-disabled-is-not-interactive ()
   "A disabled checkbox has no callback or tab stop and remains visible."
   (let ((buffer-name " *etaf-ui-disabled-checkbox-test*")
@@ -494,6 +561,98 @@
       (when-let ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-data-grid-default-selection-updates-only-delta-hosts ()
+  "Controller selection updates old/new row Hosts without rebuilding rows."
+  (let* ((source (etaf-data-memory-source
+                  '((:id 1 :name "Ada")
+                    (:id 2 :name "Grace")
+                    (:id 3 :name "Alan"))
+                  :id-key :id))
+         (controller (etaf-data-controller source :auto-load t))
+         (buffer-name " *etaf-ui-grid-keyed-selection-test*")
+         (row-renders (make-hash-table :test #'eql))
+         (body-renders 0)
+         host-updates)
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (data-grid
+             :controller controller
+             :columns '((:key :id :label "ID")
+                        (:key :name :label "Name"))
+             :row-key (lambda (row) (plist-get row :id))
+             :row-ref (lambda (row)
+                        (intern (format "keyed-row-%d" (plist-get row :id))))
+             :on-row-press
+             (lambda (row)
+               (etaf-data-select-one controller (plist-get row :id))))))
+          (etaf-data-select-one controller 1)
+          (let* ((runtime (etaf-runtime-for-buffer buffer-name))
+                 (text-before (etaf-ui-test--text buffer-name))
+                 (third-handler
+                  (cdr (assq 'press
+                             (etaf-runtime-handler-for runtime 'keyed-row-3))))
+                 (old-grid-row (symbol-function 'etaf-ui--grid-row))
+                 (old-grid-rows (symbol-function 'etaf-ui--grid-rows))
+                 (old-host
+                  (symbol-function 'ebox-candidate-replace-host-ref))
+                 (old-paint
+                  (symbol-function 'ebox-candidate-patch-host-paint)))
+            (cl-letf (((symbol-function 'etaf-ui--grid-row)
+                       (lambda (&rest args)
+                         (let ((key (nth 1 args)))
+                           (puthash key (1+ (gethash key row-renders 0))
+                                    row-renders))
+                         (apply old-grid-row args)))
+                      ((symbol-function 'etaf-ui--grid-rows)
+                       (lambda (&rest args)
+                         (cl-incf body-renders)
+                         (apply old-grid-rows args)))
+                      ((symbol-function 'ebox-candidate-replace-host-ref)
+                       (lambda (candidate ref node)
+                         (push ref host-updates)
+                         (funcall old-host candidate ref node)))
+                      ((symbol-function 'ebox-candidate-patch-host-paint)
+                       (lambda (candidate ref old-node new-node)
+                         (push ref host-updates)
+                         (funcall old-paint candidate ref old-node new-node))))
+              ;; Prove direct public selection ref writes use the same keyed
+              ;; invalidation path as the selection helpers.
+              (setf (etaf-value (etaf-data-selection controller)) '(2)))
+            (should (zerop (gethash 1 row-renders 0)))
+            (should (zerop (gethash 2 row-renders 0)))
+            (should (zerop (gethash 3 row-renders 0)))
+            (should (zerop (hash-table-count row-renders)))
+            (should (zerop body-renders))
+            (should (member 'keyed-row-1 host-updates))
+            (should (member 'keyed-row-2 host-updates))
+            (should-not (member 'keyed-row-3 host-updates))
+            (should (equal text-before (etaf-ui-test--text buffer-name)))
+            (should-not
+             (string-match-p
+              "selected"
+              (or (plist-get (etaf-ui-test--props buffer-name 'keyed-row-1)
+                             :class)
+                  "")))
+            (should
+             (string-match-p
+              "selected"
+              (or (plist-get (etaf-ui-test--props buffer-name 'keyed-row-2)
+                             :class)
+                  "")))
+            (should (eq third-handler
+                        (cdr (assq
+                              'press
+                              (etaf-runtime-handler-for runtime
+                                                        'keyed-row-3)))))))
+      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-data-grid-follows-inherited-theme-color ()
   "Re-render DataGrid rows when only inherited Theme color changes."
   (let* ((theme (etaf-ref '(:color "light-ink"
@@ -510,26 +669,30 @@
            buffer-name
            (etaf-view
             (ui-test-grid-theme-fixture :controller controller :theme theme)))
+          (let* ((props (etaf-ui-test--props-with-key buffer-name 1))
+                 (background-slot (plist-get props :bgcolor))
+                 (border-slot (plist-get props :border-bottom-color)))
           (should (equal "light-selected-bg"
-                         (plist-get (etaf-ui-test--props-with-key buffer-name 1)
-                                    :bgcolor)))
+                         (etaf-ui-test--paint-color
+                          background-slot :bgcolor)))
           (should (equal "light-grid-border"
-                         (plist-get (etaf-ui-test--props-with-key
-                                     buffer-name 1)
-                                    :border-bottom-color)))
+                         (etaf-ui-test--paint-color
+                          border-slot :border-bottom-color)))
           (should (plist-get (etaf-ui-test--props-with-key buffer-name 1)
                              :border-bottom-p))
           (setf (etaf-value theme) '(:color "dark-ink"
                                       :ui-grid-border "dark-grid-border"
                                       :ui-grid-selected-fg "dark-selected"
                                       :ui-grid-selected-bg "dark-selected-bg"))
-          (should (equal "dark-selected-bg"
-                         (plist-get (etaf-ui-test--props-with-key buffer-name 1)
-                                    :bgcolor)))
-          (should (equal "dark-grid-border"
-                         (plist-get (etaf-ui-test--props-with-key
-                                     buffer-name 1)
-                                    :border-bottom-color))))
+          (let ((next (etaf-ui-test--props-with-key buffer-name 1)))
+            (should (eq background-slot (plist-get next :bgcolor)))
+            (should (eq border-slot (plist-get next :border-bottom-color)))
+            (should (equal "dark-selected-bg"
+                           (etaf-ui-test--paint-color
+                            background-slot :bgcolor)))
+            (should (equal "dark-grid-border"
+                           (etaf-ui-test--paint-color
+                            border-slot :border-bottom-color))))))
       (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)

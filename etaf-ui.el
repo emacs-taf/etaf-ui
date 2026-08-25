@@ -24,6 +24,7 @@
 (declare-function etaf-data-total "etaf-data" (controller))
 (declare-function etaf-data-previous-page "etaf-data" (controller))
 (declare-function etaf-data-next-page "etaf-data" (controller))
+(declare-function etaf-data-selected-ref "etaf-data" (controller identity))
 (declare-function etaf-theme-defaults "etaf-context" (&optional default))
 (declare-function text "etaf-view" (&rest arguments))
 (declare-function row "etaf-view" (&rest arguments))
@@ -125,16 +126,37 @@ REQUESTED is nil, return the complete catalog token map."
       )
     result))
 
+(defun etaf-ui-theme-tokens (&rest requested)
+  "Return deferred semantic Theme tokens for REQUESTED UI keys.
+
+Catalog defaults and legacy aliases are encoded as nested token fallbacks, so
+Host lowering can update paint properties without making the current
+Component render depend on the Theme source."
+  (let ((keys (or requested
+                  (cl-loop for (key _spec) on etaf-ui--default-theme-palette
+                           by #'cddr collect key)))
+        result)
+    (dolist (key keys result)
+      (let* ((default (plist-get etaf-ui--default-theme-palette key))
+             (alias (cadr (assq key etaf-ui--legacy-theme-aliases)))
+             (fallback (if alias (etaf-theme-token alias default) default)))
+        (setq result
+              (plist-put result key (etaf-theme-token key fallback)))))))
+
 (defun etaf-ui--theme-border (value)
   "Return Ebox border VALUE, preserving complete caller-owned specs.
 
 Semantic Theme border tokens conventionally contain a color string.  The
 catalog turns a hex color into its one-cell border shape; an existing border
 plist or a legacy caller-owned string remains untouched for compatibility."
-  (if (and (stringp value)
-           (string-match-p "\\`#[[:xdigit:]]+\\'" value))
-      (list (list 1) 'solid value)
-    value))
+  (cond
+   ((etaf-theme-token-p value)
+    (etaf-theme-token (nth 1 value) (nth 2 value)
+                      #'etaf-ui--theme-border))
+   ((and (stringp value)
+         (string-match-p "\\`#[[:xdigit:]]+\\'" value))
+    (list (list 1) 'solid value))
+   (t value)))
 
 (defun etaf-ui--class-value (base state custom)
   "Return BASE and STATE classes with optional CUSTOM classes."
@@ -147,6 +169,12 @@ plist or a legacy caller-owned string remains untouched for compatibility."
                               (or (null class) (equal class "")))
                             (append (list base state) custom))
                " ")))
+
+(defun etaf-ui--reactive-value (value)
+  "Return VALUE, reading it when it is an ETAF reactive source."
+  (if (or (etaf-ref-p value) (etaf-computed-p value))
+      (etaf-value value)
+    value))
 
 (defun etaf-ui--interactive-surface-properties (label disabled)
   "Return shared text properties for an interactive LABEL surface.
@@ -175,7 +203,7 @@ the optional text properties and keep the semantic role/event contract."
                        ((eq variant 'secondary) :ui-button-secondary-border)
                        ((eq variant 'ghost) :ui-button-ghost-border)
                        (t :ui-button-primary-border)))
-         (theme (etaf-ui-theme-values fg bg border)))
+         (theme (etaf-ui-theme-tokens fg bg border)))
     (list :color (plist-get theme fg)
           :bgcolor (plist-get theme bg)
           :border (etaf-ui--theme-border (plist-get theme border))
@@ -291,22 +319,32 @@ too small; the original ROW remains intact for selection and callbacks."
                    collect (etaf-ui--grid-header-cell
                             column (cdr tail)))))))
 
-(defun etaf-ui--grid-cell (row column gap-p)
-  "Return one data cell View for ROW and COLUMN, using GAP-P for air."
+(defun etaf-ui--grid-cell (row column gap-p host-ref)
+  "Return one data cell View for ROW and COLUMN using HOST-REF and GAP-P."
   (etaf-view
-   (text :width (etaf-ui--grid-track-width column gap-p)
+   (text :ref host-ref :width (etaf-ui--grid-track-width column gap-p)
          (expr :value (etaf-ui--grid-display-value row column)))))
 
-(defun etaf-ui--grid-cells (row columns)
-  "Return data cell Views for ROW and COLUMNS."
+(defun etaf-ui--grid-cells (row columns cell-refs)
+  "Return data cell Views for ROW and COLUMNS using stable CELL-REFS."
   (cl-loop for column in columns
            for tail on columns
-           collect (etaf-ui--grid-cell row column (cdr tail))))
+           for index from 0
+           collect
+           (etaf-ui--grid-cell
+            row column (cdr tail)
+            (or (gethash index cell-refs)
+                (puthash index (gensym "etaf-data-grid-cell-")
+                         cell-refs)))))
 
-(defun etaf-ui--grid-selected-p (row key selected-key row-selected-p)
-  "Return whether ROW with KEY matches SELECTED-KEY or ROW-SELECTED-P."
+(defun etaf-ui--grid-selected-p
+    (row key selected-key row-selected-p selected-ref)
+  "Return whether ROW with KEY is selected.
+ROW-SELECTED-P and SELECTED-KEY preserve custom controlled selection;
+SELECTED-REF supplies the controller-backed keyed default."
   (or (and row-selected-p (funcall row-selected-p row))
-      (and selected-key (equal key selected-key))))
+      (and selected-key (equal key selected-key))
+      (and selected-ref (etaf-value selected-ref))))
 
 (defun etaf-ui--grid-row-action (cache key row callback)
   "Return CACHE's stable row action for KEY, refreshing ROW and CALLBACK."
@@ -324,18 +362,19 @@ too small; the original ROW remains intact for selection and callbacks."
     (aref entry 2)))
 
 (defun etaf-ui--grid-row
-    (row columns row-key row-ref on-row-press selected-key row-selected-p
-         row-actions theme)
+    (row key columns row-ref on-row-press selected-key row-selected-p
+         selected-ref row-actions theme internal-row-ref cell-refs)
   "Return a View row for ROW and COLUMNS using THEME and the DataGrid contract.
 
-ROW-KEY returns identity; ROW-REF returns the interactive reference;
-ON-ROW-PRESS, SELECTED-KEY, and ROW-SELECTED-P control state.  ROW-ACTIONS
-owns stable keyed callbacks across Range reevaluation."
-  (let* ((key (funcall row-key row))
-         (interactive-p (not (null on-row-press)))
-         (selected-p (etaf-ui--grid-selected-p
-                      row key selected-key row-selected-p))
-         host-ref)
+KEY is ROW's stable identity; ROW-REF returns the interactive reference;
+ON-ROW-PRESS, SELECTED-KEY, ROW-SELECTED-P, and SELECTED-REF control state.
+ROW-ACTIONS owns stable keyed callbacks across body reevaluation."
+  (let* ((interactive-p (not (null on-row-press)))
+         (selected-p
+          (lambda ()
+            (etaf-ui--grid-selected-p
+             row key selected-key row-selected-p selected-ref)))
+         (host-ref internal-row-ref))
     (unless key
       (error "ETAF DataGrid row-key must return a non-nil stable scalar"))
     (when interactive-p
@@ -344,47 +383,122 @@ owns stable keyed callbacks across Range reevaluation."
       (setq host-ref (funcall row-ref row))
       (unless host-ref
         (error "ETAF DataGrid :row-ref must return a non-nil stable ref")))
-    (etaf-view
-     (row :key key
-          :class (concat "etaf-data-grid-row"
-                         (if selected-p " selected" ""))
-      :ref host-ref
-      :role (when interactive-p 'button)
-      :tab-index (when interactive-p 0)
-      :border-bottom-p t
-      :border-bottom-color (plist-get theme :ui-grid-border)
-      :on-press (when interactive-p
-                  (etaf-ui--grid-row-action
-                   row-actions key row on-row-press))
-      :bgcolor (when selected-p
-                  (plist-get theme :ui-grid-selected-bg))
-      (expr :value (etaf-ui--grid-cells row columns))))))
+    (etaf--view-call
+     'row
+     (list :key key
+           :class
+           (etaf--expr-create
+            :thunk (lambda ()
+                     (concat "etaf-data-grid-row"
+                             (if (funcall selected-p) " selected" ""))))
+           :ref host-ref
+           :role (when interactive-p 'button)
+           :tab-index (when interactive-p 0)
+           :border-bottom-p t
+           :border-bottom-color (plist-get theme :ui-grid-border)
+           :on-press (when interactive-p
+                       (etaf-ui--grid-row-action
+                        row-actions key row on-row-press))
+           :bgcolor
+           (etaf--expr-create
+            :thunk (lambda ()
+                     (when (funcall selected-p)
+                       (plist-get theme :ui-grid-selected-bg)))))
+     (etaf-ui--grid-cells row columns cell-refs))))
+
+(defun etaf-ui--grid-row-state (states key)
+  "Return STATES' retained internal row and cell refs for KEY."
+  (or (gethash key states)
+      (let ((state (cons (gensym "etaf-data-grid-row-")
+                         (make-hash-table :test #'eql))))
+        (puthash key state states)
+        state)))
+
+(defun etaf-ui--grid-keyed-items
+    (items row-key row-actions row-states)
+  "Return validated `(KEY . ITEM)' entries and prune retained row caches."
+  (let ((seen (make-hash-table :test #'equal)) entries)
+    (dolist (item items)
+      (let ((key (funcall row-key item)))
+        (unless key
+          (error "ETAF DataGrid row-key must return a non-nil stable scalar"))
+        (when (gethash key seen)
+          (error "ETAF DataGrid row-key must be unique: %S" key))
+        (puthash key t seen)
+        (push (cons key item) entries)))
+    (maphash
+     (lambda (key _entry)
+       (unless (gethash key seen)
+         (remhash key row-actions)
+         (remhash key row-states)))
+     row-actions)
+    (nreverse entries)))
 
 (defun etaf-ui--grid-rows
-    (items columns row-key row-ref on-row-press selected-key row-selected-p
-           row-actions &optional theme)
-  "Return keyed item Views and prune ROW-ACTIONS outside current ITEMS.
-COLUMNS and ROW-KEY describe cells and identity.  ROW-REF, ON-ROW-PRESS,
-SELECTED-KEY, and ROW-SELECTED-P provide interaction state."
+    (controller items columns row-key row-ref on-row-press selected-key
+                row-selected-p row-actions row-states &optional theme)
+  "Return keyed Host rows and prune caches outside current ITEMS.
+CONTROLLER owns keyed default selection refs.  COLUMNS and ROW-KEY describe
+cells and identity.  ROW-REF, ON-ROW-PRESS, SELECTED-KEY, and ROW-SELECTED-P
+provide interaction state.  ROW-ACTIONS and ROW-STATES retain callback and
+internal Host identities.  THEME optionally supplies resolved colors."
   (let* ((theme (or theme
-                    ;; A Range owns the data rows, so read Theme once here to
-                    ;; keep palette changes reactive without doing it per row.
-                    (etaf-ui-theme-values :ui-grid-border
+                    ;; Resolve Theme once in the retained DataGrid owner
+                    ;; of doing it independently in every row Component.
+                    (etaf-ui-theme-tokens :ui-grid-border
                                           :ui-grid-selected-fg
                                           :ui-grid-selected-bg)))
-         (seen (make-hash-table :test #'equal)))
-    (prog1
-        (mapcar
-         (lambda (item)
-           (puthash (funcall row-key item) t seen)
-           (etaf-ui--grid-row
-            item columns row-key row-ref on-row-press selected-key
-            row-selected-p row-actions theme))
-         items)
-      (maphash (lambda (key _entry)
-                 (unless (gethash key seen)
-                   (remhash key row-actions)))
-               row-actions))))
+         (entries
+          (etaf-ui--grid-keyed-items
+           items row-key row-actions row-states)))
+    (mapcar
+     (lambda (entry)
+       (let* ((key (car entry))
+              (item (cdr entry))
+              (state (etaf-ui--grid-row-state row-states key)))
+         (etaf-ui--grid-row
+          item key columns row-ref on-row-press selected-key row-selected-p
+          (unless (or row-selected-p selected-key)
+            (etaf-data-selected-ref controller key))
+          row-actions theme (car state) (cdr state))))
+     entries)))
+
+(defun etaf-ui--grid-body-items
+  (controller status items columns row-key row-ref on-row-press selected-key
+                row-selected-p row-actions row-states theme loading-label
+                error-label empty-label)
+  "Return CONTROLLER DataGrid body items for STATUS and ITEMS.
+COLUMNS and ROW-KEY describe rows; ROW-REF and ON-ROW-PRESS add interaction.
+SELECTED-KEY, ROW-SELECTED-P, and ROW-ACTIONS preserve controlled behavior.
+THEME supplies colors, while LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL
+customize state messages.  The parent Component directly owns the result."
+  (unless (functionp row-key)
+    (error "ETAF DataGrid requires a function-valued :row-key"))
+  (when (and on-row-press (not (functionp on-row-press)))
+    (error "ETAF DataGrid :on-row-press must be a function"))
+  (when (and on-row-press (not (functionp row-ref)))
+    (error "ETAF DataGrid requires :row-ref for interactive rows"))
+  (when (and row-selected-p (not (functionp row-selected-p)))
+    (error "ETAF DataGrid :row-selected-p must be a function"))
+  (cond
+    ((eq status 'loading)
+     (list (etaf--view-call 'text nil
+                            (list (or loading-label "Loading...")))))
+    ((eq status 'error)
+     (list
+      (etaf--view-call
+       'text
+       (list :class "etaf-data-grid-error"
+             :color (plist-get (etaf-ui-theme-tokens :ui-grid-error-fg)
+                               :ui-grid-error-fg))
+       (list (or error-label "Unable to load data.")))))
+    ((null items)
+     (list (etaf--view-call 'text nil
+                            (list (or empty-label "No data.")))))
+    (t
+     (etaf-ui--grid-rows
+      controller items columns row-key row-ref on-row-press selected-key
+      row-selected-p row-actions row-states theme))))
 
 (defun etaf-ui--button-setup ()
   "Create the retained renderer for one Button instance."
@@ -495,7 +609,8 @@ ARIA-LABEL provide its semantic and presentation properties."
     :color color :bgcolor bgcolor :border border :padding padding :face face
     :surface-properties (etaf-ui--interactive-surface-properties label disabled)
     :on-press on-change
-    (text :class "etaf-checkbox-mark" (expr :value (if checked "☑" "☐")))
+    (text :class "etaf-checkbox-mark"
+          (expr :value (if (etaf-ui--reactive-value checked) "☑" "☐")))
     (text (expr :value (if label (concat " " label) ""))))))
 
 ;;;###autoload
@@ -504,8 +619,9 @@ ARIA-LABEL provide its semantic and presentation properties."
           face tab-index aria-label)
   "Render a controlled checkbox with CHECKED, LABEL, and ON-CHANGE.
 
-ON-CHANGE receives the next boolean value.  State ownership stays with the
-caller, so the Component works with local refs or Data-backed forms."
+CHECKED may be a boolean or an ETAF reactive source.  ON-CHANGE receives the
+next boolean value.  State ownership stays with the caller, so the Component
+works with local refs or Data-backed forms."
   :styles
   (styles
    ("&" :width max-content)
@@ -520,9 +636,10 @@ caller, so the Component works with local refs or Data-backed forms."
          (press
           (lambda ()
             (when current-callback
-              (funcall current-callback (not current-checked))))))
+              (funcall current-callback
+                       (not (etaf-ui--reactive-value current-checked)))))))
     (lambda ()
-      (let* ((theme (etaf-ui-theme-values :ui-fg :ui-bg
+      (let* ((theme (etaf-ui-theme-tokens :ui-fg :ui-bg
                                           :ui-checkbox-enabled-fg
                                           :ui-checkbox-enabled-bg
                                           :ui-checkbox-enabled-border
@@ -554,18 +671,20 @@ caller, so the Component works with local refs or Data-backed forms."
 ;;;###autoload
 (etaf-define-component etaf-label
     (&key text face class color bgcolor border padding ref width)
-  "Render TEXT as a semantic label with presentation properties."
+  "Render TEXT as a semantic label with presentation properties.
+TEXT may be an ordinary value or an ETAF reactive source."
   :view
   (expr
    :value
    (etaf-view
     (text :class class :face face :color color :bgcolor bgcolor :border border
-          :padding padding :ref ref :width width (expr :value text)))))
+          :padding padding :ref ref :width width
+          (expr :value (etaf-ui--reactive-value text))))))
 
 (defun etaf-ui--panel-view (title class color bgcolor border padding ref)
   "Render a themed Panel View.
 Arguments are TITLE, CLASS, COLOR, BGCOLOR, BORDER, PADDING, and REF."
-  (let ((theme (etaf-ui-theme-values :ui-panel-fg :ui-panel-bg
+  (let ((theme (etaf-ui-theme-tokens :ui-panel-fg :ui-panel-bg
                                      :ui-panel-border)))
     (etaf-view
      (column
@@ -614,10 +733,56 @@ a stable Host reference."
    (".etaf-data-grid-header-cell" :face bold)
    (".etaf-data-grid-row" :padding (0 1))
    ;; Selection color and error color are dynamic semantic props below, so
-   ;; this Component style scope contains geometry only.
+  ;; this Component style scope contains geometry only.
    )
   :setup
-  (let ((row-actions (make-hash-table :test #'equal)))
+  (let ((row-actions (make-hash-table :test #'equal))
+        (row-states (make-hash-table :test #'equal))
+        current-controller current-columns current-row-key current-row-ref
+        current-on-row-press current-selected-key current-row-selected-p
+        current-loading-label current-error-label current-empty-label
+        body-config body-expr body-thunk body-range-snapshot body-range-item)
+    (setq
+     body-thunk
+     (lambda ()
+       (let* ((status
+               (etaf-value (etaf-data-status current-controller)))
+              (items
+               (etaf-value (etaf-data-items current-controller)))
+              (theme
+               (etaf-ui-theme-tokens :ui-grid-border
+                                     :ui-grid-selected-bg)))
+         (etaf-ui--grid-body-items
+          current-controller status items current-columns current-row-key
+          current-row-ref current-on-row-press current-selected-key
+          current-row-selected-p row-actions row-states theme
+         current-loading-label current-error-label current-empty-label))))
+    (setq
+     body-range-snapshot
+     (lambda ()
+       (let ((status (etaf-value (etaf-data-status current-controller)))
+             (items (etaf-value (etaf-data-items current-controller))))
+         (when (and (eq status 'success) items)
+           (let ((theme
+                  (etaf-ui-theme-tokens :ui-grid-border
+                                        :ui-grid-selected-bg)))
+             (list
+              :items
+              (etaf-ui--grid-keyed-items
+               items current-row-key row-actions row-states)
+              :context theme))))))
+    (setq
+     body-range-item
+     (lambda (entry theme)
+       (let* ((key (car entry))
+              (item (cdr entry))
+              (state (etaf-ui--grid-row-state row-states key)))
+         (etaf-ui--grid-row
+          item key current-columns current-row-ref current-on-row-press
+          current-selected-key current-row-selected-p
+          (unless (or current-row-selected-p current-selected-key)
+            (etaf-data-selected-ref current-controller key))
+          row-actions theme (car state) (cdr state)))))
     (lambda ()
       (let* ((controller (etaf-current-prop :controller))
              (columns (etaf-current-prop :columns))
@@ -629,61 +794,43 @@ a stable Host reference."
              (loading-label (etaf-current-prop :loading-label))
              (error-label (etaf-current-prop :error-label))
              (empty-label (etaf-current-prop :empty-label))
-             ;; Resolve the shared semantic UI Theme once at the DataGrid
-             ;; boundary.  Rows reuse this immutable snapshot instead of
-             ;; allocating or resolving border values independently during
-             ;; every retained Range update.
-             (raw-theme (etaf-ui-theme-values :ui-fg
-                                              :ui-grid-border
-                                              :ui-grid-selected-bg))
-             (theme (plist-put (copy-sequence raw-theme)
-                               :ui-grid-border
-                               (etaf-ui--theme-border
-                                (plist-get raw-theme :ui-grid-border))))
+             (config
+              (list controller columns row-key row-ref on-row-press
+                    selected-key row-selected-p loading-label error-label
+                    empty-label))
+             (theme (etaf-ui-theme-tokens :ui-fg :ui-grid-border))
              (theme-color (plist-get theme :ui-fg)))
-        (etaf-view
-         (column
-          :class "etaf-data-grid" :color theme-color
-          (expr :value (etaf-ui--grid-header
-                        columns theme))
-          (column
-           :class "etaf-data-grid-body"
-           (expr
-            :value
-            (progn
-              (unless (functionp row-key)
-                (error "ETAF DataGrid requires a function-valued :row-key"))
-              (when (and on-row-press (not (functionp on-row-press)))
-                (error "ETAF DataGrid :on-row-press must be a function"))
-              (when (and on-row-press (not (functionp row-ref)))
-                (error "ETAF DataGrid requires :row-ref for interactive rows"))
-              (when (and row-selected-p (not (functionp row-selected-p)))
-                (error "ETAF DataGrid :row-selected-p must be a function"))
-              (let ((status (etaf-value (etaf-data-status controller)))
-                    (items (etaf-value (etaf-data-items controller))))
-                (cond
-                 ((eq status 'loading)
-                  (etaf-view
-                   (text (expr :value (or loading-label "Loading...")))))
-                 ((eq status 'error)
-                  (etaf-view
-                   (text :class "etaf-data-grid-error"
-                         :color (plist-get (etaf-ui-theme-values
-                                            :ui-grid-error-fg)
-                                           :ui-grid-error-fg)
-                         (expr :value
-                               (or error-label "Unable to load data.")))))
-                 ((null items)
-                  (etaf-view
-                   (text (expr :value (or empty-label "No data.")))))
-                 (t
-                  ;; Read Theme inside this Range's evaluator so retained row
-                  ;; Hosts follow palette changes without requiring the parent
-                  ;; DataGrid Component to be rebuilt.
-                  (etaf-ui--grid-rows
-                   items columns row-key row-ref on-row-press selected-key
-                   row-selected-p row-actions))))))
-          (slot :name 'footer))))))))
+        (unless (eq controller current-controller)
+          (clrhash row-actions)
+          (clrhash row-states))
+        (setq current-controller controller
+              current-columns columns
+              current-row-key row-key
+              current-row-ref row-ref
+              current-on-row-press on-row-press
+              current-selected-key selected-key
+              current-row-selected-p row-selected-p
+              current-loading-label loading-label
+              current-error-label error-label
+              current-empty-label empty-label)
+        (unless (equal-including-properties config body-config)
+          (setq body-config (copy-tree config)
+                body-expr
+                (etaf--expr-create
+                 :token (gensym "etaf-data-grid-body-")
+                 :thunk body-thunk
+                 :range-snapshot body-range-snapshot
+                 :range-key #'car
+                 :range-item body-range-item)))
+        (etaf--view-call
+         'column
+         (list :class "etaf-data-grid" :color theme-color)
+         (list
+          (etaf-ui--grid-header columns theme)
+          (etaf--view-call
+           'column (list :class "etaf-data-grid-body") (list body-expr))
+          (etaf--slot-projection-create
+           :name 'footer :token 'etaf-ui-data-grid-footer :fallback nil)))))))
 
 ;;;###autoload
 (etaf-define-component etaf-pagination
@@ -702,26 +849,51 @@ readable in both GUI and text review."
    (".etaf-pagination-label" :face bold))
   :setup
   (let* ((current-controller nil)
+         (current-parent-color nil)
+         (current-parent-bgcolor nil)
+         (page-value
+          (lambda ()
+            (max 1 (or (etaf-value
+                        (etaf-data-page current-controller))
+                       1))))
+         (page-size-value
+          (lambda ()
+            (max 1 (or (etaf-value
+                        (etaf-data-page-size current-controller))
+                       1))))
+         (total-value
+          (lambda ()
+            (max 0 (or (etaf-value
+                        (etaf-data-total current-controller))
+                       0))))
+         (pages-value
+          (lambda ()
+            (max 1 (ceiling (/ (float (funcall total-value))
+                               (funcall page-size-value))))))
+         (loading-p
+          (lambda ()
+            (eq (etaf-value (etaf-data-status current-controller))
+                'loading)))
+         (previous-disabled
+          (lambda ()
+            (or (funcall loading-p) (<= (funcall page-value) 1))))
+         (next-disabled
+          (lambda ()
+            (or (funcall loading-p)
+                (>= (funcall page-value) (funcall pages-value)))))
          (previous
           (lambda ()
-            (when current-controller
+            (when (and current-controller
+                       (not (funcall previous-disabled)))
               (etaf-data-previous-page current-controller))))
          (next
           (lambda ()
-            (when current-controller
+            (when (and current-controller
+                       (not (funcall next-disabled)))
               (etaf-data-next-page current-controller)))))
     (lambda ()
       (let* ((controller-value (etaf-current-prop :controller))
-             (page (max 1 (or (etaf-value (etaf-data-page controller-value)) 1)))
-             (page-size (max 1 (or (etaf-value (etaf-data-page-size controller-value)) 1)))
-             (total (max 0 (or (etaf-value (etaf-data-total controller-value)) 0)))
-             (pages (max 1 (ceiling (/ (float total) page-size))))
-             (status (etaf-value (etaf-data-status controller-value)))
-             (first-item (if (zerop total) 0 (1+ (* (1- page) page-size))))
-             (last-item (min total (* page page-size)))
-             (previous-disabled (or (eq status 'loading) (<= page 1)))
-             (next-disabled (or (eq status 'loading) (>= page pages)))
-             (theme (etaf-ui-theme-values :ui-fg :ui-bg
+             (theme (etaf-ui-theme-tokens :ui-fg :ui-bg
                                           :ui-disabled-fg
                                           :ui-pagination-muted-fg))
              (parent-color (or (etaf-current-prop :color)
@@ -729,7 +901,9 @@ readable in both GUI and text review."
              (parent-bgcolor (or (etaf-current-prop :bgcolor)
                                  (plist-get theme :ui-bg)))
              (arrow-border '((0) solid "transparent")))
-        (setq current-controller controller-value)
+        (setq current-controller controller-value
+              current-parent-color parent-color
+              current-parent-bgcolor parent-bgcolor)
         (etaf-view
          (flex :class (etaf-ui--class-value "etaf-pagination" nil
                                             (etaf-current-prop :class))
@@ -748,35 +922,47 @@ readable in both GUI and text review."
                   :flex-grow 0 :flex-shrink 0 :flex-basis 'auto
            (button :label "←" :ref (etaf-current-prop :previous-ref)
                    :aria-label "Previous page"
-                   :disabled previous-disabled
+                   :disabled (funcall previous-disabled)
                    :padding '(0 0)
                    :border arrow-border
-                   :color (if previous-disabled
+                   :color (if (funcall previous-disabled)
                               (plist-get theme :ui-disabled-fg)
-                            parent-color)
-                   :bgcolor parent-bgcolor
+                            current-parent-color)
+                   :bgcolor current-parent-bgcolor
                    :face 'bold
-                   :on-press (unless previous-disabled previous)))
+                   :on-press previous))
           (column :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0
            (text :class "etaf-pagination-label" :text-align 'center
-                 (expr :value (format "Page %d / %d" page pages)))
+                 (expr :value
+                       (format "Page %d / %d"
+                               (funcall page-value)
+                               (funcall pages-value))))
            (text :class "etaf-pagination-summary" :text-align 'center
                  :color (plist-get theme :ui-pagination-muted-fg)
-                 (expr :value (format "%d–%d of %d"
-                                      first-item last-item total))))
+                 (expr :value
+                       (let* ((page (funcall page-value))
+                              (page-size (funcall page-size-value))
+                              (total (funcall total-value))
+                              (first-item
+                               (if (zerop total)
+                                   0
+                                 (1+ (* (1- page) page-size))))
+                              (last-item (min total (* page page-size))))
+                         (format "%d–%d of %d"
+                                 first-item last-item total)))))
           (column :width 'max-content
                   :flex-grow 0 :flex-shrink 0 :flex-basis 'auto
            (button :label "→" :ref (etaf-current-prop :next-ref)
                    :aria-label "Next page"
-                   :disabled next-disabled
+                   :disabled (funcall next-disabled)
                    :padding '(0 0)
                    :border arrow-border
-                   :color (if next-disabled
+                   :color (if (funcall next-disabled)
                               (plist-get theme :ui-disabled-fg)
-                            parent-color)
-                   :bgcolor parent-bgcolor
+                            current-parent-color)
+                   :bgcolor current-parent-bgcolor
                    :face 'bold
-                   :on-press (unless next-disabled next)))))))))
+                   :on-press next))))))))
 
 (provide 'etaf-ui)
 
