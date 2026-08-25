@@ -130,9 +130,9 @@
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                'behavior-button 'press)
           (should (= etaf-ui-test-use-count 1)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-defaults-use-styles-and-preserve-theme ()
@@ -157,9 +157,9 @@
             (should (equal (plist-get panel :color) "#252A2E"))
             (should (equal (plist-get panel :bgcolor) "#FFFDF8"))
             (should (equal (plist-get panel :padding) '(1 2)))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-button-reads-variant-tokens-from-theme ()
@@ -178,9 +178,9 @@
             (should (equal "secondary-bg" (plist-get secondary :bgcolor)))
             (should (equal "secondary-border"
                            (plist-get secondary :border)))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-number-input-validates-and-emits-value ()
@@ -200,9 +200,9 @@
             (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                  'rows 'press))
           (should (= 7 value)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-button-dispatches-and-exposes-enabled-props ()
@@ -238,9 +238,9 @@
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                'save 'press)
           (should (= presses 1)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-button-disabled-is-not-interactive ()
@@ -279,9 +279,9 @@
                       'enabled-save))
           (should (= presses 0))
           (should (= etaf-ui-test-use-count 0)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-button-disabled-preserves-explicit-theme-surface ()
@@ -304,9 +304,9 @@
               (let ((face (get-text-property position 'face)))
                 (should (string-match-p "#202C42" (format "%S" face)))
                 (should (string-match-p "#F4F7FF" (format "%S" face))))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer))))))
 
 (ert-deftest etaf-ui-button-owns-native-hover-and-dispatch ()
@@ -346,9 +346,9 @@
             (should (eq before
                         (cdr (assq 'press
                                    (etaf-runtime-handler-for runtime 'health)))))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-checkbox-is-controlled-and-focusable ()
@@ -380,9 +380,9 @@
           (should (eq (etaf-focused-host-ref
                        (etaf-runtime-for-buffer buffer-name))
                       'done)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-checkbox-reactive-value-updates-through-inline-range ()
@@ -410,9 +410,9 @@
           (should (string-match-p "☑ Live"
                                   (etaf-ui-test--text buffer-name)))
           (should (zerop component-renders)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-label-reactive-text-updates-through-inline-range ()
@@ -433,9 +433,9 @@
               (setf (etaf-value text) "Two")))
           (should (equal "Two" (etaf-ui-test--text buffer-name)))
           (should (zerop component-renders)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-checkbox-disabled-is-not-interactive ()
@@ -468,9 +468,9 @@
                        (etaf-runtime-for-buffer buffer-name))
                       'open-box))
           (should (= changes 0)))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-label-and-panel-expose-presentation-and-slots ()
@@ -503,9 +503,9 @@
           (dolist (label '("Account" "Settings" "Body"))
             (should (string-match-p (regexp-quote label)
                                     (etaf-ui-test--text buffer-name)))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-projects-reactive-controller ()
@@ -555,10 +555,10 @@
             (should (equal (plist-get (etaf-ui-test--props buffer-name 'row-3)
                                       :tab-index)
                            0))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-default-selection-updates-only-delta-hosts ()
@@ -647,10 +647,10 @@
                               'press
                               (etaf-runtime-handler-for runtime
                                                         'keyed-row-3)))))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-follows-inherited-theme-color ()
@@ -693,10 +693,10 @@
             (should (equal "dark-grid-border"
                            (etaf-ui-test--paint-color
                             border-slot :border-bottom-color))))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-pagination-is-readable-and-boundary-safe ()
@@ -741,10 +741,10 @@
            (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                 'page-previous 'press)
            :type 'etaf-event-error))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-pagination-composes-inside-a-grid-track ()
@@ -775,10 +775,10 @@
                                              (line-end-position)))
                           360))
               (forward-line 1))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-keeps-long-cells-on-one-line ()
@@ -800,10 +800,10 @@
           (let ((text (etaf-ui-test--text buffer-name)))
             (should (string-match-p "The Cathedral and the…" text))
             (should-not (string-match-p "The Cathedral and the Bazaar" text))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-converts-character-columns-and-keeps-air ()
@@ -824,10 +824,10 @@
              :row-key (lambda (row) (plist-get row :id)))))
           (should (string-match-p "Progress[[:space:]]+Kind"
                                   (etaf-ui-test--text buffer-name))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-noninteractive-rows-have-no-focus-contract ()
@@ -848,10 +848,10 @@
           (let ((props (etaf-ui-test--props-with-key buffer-name 1)))
             (should-not (plist-get props :role))
             (should-not (plist-get props :tab-index))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-requires-row-ref-for-interaction ()
@@ -870,10 +870,10 @@
             :columns '((:key :id :label "ID"))
             :row-key (lambda (row) (plist-get row :id))
             :on-row-press (lambda (_row) t)))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-rejects-nil-row-ref ()
@@ -893,10 +893,10 @@
             :row-key (lambda (row) (plist-get row :id))
             :row-ref (lambda (_row) nil)
             :on-row-press (lambda (_row) t)))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-projects-loading-error-and-empty ()
@@ -929,10 +929,10 @@
                               (cdr case)))))
             (should (string-match-p (regexp-quote (cdr case))
                                     (etaf-ui-test--text buffer-name))))
-        (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
           (etaf-unmount runtime))
         (etaf-data-stop controller)
-        (when-let ((buffer (get-buffer buffer-name)))
+        (when-let* ((buffer (get-buffer buffer-name)))
           (kill-buffer buffer))))))
 
 (ert-deftest etaf-ui-data-grid-requires-stable-row-key ()
@@ -950,10 +950,10 @@
            (data-grid
             :controller controller
             :columns '((:key :id :label "ID"))))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-data-grid-rejects-nil-row-key ()
@@ -972,10 +972,10 @@
             :controller controller
             :columns '((:key :id :label "ID"))
             :row-key (lambda (_row) nil)))))
-      (when-let ((runtime (etaf-runtime-for-buffer buffer-name)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
-      (when-let ((buffer (get-buffer buffer-name)))
+      (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
 (provide 'etaf-ui-tests)
