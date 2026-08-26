@@ -76,7 +76,7 @@
                           :padding (9 9)))
     (lambda ()
       (etaf-view
-       (row
+       (box :layout 'row
         (button :label "Styled" :ref 'styled-button)
         (button :label "Custom" :ref 'custom-button
                 :color "explicit-color")
@@ -97,7 +97,7 @@
        :ui-button-secondary-border "secondary-border"))
     (lambda ()
       (etaf-view
-       (row
+       (box :layout 'row
         (button :label "Token" :ref 'token-button)
         (button :label "Secondary" :ref 'token-secondary
                 :variant 'secondary))))))
@@ -252,7 +252,7 @@
         (progn
           (etaf-mount buffer-name
                       (etaf-view
-                       (row
+                       (box :layout 'row
                         (button :label "Save" :ref 'enabled-save
                                      :on-press (lambda () (cl-incf presses)))
                         (button :label "Delete" :ref 'disabled-delete
@@ -446,7 +446,7 @@
         (progn
           (etaf-mount buffer-name
                       (etaf-view
-                       (row
+                       (box :layout 'row
                         (checkbox :label "Open" :ref 'open-box
                                        :on-change (lambda (_value)
                                                     (cl-incf changes)))
@@ -759,10 +759,11 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (grid :width '(360)
+            (box :layout 'grid :width '(360)
                   :grid-template-columns '((80) (200) (80))
              (text "Left")
-             (column :width 'stretch :padding '(0 2) :border "#CBD5E1"
+             (box :layout 'column
+                  :width 'stretch :padding '(0 2) :border "#CBD5E1"
               (pagination :controller controller
                           :previous-ref 'nested-page-previous
                           :next-ref 'nested-page-next))

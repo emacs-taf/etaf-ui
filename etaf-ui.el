@@ -27,9 +27,7 @@
 (declare-function etaf-data-selected-ref "etaf-data" (controller identity))
 (declare-function etaf-theme-defaults "etaf-context" (&optional default))
 (declare-function text "etaf-view" (&rest arguments))
-(declare-function row "etaf-view" (&rest arguments))
-(declare-function column "etaf-view" (&rest arguments))
-(declare-function flex "etaf-view" (&rest arguments))
+(declare-function box "etaf-view" (&rest arguments))
 (declare-function expr "etaf-view" (&rest arguments))
 (declare-function slot "etaf-view" (&rest arguments))
 
@@ -310,7 +308,7 @@ too small; the original ROW remains intact for selection and callbacks."
 (defun etaf-ui--grid-header (columns theme)
   "Return a View header row for COLUMNS using semantic THEME colors."
   (etaf-view
-   (row :class "etaf-data-grid-header"
+   (box :layout 'row :class "etaf-data-grid-header"
         :border (etaf-ui--theme-border
                  (plist-get theme :ui-grid-border))
     (expr :value
@@ -384,8 +382,9 @@ ROW-ACTIONS owns stable keyed callbacks across body reevaluation."
       (unless host-ref
         (error "ETAF DataGrid :row-ref must return a non-nil stable ref")))
     (etaf--view-call
-     'row
-     (list :key key
+     'box
+     (list :layout 'row
+           :key key
            :class
            (etaf--expr-create
             :thunk (lambda ()
@@ -600,7 +599,7 @@ validation; the caller owns the value and subsequent state write."
 REF, DISABLED, CLASS, COLOR, BGCOLOR, BORDER, PADDING, FACE, TAB-INDEX, and
 ARIA-LABEL provide its semantic and presentation properties."
   (etaf-view
-   (row
+   (box :layout 'row
     :class (etaf-ui--class-value
             "etaf-checkbox" (if disabled "disabled" "enabled") class)
     :role 'checkbox :ref ref :disabled disabled
@@ -687,7 +686,7 @@ Arguments are TITLE, CLASS, COLOR, BGCOLOR, BORDER, PADDING, and REF."
   (let ((theme (etaf-ui-theme-tokens :ui-panel-fg :ui-panel-bg
                                      :ui-panel-border)))
     (etaf-view
-     (column
+     (box :layout 'column
       :class (etaf-ui--class-value "etaf-panel" nil class)
       :color (or color (plist-get theme :ui-panel-fg))
       :bgcolor (or bgcolor (plist-get theme :ui-panel-bg))
@@ -823,12 +822,13 @@ a stable Host reference."
                  :range-key #'car
                  :range-item body-range-item)))
         (etaf--view-call
-         'column
-         (list :class "etaf-data-grid" :color theme-color)
+         'box
+         (list :layout 'column :class "etaf-data-grid" :color theme-color)
          (list
           (etaf-ui--grid-header columns theme)
           (etaf--view-call
-           'column (list :class "etaf-data-grid-body") (list body-expr))
+           'box (list :layout 'column :class "etaf-data-grid-body")
+           (list body-expr))
           (etaf--slot-projection-create
            :name 'footer :token 'etaf-ui-data-grid-footer :fallback nil)))))))
 
@@ -905,7 +905,8 @@ readable in both GUI and text review."
               current-parent-color parent-color
               current-parent-bgcolor parent-bgcolor)
         (etaf-view
-         (flex :class (etaf-ui--class-value "etaf-pagination" nil
+         (box :layout 'flex
+               :class (etaf-ui--class-value "etaf-pagination" nil
                                             (etaf-current-prop :class))
                :width 'stretch
                :flex-direction 'row
@@ -918,7 +919,7 @@ readable in both GUI and text review."
                :box-sizing 'border-box
                :padding (or (etaf-current-prop :padding) '(0 1))
                :gap '(0 (1))
-          (column :width 'max-content
+          (box :layout 'column :width 'max-content
                   :flex-grow 0 :flex-shrink 0 :flex-basis 'auto
            (button :label "←" :ref (etaf-current-prop :previous-ref)
                    :aria-label "Previous page"
@@ -931,7 +932,8 @@ readable in both GUI and text review."
                    :bgcolor current-parent-bgcolor
                    :face 'bold
                    :on-press previous))
-          (column :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0
+          (box :layout 'column
+               :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0
            (text :class "etaf-pagination-label" :text-align 'center
                  (expr :value
                        (format "Page %d / %d"
@@ -950,7 +952,7 @@ readable in both GUI and text review."
                               (last-item (min total (* page page-size))))
                          (format "%d–%d of %d"
                                  first-item last-item total)))))
-          (column :width 'max-content
+          (box :layout 'column :width 'max-content
                   :flex-grow 0 :flex-shrink 0 :flex-basis 'auto
            (button :label "→" :ref (etaf-current-prop :next-ref)
                    :aria-label "Next page"
