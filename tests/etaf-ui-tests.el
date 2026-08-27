@@ -34,15 +34,6 @@
      (etaf-runtime-host-props (etaf-runtime-for-buffer buffer-name)))
     found))
 
-(defun etaf-ui-test--surface-properties (buffer-name ref)
-  "Return interactive text properties at REF's first rendered position."
-  (let* ((runtime (etaf-runtime-for-buffer buffer-name))
-         (position (etaf-host-ref-position runtime ref)))
-    (with-current-buffer buffer-name
-      (list (get-text-property position 'pointer)
-            (get-text-property position 'mouse-face)
-            (get-text-property position 'help-echo)))))
-
 (defun etaf-ui-test--paint-color (value property)
   "Return effective paint color from VALUE for Ebox PROPERTY."
   (if (not (tp-paint-slot-p value))
@@ -76,7 +67,7 @@
                           :padding (9 9)))
     (lambda ()
       (etaf-view
-       (box :layout 'row
+       (row
         (button :label "Styled" :ref 'styled-button)
         (button :label "Custom" :ref 'custom-button
                 :color "explicit-color")
@@ -97,7 +88,7 @@
        :ui-button-secondary-border "secondary-border"))
     (lambda ()
       (etaf-view
-       (box :layout 'row
+       (row
         (button :label "Token" :ref 'token-button)
         (button :label "Secondary" :ref 'token-secondary
                 :variant 'secondary))))))
@@ -153,7 +144,7 @@
             (should (equal (plist-get custom :bgcolor) "#2F6B43"))
             (should (equal (plist-get themed :color) "theme-color"))
             (should (equal (plist-get themed :bgcolor) "theme-bg"))
-            (should (equal (plist-get themed :padding) '(9 9)))
+            (should-not (plist-get themed :padding))
             (should (equal (plist-get panel :color) "#252A2E"))
             (should (equal (plist-get panel :bgcolor) "#FFFDF8"))
             (should (equal (plist-get panel :padding) '(1 2)))))
@@ -219,7 +210,7 @@
                                     :bgcolor "#2F6B43"
                                     :border "#2F6B43"
                                     :padding '(0 2)
-                                    :face 'bold
+                                    :font-weight 'bold
                                     :tab-index 3
                                     :aria-label "Save changes"
                                     :on-press (lambda () (cl-incf presses)))))
@@ -233,7 +224,7 @@
             (should (equal (plist-get props :bgcolor) "#2F6B43"))
             (should (equal (plist-get props :border) "#2F6B43"))
             (should (equal (plist-get props :padding) '(0 2)))
-            (should (equal (plist-get props :face) 'bold))
+            (should (equal (plist-get props :font-weight) 'bold))
             (should (string-match-p "primary" (plist-get props :class))))
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                'save 'press)
@@ -252,7 +243,7 @@
         (progn
           (etaf-mount buffer-name
                       (etaf-view
-                       (box :layout 'row
+                       (row
                         (button :label "Save" :ref 'enabled-save
                                      :on-press (lambda () (cl-incf presses)))
                         (button :label "Delete" :ref 'disabled-delete
@@ -263,7 +254,7 @@
             (should (equal (plist-get props :color) "#FFFFFF"))
             (should (equal (plist-get props :bgcolor) "#2F6B43"))
             (should (equal (plist-get props :padding) '(0 1)))
-            (should (equal (plist-get props :face) 'bold)))
+            (should (equal (plist-get props :font-weight) 'bold)))
           (let ((props (etaf-ui-test--props buffer-name 'disabled-delete)))
             (should (eq (plist-get props :disabled) t))
             (should-not (plist-get props :tab-index))
@@ -309,8 +300,8 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer))))))
 
-(ert-deftest etaf-ui-button-owns-native-hover-and-dispatch ()
-  "Buttons expose native hover affordances without retained press state."
+(ert-deftest etaf-ui-button-dispatches-without-retained-press-state ()
+  "Buttons dispatch through semantic Host state without local press state."
   (let ((buffer-name " *etaf-ui-button-surface-test*")
         (presses 0))
     (unwind-protect
@@ -321,10 +312,6 @@
             (button :label "Run health check" :ref 'health
                     :variant 'secondary
                     :on-press (lambda () (cl-incf presses)))))
-          (let ((surface (etaf-ui-test--surface-properties buffer-name 'health)))
-            (should (eq (nth 0 surface) 'hand))
-            (should (eq (nth 1 surface) 'highlight))
-            (should (string-match-p "RET" (nth 2 surface))))
           (let ((props (etaf-ui-test--props buffer-name 'health)))
             (should (equal (plist-get props :color) "#142235"))
             (should (equal (plist-get props :bgcolor) "#D9EEEA")))
@@ -446,7 +433,7 @@
         (progn
           (etaf-mount buffer-name
                       (etaf-view
-                       (box :layout 'row
+                       (row
                         (checkbox :label "Open" :ref 'open-box
                                        :on-change (lambda (_value)
                                                     (cl-incf changes)))
@@ -487,7 +474,7 @@
              (slot :name 'header
                    (label :text "Settings" :ref 'settings-label
                                :class "eyebrow" :color "#66706A"
-                               :face 'bold :width 12))
+                               :font-weight 'bold :width 12))
              (label :text "Body"))))
           (let ((panel (etaf-ui-test--props buffer-name 'account-panel))
                 (label (etaf-ui-test--props buffer-name 'settings-label)))
@@ -498,7 +485,7 @@
             (should (equal (plist-get panel :padding) '(1 2)))
             (should (string-match-p "eyebrow" (plist-get label :class)))
             (should (equal (plist-get label :color) "#66706A"))
-            (should (equal (plist-get label :face) 'bold))
+            (should (equal (plist-get label :font-weight) 'bold))
             (should (equal (plist-get label :width) 12)))
           (dolist (label '("Account" "Settings" "Body"))
             (should (string-match-p (regexp-quote label)
@@ -728,9 +715,6 @@
                                              (line-end-position)))
                           360))
               (forward-line 1)))
-          (should (eq (nth 0 (etaf-ui-test--surface-properties
-                              buffer-name 'page-next))
-                      'hand))
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                'page-next 'press)
           (should (string-match-p "Page 2 / 3" (etaf-ui-test--text buffer-name)))
@@ -759,10 +743,10 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (box :layout 'grid :width '(360)
+            (grid :width '(360)
                   :grid-template-columns '((80) (200) (80))
              (text "Left")
-             (box :layout 'column
+             (column
                   :width 'stretch :padding '(0 2) :border "#CBD5E1"
               (pagination :controller controller
                           :previous-ref 'nested-page-previous

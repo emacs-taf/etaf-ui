@@ -174,19 +174,6 @@ plist or a legacy caller-owned string remains untouched for compatibility."
       (etaf-value value)
     value))
 
-(defun etaf-ui--interactive-surface-properties (label disabled)
-  "Return shared text properties for an interactive LABEL surface.
-DISABLED selects a non-pointer help description instead of an activation
-affordance.
-The properties are deliberately backend-neutral: Ebox turns them into the
-native Emacs pointer/hover/help affordances while other renderers may ignore
-the optional text properties and keep the semantic role/event contract."
-  (if disabled
-      (list 'help-echo (format "%s (disabled)" (or label "Control")))
-    (list 'pointer 'hand
-          'mouse-face 'highlight
-          'help-echo (format "%s · RET or mouse-1" (or label "Activate")))))
-
 (defun etaf-ui--button-variant-values (variant disabled)
   "Return themed presentation defaults for Button VARIANT and DISABLED."
   (let* ((fg (cond (disabled :ui-disabled-fg)
@@ -205,10 +192,10 @@ the optional text properties and keep the semantic role/event contract."
     (list :color (plist-get theme fg)
           :bgcolor (plist-get theme bg)
           :border (etaf-ui--theme-border (plist-get theme border))
-          :face (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
+          :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 
 (defun etaf-ui--button-view
-    (label on-press disabled ref class color bgcolor border padding face
+    (label on-press disabled ref class color bgcolor border padding font-weight
            tab-index aria-label use)
   "Return a Button Host showing LABEL.
 
@@ -220,24 +207,22 @@ TAB-INDEX, and ARIA-LABEL provide Host identity and presentation."
                       (if disabled "disabled" "enabled")
                       class))
         (tab-value (unless disabled (or tab-index 0)))
-        (label-value (or aria-label label))
-        (surface (etaf-ui--interactive-surface-properties label disabled)))
+        (label-value (or aria-label label)))
     (if on-press
         (etaf-view
-         (text :class class-value :role 'button :ref ref :disabled disabled
+         (box :class class-value :role 'button :ref ref :disabled disabled
                :tab-index tab-value :aria-label label-value
                :color color :bgcolor bgcolor :border border
-               :padding padding :face face
-               :surface-properties surface
+               :padding padding :font-weight font-weight
                :use (unless disabled use) :on-press on-press
-               (expr :value label)))
+          (text (expr :value label))))
       (etaf-view
-       (text :class class-value :role 'button :ref ref :disabled disabled
+       (box :class class-value :role 'button :ref ref :disabled disabled
              :tab-index tab-value :aria-label label-value
              :color color :bgcolor bgcolor :border border
-             :padding padding :face face
-             :surface-properties surface
-             :use (unless disabled use) (expr :value label))))))
+             :padding padding :font-weight font-weight
+             :use (unless disabled use)
+        (text (expr :value label)))))))
 
 (defun etaf-ui--checkbox-variant-values (theme disabled)
   "Return semantic Theme values from THEME for DISABLED Checkbox state."
@@ -296,19 +281,23 @@ too small; the original ROW remains intact for selection and callbacks."
 
 (defun etaf-ui--grid-header-cell (column gap-p)
   "Return one header View for COLUMN, adding air when GAP-P is non-nil."
-  (etaf-view
-   (text :class "etaf-data-grid-header-cell"
-         :width (etaf-ui--grid-track-width column gap-p)
-         (expr :value
-               (etaf-ui--grid-fit-text
-                (or (etaf-ui--column-value column :label)
-                    (etaf-ui--column-value column :key))
-                column)))))
+  (etaf--view-call
+   'box
+   (list :class "etaf-data-grid-header-cell"
+         :width (etaf-ui--grid-track-width column gap-p))
+   (list
+    (etaf--view-call
+     'text nil
+     (list
+      (etaf-ui--grid-fit-text
+       (or (etaf-ui--column-value column :label)
+           (etaf-ui--column-value column :key))
+       column))))))
 
 (defun etaf-ui--grid-header (columns theme)
   "Return a View header row for COLUMNS using semantic THEME colors."
   (etaf-view
-   (box :layout 'row :class "etaf-data-grid-header"
+   (row :class "etaf-data-grid-header"
         :border (etaf-ui--theme-border
                  (plist-get theme :ui-grid-border))
     (expr :value
@@ -319,9 +308,12 @@ too small; the original ROW remains intact for selection and callbacks."
 
 (defun etaf-ui--grid-cell (row column gap-p host-ref)
   "Return one data cell View for ROW and COLUMN using HOST-REF and GAP-P."
-  (etaf-view
-   (text :ref host-ref :width (etaf-ui--grid-track-width column gap-p)
-         (expr :value (etaf-ui--grid-display-value row column)))))
+  (etaf--view-call
+   'box
+   (list :ref host-ref :width (etaf-ui--grid-track-width column gap-p))
+   (list
+    (etaf--view-call
+     'text nil (list (etaf-ui--grid-display-value row column))))))
 
 (defun etaf-ui--grid-cells (row columns cell-refs)
   "Return data cell Views for ROW and COLUMNS using stable CELL-REFS."
@@ -382,9 +374,8 @@ ROW-ACTIONS owns stable keyed callbacks across body reevaluation."
       (unless host-ref
         (error "ETAF DataGrid :row-ref must return a non-nil stable ref")))
     (etaf--view-call
-     'box
-     (list :layout 'row
-           :key key
+     'row
+     (list :key key
            :class
            (etaf--expr-create
             :thunk (lambda ()
@@ -530,15 +521,15 @@ customize state messages.  The parent Component directly owns the result."
            (or (etaf-current-prop :border)
                (plist-get variant-values :border))
            (etaf-current-prop :padding)
-           (or (etaf-current-prop :face)
-               (plist-get variant-values :face))
+           (or (etaf-current-prop :font-weight)
+               (plist-get variant-values :font-weight))
            (etaf-current-prop :tab-index)
            (etaf-current-prop :aria-label)
            use))))))
 
 ;;;###autoload
 (etaf-define-component etaf-button
-    (&key label on-press disabled ref class color bgcolor border padding face
+    (&key label on-press disabled ref class color bgcolor border padding font-weight
           tab-index aria-label use variant)
   "Render a standard pressable button with LABEL and ON-PRESS.
 
@@ -551,8 +542,8 @@ contract; callers can still override presentation with the ordinary props."
    ;; State classes carry semantic state only.  Resolved presentation props
    ;; above remain authoritative, so a themed disabled Button cannot inherit
    ;; the catalog's light default surface.
-   ("&.disabled" :padding (0 1) :face normal)
-   ("&.enabled" :padding (0 1) :face bold))
+   ("&.disabled" :padding (0 1) :font-weight normal)
+   ("&.enabled" :padding (0 1) :font-weight bold))
   :setup
   (etaf-ui--button-setup))
 
@@ -594,28 +585,28 @@ validation; the caller owns the value and subsequent state write."
 
 (defun etaf-ui--checkbox-view
     (checked label on-change ref disabled class color bgcolor border padding
-             face tab-index aria-label)
+             font-weight tab-index aria-label)
   "Return LABEL checkbox View with captured CHECKED and ON-PRESS.
 REF, DISABLED, CLASS, COLOR, BGCOLOR, BORDER, PADDING, FACE, TAB-INDEX, and
 ARIA-LABEL provide its semantic and presentation properties."
   (etaf-view
-   (box :layout 'row
+   (row
     :class (etaf-ui--class-value
             "etaf-checkbox" (if disabled "disabled" "enabled") class)
     :role 'checkbox :ref ref :disabled disabled
     :aria-label (or aria-label label)
     :tab-index (unless disabled (or tab-index 0))
-    :color color :bgcolor bgcolor :border border :padding padding :face face
-    :surface-properties (etaf-ui--interactive-surface-properties label disabled)
+    :color color :bgcolor bgcolor :border border :padding padding :font-weight font-weight
     :on-press on-change
-    (text :class "etaf-checkbox-mark"
-          (expr :value (if (etaf-ui--reactive-value checked) "☑" "☐")))
+    (box :class "etaf-checkbox-mark"
+     (text (expr :value
+                 (if (etaf-ui--reactive-value checked) "☑" "☐"))))
     (text (expr :value (if label (concat " " label) ""))))))
 
 ;;;###autoload
 (etaf-define-component etaf-checkbox
     (&key checked label on-change ref disabled class color bgcolor border padding
-          face tab-index aria-label)
+          font-weight tab-index aria-label)
   "Render a controlled checkbox with CHECKED, LABEL, and ON-CHANGE.
 
 CHECKED may be a boolean or an ETAF reactive source.  ON-CHANGE receives the
@@ -628,7 +619,7 @@ works with local refs or Data-backed forms."
    ;; Theme map in :setup; styles keep only geometry defaults.
    ("&.disabled" :padding (0 1))
    ("&.enabled" :padding (0 1))
-   (".etaf-checkbox-mark" :face bold :width 1))
+   (".etaf-checkbox-mark" :font-weight bold :width 1))
   :setup
   (let* ((current-checked nil)
          (current-callback nil)
@@ -664,21 +655,27 @@ works with local refs or Data-backed forms."
              (plist-get variant-values :bgcolor))
          (or (etaf-current-prop :border)
              (plist-get variant-values :border))
-         (etaf-current-prop :padding) (etaf-current-prop :face)
+         (etaf-current-prop :padding) (etaf-current-prop :font-weight)
          (etaf-current-prop :tab-index) (etaf-current-prop :aria-label))))))
 
 ;;;###autoload
 (etaf-define-component etaf-label
-    (&key text face class color bgcolor border padding ref width)
+    (&key text font-weight class color bgcolor border padding ref width)
   "Render TEXT as a semantic label with presentation properties.
 TEXT may be an ordinary value or an ETAF reactive source."
   :view
   (expr
    :value
-   (etaf-view
-    (text :class class :face face :color color :bgcolor bgcolor :border border
-          :padding padding :ref ref :width width
-          (expr :value (etaf-ui--reactive-value text))))))
+   (if (or border padding width)
+       (etaf-view
+        (box :class class :font-weight font-weight :color color
+             :bgcolor bgcolor :border border :padding padding
+             :ref ref :width width
+         (text (expr :value (etaf-ui--reactive-value text)))))
+     (etaf-view
+      (text :class class :font-weight font-weight :color color
+            :bgcolor bgcolor :ref ref
+            (expr :value (etaf-ui--reactive-value text)))))))
 
 (defun etaf-ui--panel-view (title class color bgcolor border padding ref)
   "Render a themed Panel View.
@@ -686,7 +683,7 @@ Arguments are TITLE, CLASS, COLOR, BGCOLOR, BORDER, PADDING, and REF."
   (let ((theme (etaf-ui-theme-tokens :ui-panel-fg :ui-panel-bg
                                      :ui-panel-border)))
     (etaf-view
-     (box :layout 'column
+     (column
       :class (etaf-ui--class-value "etaf-panel" nil class)
       :color (or color (plist-get theme :ui-panel-fg))
       :bgcolor (or bgcolor (plist-get theme :ui-panel-bg))
@@ -709,7 +706,7 @@ Arguments are TITLE, CLASS, COLOR, BGCOLOR, BORDER, PADDING, and REF."
   :styles
   (styles
    ("&" :padding (1 2))
-   (".etaf-panel-title" :face bold))
+   (".etaf-panel-title" :font-weight bold))
   :view
   (expr :value
         (etaf-ui--panel-view title class color bgcolor border padding ref)))
@@ -728,8 +725,8 @@ those values into ordinary Hosts.  Interactive rows require ROW-REF to return
 a stable Host reference."
   :styles
    (styles
-   (".etaf-data-grid-header" :face bold :padding (0 1))
-   (".etaf-data-grid-header-cell" :face bold)
+   (".etaf-data-grid-header" :font-weight bold :padding (0 1))
+   (".etaf-data-grid-header-cell" :font-weight bold)
    (".etaf-data-grid-row" :padding (0 1))
    ;; Selection color and error color are dynamic semantic props below, so
   ;; this Component style scope contains geometry only.
@@ -822,12 +819,12 @@ a stable Host reference."
                  :range-key #'car
                  :range-item body-range-item)))
         (etaf--view-call
-         'box
-         (list :layout 'column :class "etaf-data-grid" :color theme-color)
+         'column
+         (list :class "etaf-data-grid" :color theme-color)
          (list
           (etaf-ui--grid-header columns theme)
           (etaf--view-call
-           'box (list :layout 'column :class "etaf-data-grid-body")
+           'column (list :class "etaf-data-grid-body")
            (list body-expr))
           (etaf--slot-projection-create
            :name 'footer :token 'etaf-ui-data-grid-footer :fallback nil)))))))
@@ -846,7 +843,7 @@ readable in both GUI and text review."
   :styles
   (styles
    ("&" :width stretch)
-   (".etaf-pagination-label" :face bold))
+   (".etaf-pagination-label" :font-weight bold))
   :setup
   (let* ((current-controller nil)
          (current-parent-color nil)
@@ -905,7 +902,7 @@ readable in both GUI and text review."
               current-parent-color parent-color
               current-parent-bgcolor parent-bgcolor)
         (etaf-view
-         (box :layout 'flex
+         (flex
                :class (etaf-ui--class-value "etaf-pagination" nil
                                             (etaf-current-prop :class))
                :width 'stretch
@@ -919,7 +916,7 @@ readable in both GUI and text review."
                :box-sizing 'border-box
                :padding (or (etaf-current-prop :padding) '(0 1))
                :gap '(0 (1))
-          (box :layout 'column :width 'max-content
+          (column :width 'max-content
                   :flex-grow 0 :flex-shrink 0 :flex-basis 'auto
            (button :label "←" :ref (etaf-current-prop :previous-ref)
                    :aria-label "Previous page"
@@ -930,29 +927,33 @@ readable in both GUI and text review."
                               (plist-get theme :ui-disabled-fg)
                             current-parent-color)
                    :bgcolor current-parent-bgcolor
-                   :face 'bold
+                   :font-weight 'bold
                    :on-press previous))
-          (box :layout 'column
+          (column
                :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0
-           (text :class "etaf-pagination-label" :text-align 'center
-                 (expr :value
-                       (format "Page %d / %d"
-                               (funcall page-value)
-                               (funcall pages-value))))
-           (text :class "etaf-pagination-summary" :text-align 'center
-                 :color (plist-get theme :ui-pagination-muted-fg)
-                 (expr :value
-                       (let* ((page (funcall page-value))
-                              (page-size (funcall page-size-value))
-                              (total (funcall total-value))
-                              (first-item
-                               (if (zerop total)
-                                   0
-                                 (1+ (* (1- page) page-size))))
-                              (last-item (min total (* page page-size))))
-                         (format "%d–%d of %d"
-                                 first-item last-item total)))))
-          (box :layout 'column :width 'max-content
+           (box :class "etaf-pagination-label" :text-align 'center
+                :wrap-mode 'none :min-width 'max-content
+            (text
+             (expr :value
+                   (format "Page %d / %d"
+                           (funcall page-value)
+                           (funcall pages-value)))))
+           (box :class "etaf-pagination-summary" :text-align 'center
+                :color (plist-get theme :ui-pagination-muted-fg)
+                :wrap-mode 'none :min-width 'max-content
+            (text
+             (expr :value
+                   (let* ((page (funcall page-value))
+                          (page-size (funcall page-size-value))
+                          (total (funcall total-value))
+                          (first-item
+                           (if (zerop total)
+                               0
+                             (1+ (* (1- page) page-size))))
+                          (last-item (min total (* page page-size))))
+                     (format "%d–%d of %d"
+                             first-item last-item total))))))
+          (column :width 'max-content
                   :flex-grow 0 :flex-shrink 0 :flex-basis 'auto
            (button :label "→" :ref (etaf-current-prop :next-ref)
                    :aria-label "Next page"
@@ -963,7 +964,7 @@ readable in both GUI and text review."
                               (plist-get theme :ui-disabled-fg)
                             current-parent-color)
                    :bgcolor current-parent-bgcolor
-                   :face 'bold
+                   :font-weight 'bold
                    :on-press next))))))))
 
 (provide 'etaf-ui)
