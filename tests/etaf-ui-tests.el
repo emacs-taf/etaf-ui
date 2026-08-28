@@ -665,8 +665,10 @@
           (should (equal "light-grid-border"
                          (etaf-ui-test--paint-color
                           border-slot :border-bottom-color)))
-          (should (plist-get (etaf-ui-test--props-with-key buffer-name 1)
-                             :border-bottom-p))
+          (let ((row-props
+                 (etaf-ui-test--props-with-key buffer-name 1)))
+            (should (= (plist-get row-props :border-bottom-width) 1))
+            (should (eq (plist-get row-props :border-bottom-style) 'solid)))
           (setf (etaf-value theme) '(:color "dark-ink"
                                       :ui-grid-border "dark-grid-border"
                                       :ui-grid-selected-fg "dark-selected"

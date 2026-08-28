@@ -25,7 +25,7 @@
 
 Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 `:on-press`、`:disabled`、`:ref`，以及最小 presentation 属性
-`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:face`、
+`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-weight`、
 `:tab-index`、`:aria-label` 和公共 Behavior 列表 `:use`。启用按钮默认使用
 `button` role 和 `tab-index 0`；禁用按钮仍显示标签和禁用样式，但没有 press
 回调、Behavior，也不进入 tab 顺序。`etaf-checkbox` 支持 `:checked`、`:label`、`:on-change`、
@@ -61,8 +61,9 @@ Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil pre
 间距由父布局负责，而不是由 Button 偷塞。相邻控件应放在带明确横向 `:gap`
 的 `row`/`flex` 中，这样每个控件的 mouse-face 和命中范围才保持语义独立。
 
-`etaf-label` 支持 `:text`、`:face`、`:class`、`:color`、`:bgcolor`、`:width`、
-`:border`、`:padding` 和 `:ref`。`etaf-panel` 支持 `:title`、相同的
+`etaf-label` 支持 `:text`、`:class`、`:color`、`:bgcolor`、`:font-weight`、
+`:width`、`:border`、`:padding` 和 `:ref`。
+`etaf-panel` 支持 `:title`、相同的
 surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 
 DataGrid 支持列描述、函数型 `:row-key`，以及可选的

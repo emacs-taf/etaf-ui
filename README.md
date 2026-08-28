@@ -26,7 +26,7 @@ definition and API names.
 
 Button and Checkbox are controlled Components. `etaf-button` accepts `:label`,
 `:on-press`, `:disabled`, `:ref`, and the small presentation set
-`:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:face`, `:tab-index`,
+`:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`,
 and `:aria-label`, plus `:use` for a public Behavior list. An enabled button
 defaults to role `button` and tab index `0`; a disabled button keeps its label
 and disabled styling but has no press handler, Behavior, or tab stop.
@@ -70,8 +70,9 @@ Spacing is owned by the parent layout, not by Button. Put adjacent controls in
 a `row`/`flex` with an explicit horizontal `:gap`; this keeps each control's
 mouse-face and hit range semantically separate.
 
-`etaf-label` accepts `:text`, `:face`, `:class`, `:color`, `:bgcolor`, `:width`,
-`:border`, `:padding`, and `:ref`. `etaf-panel` accepts `:title`, the same
+`etaf-label` accepts `:text`, `:class`, `:color`, `:bgcolor`, `:font-weight`,
+`:width`, `:border`, `:padding`, and `:ref`.
+`etaf-panel` accepts `:title`, the same
 surface presentation props, and projects the named `header` slot plus the
 default slot.
 

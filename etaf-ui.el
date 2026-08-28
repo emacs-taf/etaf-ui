@@ -145,15 +145,15 @@ Component render depend on the Theme source."
   "Return Ebox border VALUE, preserving complete caller-owned specs.
 
 Semantic Theme border tokens conventionally contain a color string.  The
-catalog turns a hex color into its one-cell border shape; an existing border
-plist or a legacy caller-owned string remains untouched for compatibility."
+catalog turns a hex color into a one-pixel solid border; an existing canonical
+border value remains unchanged."
   (cond
    ((etaf-theme-token-p value)
     (etaf-theme-token (nth 1 value) (nth 2 value)
                       #'etaf-ui--theme-border))
    ((and (stringp value)
          (string-match-p "\\`#[[:xdigit:]]+\\'" value))
-    (list (list 1) 'solid value))
+    (list 1 'solid value))
    (t value)))
 
 (defun etaf-ui--class-value (base state custom)
@@ -200,7 +200,8 @@ plist or a legacy caller-owned string remains untouched for compatibility."
   "Return a Button Host showing LABEL.
 
 ON-PRESS and USE provide callbacks and Behaviors.  DISABLED controls whether
-the Host is interactive.  REF, CLASS, COLOR, BGCOLOR, BORDER, PADDING, FACE,
+the Host is interactive.  REF, CLASS, COLOR, BGCOLOR, BORDER, PADDING,
+FONT-WEIGHT,
 TAB-INDEX, and ARIA-LABEL provide Host identity and presentation."
   (let ((class-value (etaf-ui--class-value
                       "etaf-button"
@@ -384,7 +385,8 @@ ROW-ACTIONS owns stable keyed callbacks across body reevaluation."
            :ref host-ref
            :role (when interactive-p 'button)
            :tab-index (when interactive-p 0)
-           :border-bottom-p t
+           :border-bottom-width 1
+           :border-bottom-style 'solid
            :border-bottom-color (plist-get theme :ui-grid-border)
            :on-press (when interactive-p
                        (etaf-ui--grid-row-action
@@ -897,7 +899,7 @@ readable in both GUI and text review."
                                (plist-get theme :ui-fg)))
              (parent-bgcolor (or (etaf-current-prop :bgcolor)
                                  (plist-get theme :ui-bg)))
-             (arrow-border '((0) solid "transparent")))
+             (arrow-border '(0 solid "transparent")))
         (setq current-controller controller-value
               current-parent-color parent-color
               current-parent-bgcolor parent-bgcolor)
