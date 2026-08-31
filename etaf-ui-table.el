@@ -69,21 +69,44 @@
            (etaf-ui--column-value column :key))
        column))))))
 
+(defun etaf-ui--table-fixed-header-text (columns)
+  "Return one fixed-width header string for COLUMNS, or nil."
+  (when (and columns
+             (cl-every
+              (lambda (column)
+                (let ((width (etaf-ui--column-value column :width)))
+                  (and (integerp width) (> width 0))))
+              columns))
+    (mapconcat
+     (lambda (column)
+       (let* ((width (etaf-ui--column-value column :width))
+              (value
+               (etaf-ui--table-fit-text
+                (or (etaf-ui--column-value column :label)
+                    (etaf-ui--column-value column :key))
+                column)))
+         (concat value
+                 (make-string (max 0 (- width (string-width value))) ?\s))))
+     columns " ")))
+
 (defun etaf-ui--table-header (columns)
   "Return a Table header row for COLUMNS."
-  (let ((theme (etaf-ui--style-tokens :ui-table-border)))
+  (let ((theme (etaf-ui--style-tokens :ui-table-border))
+        (fixed-text (etaf-ui--table-fixed-header-text columns)))
     (etaf-node
      'row
      (list :class "etaf-table-header"
            :border-bottom-width 1 :border-bottom-style 'solid
            :border-bottom-color (plist-get theme :ui-table-border))
-     (cl-loop for column in columns
-              for tail on columns
-              for index from 0
-              collect
-              (etaf-ui--table-header-cell
-               column (zerop index) (cdr tail)
-               (plist-get theme :ui-table-border))))))
+     (if fixed-text
+         (list (etaf-node 'text nil (list fixed-text)))
+       (cl-loop for column in columns
+                for tail on columns
+                for index from 0
+                collect
+                (etaf-ui--table-header-cell
+                 column (zerop index) (cdr tail)
+                 (plist-get theme :ui-table-border)))))))
 
 (defun etaf-ui--table-cell (row column first-p gap-p border-color)
   "Return one Label cell for ROW and COLUMN using GAP-P."

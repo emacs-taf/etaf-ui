@@ -823,6 +823,14 @@
   (should-not
    (etaf-ui--table-fixed-row-text
     '(:name "Ada" :kind "Essay")
+    '((:key :name :width 5) (:key :kind))))
+  (should
+   (equal "Name  Kind   "
+          (etaf-ui--table-fixed-header-text
+           '((:key :name :label "Name" :width 5)
+             (:key :kind :label "Kind" :width 7)))))
+  (should-not
+   (etaf-ui--table-fixed-header-text
     '((:key :name :width 5) (:key :kind)))))
 
 (ert-deftest etaf-ui-data-grid-noninteractive-rows-have-no-focus-contract ()
