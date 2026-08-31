@@ -178,7 +178,7 @@ candidate values; THEME is the resolved table-paint snapshot for this item."
            (and on-row-press
                 (etaf-ui--data-grid-row-action
                  state key row on-row-press)))
-     (etaf-ui--table-row-children row columns border-color))))
+     (etaf-ui--table-row-children row columns))))
 
 (defun etaf-ui--data-grid-state-label (key text &optional class color)
   "Return TEXT as a non-row DataGrid state label identified by KEY.
@@ -244,14 +244,13 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
     (&key controller entry columns row-ref on-row-press row-selected-p
           grid-state)
   "Render one retained keyed DataGrid ENTRY with a cached row action."
-  :view
-  (expr
-   (if (plist-get (cdr entry) :etaf-data-grid-state)
-     (etaf-ui--data-grid-state-entry-node entry)
-     (etaf-ui--data-grid-row
-      grid-state controller entry columns row-ref on-row-press row-selected-p
-      (etaf-ui--style-tokens
-       :ui-table-border :ui-table-selected-fg :ui-table-selected-bg)))))
+  :render
+  (if (plist-get (cdr entry) :etaf-data-grid-state)
+      (etaf-ui--data-grid-state-entry-node entry)
+    (etaf-ui--data-grid-row
+     grid-state controller entry columns row-ref on-row-press row-selected-p
+     (etaf-ui--style-tokens
+      :ui-table-border :ui-table-selected-fg :ui-table-selected-bg))))
 
 ;;;###autoload
 (etaf-define-component etaf-data-grid

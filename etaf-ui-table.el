@@ -46,20 +46,13 @@
         (1+ width)
       width)))
 
-(defun etaf-ui--table-cell-frame (first-p header-p color)
-  "Return shared Cell border properties for FIRST-P, HEADER-P, and COLOR."
-  (ignore first-p header-p color)
-  nil)
-
-(defun etaf-ui--table-header-cell (column first-p gap-p border-color)
+(defun etaf-ui--table-header-cell (column gap-p)
   "Return one Label header for COLUMN, adding air when GAP-P is non-nil."
   (etaf-node
    'box
-   (append
-    (list :class "etaf-table-header-cell"
-          :width (etaf-ui--table-track-width column gap-p)
-          :wrap-mode 'none)
-    (etaf-ui--table-cell-frame first-p t border-color))
+   (list :class "etaf-table-header-cell"
+         :width (etaf-ui--table-track-width column gap-p)
+         :wrap-mode 'none)
    (list
     (etaf-node
      'text nil
@@ -102,21 +95,16 @@
          (list (etaf-node 'text nil (list fixed-text)))
        (cl-loop for column in columns
                 for tail on columns
-                for index from 0
                 collect
-                (etaf-ui--table-header-cell
-                 column (zerop index) (cdr tail)
-                 (plist-get theme :ui-table-border)))))))
+                (etaf-ui--table-header-cell column (cdr tail)))))))
 
-(defun etaf-ui--table-cell (row column first-p gap-p border-color)
+(defun etaf-ui--table-cell (row column gap-p)
   "Return one Label cell for ROW and COLUMN using GAP-P."
   (etaf-node
    'box
-   (append
-    (list :class "etaf-table-cell"
-          :width (etaf-ui--table-track-width column gap-p)
-          :wrap-mode 'none)
-    (etaf-ui--table-cell-frame first-p nil border-color))
+   (list :class "etaf-table-cell"
+         :width (etaf-ui--table-track-width column gap-p)
+         :wrap-mode 'none)
    (list
     (etaf-node
      'text nil
@@ -126,14 +114,12 @@
         row (etaf-ui--column-value column :key))
        column))))))
 
-(defun etaf-ui--table-cells (row columns border-color)
-  "Return cell Components for ROW and COLUMNS."
+(defun etaf-ui--table-cells (row columns)
+  "Return cell Components for ROW using COLUMNS."
   (cl-loop for column in columns
            for tail on columns
-           for index from 0
            collect
-           (etaf-ui--table-cell
-            row column (zerop index) (cdr tail) border-color)))
+           (etaf-ui--table-cell row column (cdr tail))))
 
 (defun etaf-ui--table-fixed-row-text (row columns)
   "Return one fixed-width ROW string for COLUMNS, or nil when not applicable."
@@ -155,16 +141,17 @@
                  (make-string (max 0 (- width (string-width value))) ?\s))))
      columns " ")))
 
-(defun etaf-ui--table-row-children (row columns border-color)
+(defun etaf-ui--table-row-children (row columns)
   "Return the smallest presentation-equivalent child list for ROW.
 COLUMNS with fixed positive character widths use one padded Text Host;
-otherwise retain the general per-cell Box path using BORDER-COLOR."
+otherwise retain the general per-cell Box path."
   (if-let* ((text (etaf-ui--table-fixed-row-text row columns)))
       (list (etaf-node 'text nil (list text)))
-    (etaf-ui--table-cells row columns border-color)))
+    (etaf-ui--table-cells row columns)))
 
 (defun etaf-ui--table-entries (rows row-key)
-  "Return `(KEY . ROW)' entries; ETAF validates keys and uniqueness."
+  "Return `(KEY . ROW)' entries for ROWS using ROW-KEY.
+ETAF validates keys and uniqueness."
   (unless (functionp row-key)
     (error "ETAF Table requires a function-valued :row-key"))
   (mapcar (lambda (row) (cons (funcall row-key row) row)) rows))
@@ -176,7 +163,8 @@ otherwise retain the general per-cell Box path using BORDER-COLOR."
 This helper is shared by the retained presentational Table Component and the
 DataGrid's keyed hot path.  Keeping the row itself as a Host avoids creating a
 second Component boundary for every visible item while preserving the same
-selection, event, and style contract."
+selection, event, and style contract.  COLUMNS define the visible cells;
+ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
   (let* ((callback on-row-press)
          (row-value row)
          (interactive-p (not (null callback)))
@@ -212,8 +200,7 @@ selection, event, and style contract."
            :on-press
            (when interactive-p
              (lambda () (funcall callback row-value))))
-     (etaf-ui--table-row-children
-      row columns (plist-get theme :ui-table-border)))))
+     (etaf-ui--table-row-children row columns))))
 
 (etaf-define-component etaf-ui--table-header (&key columns)
   "Render one retained Table header."

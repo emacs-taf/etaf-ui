@@ -1,5 +1,7 @@
 ;;; etaf-ui-tests.el --- Official ETAF Component tests -*- lexical-binding: t; -*-
 
+;;; Code:
+
 (require 'ert)
 (require 'etaf-ui)
 
