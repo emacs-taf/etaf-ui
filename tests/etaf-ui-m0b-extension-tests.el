@@ -200,5 +200,178 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-m0b-data-grid-late-row-failure-keeps-committed-handler ()
+  "Do not leak an early candidate row when a later row fails rendering."
+  (let* ((old-rows '((:id 1 :name "Committed") (:id 2 :name "Stable")))
+         (new-rows '((:id 1 :name "UNCOMMITTED")
+                     (:id 2 :name "Late failure")))
+         (source (etaf-data-memory-source old-rows :id-key :id))
+         (controller (etaf-data-controller source :page-size 10 :auto-load t))
+         (buffer-name " *etaf-ui-m0b-grid-late-failure*")
+         fail-late pressed)
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (etaf-data-grid
+             :controller controller
+             :columns '((:key :name :label "Name"))
+             :row-key (lambda (row) (plist-get row :id))
+             :row-ref
+             (lambda (row)
+               (unless (and fail-late (= 2 (plist-get row :id)))
+                 (intern (format "late-row-%s" (plist-get row :id)))))
+             :on-row-press (lambda (row) (setq pressed row)))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer-name))
+                 (generation (etaf-runtime-current-generation runtime))
+                 (text (with-current-buffer buffer-name (buffer-string)))
+                 (handler
+                  (cdr (assq 'press
+                             (etaf-runtime-handler-for runtime 'late-row-1)))))
+            (setq fail-late t)
+            (should-error
+             (setf (etaf-value (etaf-data-items controller)) new-rows))
+            (should (eq generation
+                        (etaf-runtime-current-generation runtime)))
+            (should (equal-including-properties
+                     text (with-current-buffer buffer-name (buffer-string))))
+            (should (eq handler
+                        (cdr (assq
+                              'press
+                              (etaf-runtime-handler-for runtime 'late-row-1)))))
+            (etaf-dispatch-event runtime 'late-row-1 'press)
+            (should (equal "Committed" (plist-get pressed :name)))
+            (setq fail-late nil)
+            (setf (etaf-value (etaf-data-items controller)) old-rows)
+            (setf (etaf-value (etaf-data-items controller)) new-rows)
+            (should (eq handler
+                        (cdr (assq
+                              'press
+                              (etaf-runtime-handler-for runtime 'late-row-1)))))
+            (etaf-dispatch-event runtime 'late-row-1 'press)
+            (should (equal "UNCOMMITTED" (plist-get pressed :name)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-m0b-data-grid-prunes-committed-handler-cache ()
+  "Bound the stable handler cache to currently retained interactive keys."
+  (let* ((rows-a '((:id 1 :name "A") (:id 2 :name "B")
+                   (:id 3 :name "C")))
+         (rows-b '((:id 4 :name "D") (:id 5 :name "E")
+                   (:id 6 :name "F")))
+         (source (etaf-data-memory-source rows-a :id-key :id))
+         (controller (etaf-data-controller source :page-size 10 :auto-load t))
+         (buffer-name " *etaf-ui-m0b-grid-handler-prune*")
+         state)
+    (unwind-protect
+        (progn
+          (let ((promote
+                 (symbol-function 'etaf-ui--data-grid-promote-row-actions)))
+            (cl-letf
+                (((symbol-function 'etaf-ui--data-grid-promote-row-actions)
+                  (lambda (candidate-state)
+                    (setq state candidate-state)
+                    (funcall promote candidate-state))))
+              (etaf-mount
+               buffer-name
+               (etaf-view
+                (etaf-data-grid
+                 :controller controller
+                 :columns '((:key :name :label "Name"))
+                 :row-key (lambda (row) (plist-get row :id))
+                 :row-ref (lambda (row)
+                            (intern (format "prune-row-%s"
+                                            (plist-get row :id))))
+                 :on-row-press #'ignore)))))
+          (should state)
+          (let* ((runtime (etaf-runtime-for-buffer buffer-name))
+                 (cache (plist-get state :row-actions)))
+            (should (= 3 (hash-table-count cache)))
+            (dolist (key '(1 2 3))
+              (etaf-data-mutate controller 'delete key))
+            (dolist (row rows-b)
+              (etaf-data-mutate controller 'insert row))
+            (should (= 3 (hash-table-count cache)))
+            (dolist (key '(1 2 3)) (should-not (gethash key cache)))
+            (dolist (key '(4 5 6)) (should (gethash key cache)))
+            (dolist (key '(4 5 6))
+              (etaf-data-mutate controller 'delete key))
+            (should (zerop (hash-table-count cache)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-m0b-data-grid-default-refs-are-instance-scoped ()
+  "Keep fallback refs distinct across grids and typed row identities."
+  (let* ((rows '((:id foo :name "Symbol") (:id "foo" :name "String")))
+         (source (etaf-data-memory-source rows :id-key :id))
+         (controller (etaf-data-controller source :page-size 10 :auto-load t))
+         (buffer-name " *etaf-ui-m0b-grid-default-ref-scope*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (column
+             (etaf-data-grid
+              :controller controller
+              :columns '((:key :name :label "Name"))
+              :row-key (lambda (row) (plist-get row :id))
+              :on-row-press #'ignore)
+             (etaf-data-grid
+              :controller controller
+              :columns '((:key :name :label "Name"))
+              :row-key (lambda (row) (plist-get row :id))
+              :on-row-press #'ignore))))
+          (let (refs)
+            (maphash
+             (lambda (ref props)
+               (when (member (plist-get props :key) '(foo "foo"))
+                 (push ref refs)))
+             (etaf-runtime-host-props
+              (etaf-runtime-for-buffer buffer-name)))
+            (should (= 4 (length refs)))
+            (should (= 4 (length (delete-dups (copy-sequence refs)))))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-m0b-data-grid-error-status-beats-retained-items ()
+  "Show the error state when a failed reload retains previously loaded rows."
+  (let* ((rows '((:id 1 :name "Existing")))
+         (source (etaf-data-memory-source rows :id-key :id))
+         (controller (etaf-data-controller source :page-size 10 :auto-load t))
+         (buffer-name " *etaf-ui-m0b-grid-retained-error*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (etaf-data-grid
+             :controller controller
+             :columns '((:key :name :label "Name"))
+             :row-key (lambda (row) (plist-get row :id))
+             :error-label "Retained load failed"
+             :empty-label "EMPTY-LABEL")))
+          (setf (etaf-value (etaf-data-status controller)) 'error)
+          (let ((text (with-current-buffer buffer-name
+                        (substring-no-properties (buffer-string)))))
+            (should (string-match-p "Retained load failed" text))
+            (should-not (string-match-p "EMPTY-LABEL" text))
+            (should-not (string-match-p "Existing" text))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (etaf-data-stop controller)
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (provide 'etaf-ui-m0b-extension-tests)
 ;;; etaf-ui-m0b-extension-tests.el ends here

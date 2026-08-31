@@ -107,8 +107,10 @@ the row. Without `:on-row-press`, rows have no callback or tab stop.
 <!-- M0b1: row-ref-optional -->
 `:row-ref` is optional for DataGrid. When it is omitted on an interactive
 grid, DataGrid derives a stable internal Host reference from the row identity
-owned by the controller. When it is supplied, the callback owns that identity
-and must return a non-nil stable Host reference for every row. `:row-key`
+owned by the controller. Fallback refs are uninterned and scoped to each
+retained DataGrid instance, so separate grids may share row identities without
+colliding. When `:row-ref` is supplied, the callback owns that identity and
+must return a non-nil stable Host reference for every row. `:row-key`
 remains a required non-nil stable scalar identity for retained rows. DataGrid
 retains one action closure per row key, so selection or Data Range updates do
 not recreate handlers for unchanged rows.

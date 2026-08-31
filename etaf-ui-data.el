@@ -21,48 +21,122 @@
 (declare-function etaf-data-selected-ref "etaf-data" (controller identity))
 (declare-function etaf-data-item-identity "etaf-data" (controller item))
 
-(defun etaf-ui--data-grid-default-row-ref (controller row)
-  "Return a stable internal Host reference for CONTROLLER ROW.
+(defun etaf-ui--data-grid-default-row-ref (state controller row)
+  "Return STATE's stable internal Host reference for CONTROLLER and ROW.
 
 DataGrid owns this fallback so the presentational Table can keep its stricter
 interactive-row contract.  The controller's validated item identity is the
-only input, making the reference stable across keyed Range updates."
-  (intern (format "etaf-data-grid-row-%s"
-                 (etaf-data-item-identity
-                  controller row))))
+row input.  Per-instance uninterned symbols prevent cross-grid collisions and
+avoid process-global symbol-table growth."
+  (let* ((identity (etaf-data-item-identity controller row))
+         (cache (plist-get state :row-refs))
+         (stage (plist-get state :row-ref-stage))
+         (ref (or (gethash identity cache)
+                  (and (hash-table-p stage) (gethash identity stage)))))
+    (unless ref
+      (unless (hash-table-p stage)
+        (error "ETAF DataGrid row ref changed outside a keyed candidate"))
+      (setq ref (make-symbol (format "etaf-data-grid-row-%s" identity)))
+      (puthash identity ref stage))
+    ref))
 
-(defun etaf-ui--data-grid-row-ref (row-ref on-row-press controller row)
+(defun etaf-ui--data-grid-row-ref
+    (state row-ref on-row-press controller row)
   "Return a validated stable Host reference for interactive ROW.
 
 An explicit ROW-REF remains caller-owned.  Interactive grids without one use
-the CONTROLLER identity fallback; when ON-ROW-PRESS is nil, rows have no Host
-reference."
+STATE's CONTROLLER identity fallback; when ON-ROW-PRESS is nil, rows have no
+Host reference."
   (when on-row-press
     (let ((ref (if row-ref
                    (funcall row-ref row)
-                 (etaf-ui--data-grid-default-row-ref controller row))))
+                 (etaf-ui--data-grid-default-row-ref
+                  state controller row))))
       (unless ref
         (error "ETAF DataGrid :row-ref must return a non-nil stable ref"))
       ref)))
 
-(defun etaf-ui--data-grid-row-action (cache key row callback)
-  "Return CACHE's stable press action for row KEY.
+(defun etaf-ui--data-grid-row-action-entry ()
+  "Return one committed-state cell and stable DataGrid handler."
+  (let (entry)
+    (setq entry (vector nil nil nil))
+    (aset entry 2
+          (lambda ()
+            (let ((current (aref entry 1)))
+              (when current
+                (funcall current (aref entry 0))))))
+    entry))
 
-The vector is retained by DataGrid setup state; only its current ROW and
-CALLBACK change across renders.  Unchanged keyed rows therefore keep the same
-handler identity and avoid rebuilding behavior resources."
-  (let ((entry (gethash key cache)))
-    (unless entry
-      (setq entry (vector row callback nil))
-      (aset entry 2
-         (lambda ()
-              (let ((current (aref entry 1)))
-                (when current
-                  (funcall current (aref entry 0))))))
-      (puthash key entry cache))
-    (aset entry 0 row)
-    (aset entry 1 callback)
-    (aref entry 2)))
+(defun etaf-ui--data-grid-row-action (state key row callback)
+  "Return STATE's stable action for row KEY, staging ROW and CALLBACK.
+
+Committed handlers read only committed cells.  Candidate rendering writes a
+private stage that lifecycle hooks promote after successful publication."
+  (let* ((cache (plist-get state :row-actions))
+         (stage (plist-get state :row-action-stage))
+         (committed (gethash key cache)))
+    (if (and committed
+             (equal-including-properties row (aref committed 0))
+             (eq callback (aref committed 1)))
+        (aref committed 2)
+      (unless (hash-table-p stage)
+        (error "ETAF DataGrid handler changed outside a keyed candidate"))
+      (let* ((proposal (gethash key stage))
+             (entry (or committed (and proposal (aref proposal 0))
+                        (etaf-ui--data-grid-row-action-entry))))
+        (puthash key (vector entry row callback) stage)
+        (aref entry 2)))))
+
+(defun etaf-ui--data-grid-promote-row-actions (state)
+  "Promote STATE's staged row actions/refs and prune non-live keys."
+  (let ((stage (plist-get state :row-action-stage))
+        (live (plist-get state :row-action-live-keys))
+        (cache (plist-get state :row-actions))
+        (prune-p (plist-get state :row-cache-prune-p)))
+    (when (and (hash-table-p stage) (hash-table-p live))
+      (maphash
+       (lambda (key proposal)
+         (let ((entry (aref proposal 0)))
+           (aset entry 0 (aref proposal 1))
+           (aset entry 1 (aref proposal 2))
+           (puthash key entry cache)))
+       stage)
+      (when prune-p
+        (let (removed)
+          (maphash (lambda (key _entry)
+                     (unless (gethash key live) (push key removed)))
+                   cache)
+          (dolist (key removed) (remhash key cache))))
+      (setf (plist-get state :row-action-stage) nil
+            (plist-get state :row-action-live-keys) nil)))
+  (let ((stage (plist-get state :row-ref-stage))
+        (live (plist-get state :row-ref-live-identities))
+        (cache (plist-get state :row-refs))
+        (prune-p (plist-get state :row-cache-prune-p)))
+    (when (and (hash-table-p stage) (hash-table-p live))
+      (maphash (lambda (identity ref) (puthash identity ref cache)) stage)
+      (when prune-p
+        (let (removed)
+          (maphash (lambda (identity _ref)
+                     (unless (gethash identity live)
+                       (push identity removed)))
+                   cache)
+          (dolist (identity removed) (remhash identity cache))))
+      (setf (plist-get state :row-ref-stage) nil
+            (plist-get state :row-ref-live-identities) nil
+            (plist-get state :row-cache-prune-p) nil)))
+  state)
+
+(defun etaf-ui--data-grid-dispose-row-actions (state)
+  "Release all committed and staged row actions in STATE."
+  (clrhash (plist-get state :row-actions))
+  (clrhash (plist-get state :row-refs))
+  (setf (plist-get state :row-action-stage) nil
+        (plist-get state :row-action-live-keys) nil
+        (plist-get state :row-ref-stage) nil
+        (plist-get state :row-ref-live-identities) nil
+        (plist-get state :row-cache-prune-p) nil)
+  state)
 
 (defun etaf-ui--data-grid-row-selected-p (controller row row-selected-p)
   "Return whether ROW is selected in CONTROLLER or by ROW-SELECTED-P."
@@ -72,12 +146,11 @@ handler identity and avoid rebuilding behavior resources."
         controller (etaf-data-item-identity controller row)))))
 
 (defun etaf-ui--data-grid-row
-    (controller entry columns row-ref on-row-press row-selected-p row-actions
-                theme)
+    (state controller entry columns row-ref on-row-press row-selected-p theme)
   "Return one retained DataGrid row for keyed ENTRY.
 CONTROLLER owns selection identity; ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P
-define the interaction contract.  ROW-ACTIONS retains callback identity, and
-THEME is the resolved table-paint snapshot for this item."
+define the interaction contract.  STATE retains callback identity and stages
+candidate values; THEME is the resolved table-paint snapshot for this item."
   (let* ((key (car entry))
          (row (cdr entry))
          (border-color (plist-get theme :ui-table-border))
@@ -91,7 +164,7 @@ THEME is the resolved table-paint snapshot for this item."
      (list :key key
            :class (concat "etaf-table-row" (when selected-p " selected"))
            :ref (etaf-ui--data-grid-row-ref
-                 row-ref on-row-press controller row)
+                 state row-ref on-row-press controller row)
            :role (when on-row-press 'button)
            :tab-index (when on-row-press 0)
            :color (when selected-p
@@ -104,8 +177,8 @@ THEME is the resolved table-paint snapshot for this item."
            :on-press
            (and on-row-press
                 (etaf-ui--data-grid-row-action
-                 row-actions key row on-row-press)))
-     (etaf-ui--table-cells row columns border-color))))
+                 state key row on-row-press)))
+     (etaf-ui--table-row-children row columns border-color))))
 
 (defun etaf-ui--data-grid-state-label (key text &optional class color)
   "Return TEXT as a non-row DataGrid state label identified by KEY.
@@ -115,28 +188,46 @@ CLASS and COLOR optionally style the label."
              nil))
 
 (defun etaf-ui--data-grid-body-entries
-    (controller row-key loading-label error-label empty-label)
-  "Return public keyed Range entries for CONTROLLER and labels.
-ROW-KEY identifies successful rows.  Loading, error, and empty states use one
-stable sentinel entry so every body state remains below the same Range.
-LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override default state text."
+    (state controller row-key on-row-press row-ref
+           loading-label error-label empty-label)
+  "Return keyed Range entries and begin STATE's candidate action stage.
+CONTROLLER and ROW-KEY identify successful rows.  ON-ROW-PRESS and ROW-REF
+determine which current keys retain committed handlers and fallback refs.
+LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
   (let* ((status (etaf-value (etaf-data-status controller)))
-         (items (etaf-value (etaf-data-items controller))))
-    (cond
-     ((and (eq status 'success) items)
-      (etaf-ui--table-entries items row-key))
-     ((and (eq status 'loading) (null items))
-      (list (cons 'loading
-                  (list :etaf-data-grid-state 'loading
-                        :text (or loading-label "Loading...")))))
-     ((and (eq status 'error) (null items))
-      (list (cons 'error
-                  (list :etaf-data-grid-state 'error
-                        :text (or error-label "Unable to load data.")))))
-     (t
-      (list (cons 'empty
-                  (list :etaf-data-grid-state 'empty
-                        :text (or empty-label "No data."))))))))
+         (items (etaf-value (etaf-data-items controller)))
+         (entries
+          (cond
+           ((eq status 'loading)
+            (list (cons 'loading
+                        (list :etaf-data-grid-state 'loading
+                              :text (or loading-label "Loading...")))))
+           ((eq status 'error)
+            (list (cons 'error
+                        (list :etaf-data-grid-state 'error
+                              :text (or error-label
+                                        "Unable to load data.")))))
+           (items (etaf-ui--table-entries items row-key))
+           (t
+            (list (cons 'empty
+                        (list :etaf-data-grid-state 'empty
+                              :text (or empty-label "No data.")))))))
+         (stage (make-hash-table :test #'equal))
+         (live (make-hash-table :test #'equal))
+         (ref-stage (make-hash-table :test #'equal))
+         (ref-live (make-hash-table :test #'equal)))
+    (when (and on-row-press items (not (memq status '(loading error))))
+      (dolist (entry entries) (puthash (car entry) t live))
+      (unless row-ref
+        (dolist (row items)
+          (puthash (etaf-data-item-identity controller row) t ref-live))))
+    (setf (plist-get state :row-action-stage) stage
+          (plist-get state :row-action-live-keys) live
+          (plist-get state :row-ref-stage) ref-stage
+          (plist-get state :row-ref-live-identities) ref-live
+          (plist-get state :row-cache-prune-p)
+          (not (memq status '(loading error))))
+    entries))
 
 (defun etaf-ui--data-grid-state-entry-node (entry)
   "Return the state label View represented by keyed ENTRY."
@@ -151,14 +242,14 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override default state text."
 
 (etaf-define-component etaf-ui--data-grid-body-item
     (&key controller entry columns row-ref on-row-press row-selected-p
-          row-actions)
+          grid-state)
   "Render one retained keyed DataGrid ENTRY with a cached row action."
   :view
   (expr
    (if (plist-get (cdr entry) :etaf-data-grid-state)
-       (etaf-ui--data-grid-state-entry-node entry)
+     (etaf-ui--data-grid-state-entry-node entry)
      (etaf-ui--data-grid-row
-      controller entry columns row-ref on-row-press row-selected-p row-actions
+      grid-state controller entry columns row-ref on-row-press row-selected-p
       (etaf-ui--style-tokens
        :ui-table-border :ui-table-selected-fg :ui-table-selected-bg)))))
 
@@ -169,9 +260,25 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override default state text."
   "Render DATA CONTROLLER state through the public Component DSL.
 
 DataGrid owns loading, error, empty, and controller-selection adaptation.
-Its keyed Range retains row identity across insert, reorder, and update; setup
-state only caches stable row action closures."
-  :setup (list :row-actions (make-hash-table :test #'equal))
+Its keyed Range retains row identity across insert, reorder, and update.
+Setup state owns per-instance fallback refs plus commit-staged stable row
+actions; failed candidates cannot mutate committed handler inputs."
+  :setup
+  (let ((state
+         (list :row-actions (make-hash-table :test #'equal)
+               :row-action-stage nil
+               :row-action-live-keys nil
+               :row-refs (make-hash-table :test #'equal)
+               :row-ref-stage nil
+               :row-ref-live-identities nil
+               :row-cache-prune-p nil)))
+    (etaf-on-mounted
+     (lambda () (etaf-ui--data-grid-promote-row-actions state)))
+    (etaf-on-updated
+     (lambda () (etaf-ui--data-grid-promote-row-actions state)))
+    (etaf-on-unmounted
+     (lambda () (etaf-ui--data-grid-dispose-row-actions state)))
+    state)
   :view
   (column
    :class "etaf-data-grid etaf-table"
@@ -182,12 +289,13 @@ state only caches stable row action closures."
     (etaf-ui--data-grid-body-item
      :for (entry
            (etaf-ui--data-grid-body-entries
-            controller row-key loading-label error-label empty-label))
+            (etaf-state) controller row-key on-row-press row-ref
+            loading-label error-label empty-label))
      :key (car entry)
      :controller controller :entry entry :columns columns
      :row-ref row-ref :on-row-press on-row-press
      :row-selected-p row-selected-p
-     :row-actions (plist-get (etaf-state) :row-actions)))
+     :grid-state (etaf-state)))
    (slot :name 'footer)))
 
 ;;;###autoload

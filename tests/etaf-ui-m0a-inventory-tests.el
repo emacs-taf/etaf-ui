@@ -171,6 +171,11 @@
     (should (eq 'M0b (plist-get inventory :milestone)))
     (should (eq 'migrated-public-extension-seam
                 (plist-get inventory :evidence-mode)))
+    (should
+     (equal '(:handler-publication postcommit-promoted
+              :fallback-ref instance-scoped-uninterned
+              :fixed-width-row single-text-host)
+            (plist-get inventory :datagrid-contract)))
     (should (= 7 (length (plist-get inventory
                                     :m0a-private-production-baseline))))
     (should-not

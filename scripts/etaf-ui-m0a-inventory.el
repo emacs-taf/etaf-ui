@@ -252,6 +252,10 @@ ROOT defaults to the etaf-ui package root."
   (list :schema-version 1
         :milestone 'M0b
         :evidence-mode 'migrated-public-extension-seam
+        :datagrid-contract
+        '(:handler-publication postcommit-promoted
+          :fallback-ref instance-scoped-uninterned
+          :fixed-width-row single-text-host)
         :components (etaf-ui-m0a-component-inventory)
         :m0a-private-production-baseline
         etaf-ui-m0a-private-production-callsites

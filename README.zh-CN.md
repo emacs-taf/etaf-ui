@@ -94,8 +94,10 @@ DataGrid 支持列描述、函数型 `:row-key`，以及可选的
 
 <!-- M0b1: row-ref-optional -->
 DataGrid 的 `:row-ref` 是可选项。交互式 grid 省略它时，DataGrid 会根据
-controller 持有的 row identity 派生稳定的内部 Host ref；显式提供它时，
-该回调拥有 identity，并且必须为每一行返回非 nil 的稳定 Host ref。
+controller 持有的 row identity 派生稳定的内部 Host ref。fallback ref 不会
+进入全局 symbol table，并按每个 retained DataGrid instance 隔离，因此多个 grid
+可以安全复用相同行 identity；显式提供它时，该回调拥有 identity，并且必须为
+每一行返回非 nil 的稳定 Host ref。
 `:row-key` 仍然是 retained row 必须具备的非 nil 稳定标量 identity。
 DataGrid 按 row key 保留唯一 action closure，因此 selection 或 Data Range
 更新不会为未变化的行重建 handler。

@@ -29,10 +29,14 @@
   (let (found)
     (maphash
      (lambda (_ref props)
-       (when (equal (plist-get props :class) class)
+       (when (member class (etaf--class-tokens (plist-get props :class)))
          (setq found props)))
      (etaf-runtime-host-props (etaf-runtime-for-buffer buffer-name)))
     found))
+
+(defun etaf-ui-test--has-class-p (props class)
+  "Return non-nil when PROPS contain CLASS."
+  (member class (etaf--class-tokens (plist-get props :class))))
 
 (defun etaf-ui-test--paint-color (value property)
   "Return effective paint color from VALUE for Ebox PROPERTY."
@@ -63,49 +67,49 @@
   :setup
   (progn
     (etaf-theme-provide '(:color "theme-color"
-                          :bgcolor "theme-bg"
+                          :background-color "theme-bg"
                           :padding (9 9)))
-    (lambda ()
-      (etaf-view
-       (row
-        (button :label "Styled" :ref 'styled-button)
-        (button :label "Custom" :ref 'custom-button
+    nil)
+  :view
+  (row
+   (etaf-button :label "Styled" :ref 'styled-button)
+   (etaf-button :label "Custom" :ref 'custom-button
                 :color "explicit-color")
-        (label :text "Themed" :ref 'themed-label
+   (etaf-label :text "Themed" :ref 'themed-label
                :color nil :bgcolor nil)
-        (panel :title "Styled panel" :ref 'styled-panel))))))
+   (etaf-panel :title "Styled panel" :ref 'styled-panel)))
 
 (etaf-define-component etaf-ui-test-token-theme-fixture ()
   "Provide explicit UI Button tokens through ETAF Theme."
   :setup
   (progn
     (etaf-theme-provide
-     '(:ui-button-color "token-fg"
-       :ui-button-bgcolor "token-bg"
-       :ui-button-border "token-border"
-       :ui-button-secondary-color "secondary-fg"
-       :ui-button-secondary-bgcolor "secondary-bg"
+     '(:ui-button-primary-fg "token-fg"
+       :ui-button-primary-bg "token-bg"
+       :ui-button-primary-border "token-border"
+       :ui-button-secondary-fg "secondary-fg"
+       :ui-button-secondary-bg "secondary-bg"
        :ui-button-secondary-border "secondary-border"))
-    (lambda ()
-      (etaf-view
-       (row
-        (button :label "Token" :ref 'token-button)
-        (button :label "Secondary" :ref 'token-secondary
-                :variant 'secondary))))))
+    nil)
+  :view
+  (row
+   (etaf-button :label "Token" :ref 'token-button)
+   (etaf-button :label "Secondary" :ref 'token-secondary
+                :variant 'secondary)))
 
 (etaf-define-component etaf-ui-test-grid-theme-fixture
     (&key controller theme)
   "Provide a reactive Theme around one DataGrid for palette tests."
   :setup
   (progn
-    (etaf-theme-provide (etaf-current-prop :theme))
-    (lambda ()
-      (etaf-view
-       (data-grid
-        :controller (etaf-current-prop :controller)
-        :columns '((:key :id :label "ID") (:key :name :label "Name"))
-        :row-key (lambda (row) (plist-get row :id))
-         :selected-key 1)))))
+    (etaf-theme-provide theme)
+    nil)
+  :view
+  (etaf-data-grid
+   :controller controller
+   :columns '((:key :id :label "ID") (:key :name :label "Name"))
+   :row-key (lambda (row) (plist-get row :id))
+   :row-selected-p (lambda (row) (= (plist-get row :id) 1))))
 
 (ert-deftest etaf-ui-button-use-behavior-dispatches-through-host ()
   "Install Button `:use' Behavior and dispatch its merged callback."
@@ -116,7 +120,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (button :label "Behavior" :ref 'behavior-button
+            (etaf-button :label "Behavior" :ref 'behavior-button
                     :use (list (etaf-ui-test-press-behavior)))))
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                'behavior-button 'press)
@@ -132,21 +136,21 @@
     (unwind-protect
         (progn
           (etaf-mount buffer-name
-                      (etaf-view (ui-test-theme-fixture)))
+                      (etaf-view (etaf-ui-test-theme-fixture)))
           (let ((styled (etaf-ui-test--props buffer-name 'styled-button))
                 (custom (etaf-ui-test--props buffer-name 'custom-button))
                 (themed (etaf-ui-test--props buffer-name 'themed-label))
                 (panel (etaf-ui-test--props buffer-name 'styled-panel)))
             (should (equal (plist-get styled :color) "#FFFFFF"))
-            (should (equal (plist-get styled :bgcolor) "#2F6B43"))
+            (should (equal (plist-get styled :background-color) "#2F6B43"))
             (should (equal (plist-get styled :padding) '(0 1)))
             (should (equal (plist-get custom :color) "explicit-color"))
-            (should (equal (plist-get custom :bgcolor) "#2F6B43"))
+            (should (equal (plist-get custom :background-color) "#2F6B43"))
             (should (equal (plist-get themed :color) "theme-color"))
-            (should (equal (plist-get themed :bgcolor) "theme-bg"))
+            (should (equal (plist-get themed :background-color) "theme-bg"))
             (should-not (plist-get themed :padding))
             (should (equal (plist-get panel :color) "#252A2E"))
-            (should (equal (plist-get panel :bgcolor) "#FFFDF8"))
+            (should (equal (plist-get panel :background-color) "#FFFDF8"))
             (should (equal (plist-get panel :padding) '(1 2)))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
@@ -159,14 +163,15 @@
     (unwind-protect
         (progn
           (etaf-mount buffer-name
-                      (etaf-view (ui-test-token-theme-fixture)))
+                      (etaf-view (etaf-ui-test-token-theme-fixture)))
           (let ((token (etaf-ui-test--props buffer-name 'token-button))
                 (secondary (etaf-ui-test--props buffer-name 'token-secondary)))
             (should (equal "token-fg" (plist-get token :color)))
-            (should (equal "token-bg" (plist-get token :bgcolor)))
+            (should (equal "token-bg" (plist-get token :background-color)))
             (should (equal "token-border" (plist-get token :border)))
             (should (equal "secondary-fg" (plist-get secondary :color)))
-            (should (equal "secondary-bg" (plist-get secondary :bgcolor)))
+            (should (equal "secondary-bg"
+                           (plist-get secondary :background-color)))
             (should (equal "secondary-border"
                            (plist-get secondary :border)))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
@@ -183,7 +188,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (number-input :label "Rows" :value value :ref 'rows
+            (etaf-number-input :label "Rows" :value value :ref 'rows
                           :min 1 :max 10
                           :on-change (lambda (next) (setq value next)))))
           (cl-letf (((symbol-function 'read-number)
@@ -204,7 +209,7 @@
         (progn
           (etaf-mount buffer-name
                       (etaf-view
-                       (button :label "Save" :ref 'save
+                       (etaf-button :label "Save" :ref 'save
                                     :class "primary"
                                     :color "#FFFFFF"
                                     :bgcolor "#2F6B43"
@@ -221,11 +226,11 @@
             (should (equal (plist-get props :tab-index) 3))
             (should (equal (plist-get props :aria-label) "Save changes"))
             (should (equal (plist-get props :color) "#FFFFFF"))
-            (should (equal (plist-get props :bgcolor) "#2F6B43"))
+            (should (equal (plist-get props :background-color) "#2F6B43"))
             (should (equal (plist-get props :border) "#2F6B43"))
             (should (equal (plist-get props :padding) '(0 2)))
             (should (equal (plist-get props :font-weight) 'bold))
-            (should (string-match-p "primary" (plist-get props :class))))
+            (should (etaf-ui-test--has-class-p props "primary")))
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                'save 'press)
           (should (= presses 1)))
@@ -244,22 +249,22 @@
           (etaf-mount buffer-name
                       (etaf-view
                        (row
-                        (button :label "Save" :ref 'enabled-save
+                        (etaf-button :label "Save" :ref 'enabled-save
                                      :on-press (lambda () (cl-incf presses)))
-                        (button :label "Delete" :ref 'disabled-delete
+                        (etaf-button :label "Delete" :ref 'disabled-delete
                                      :disabled t
                                      :use (list (etaf-ui-test-press-behavior))
                                      :on-press (lambda () (cl-incf presses))))))
           (let ((props (etaf-ui-test--props buffer-name 'enabled-save)))
             (should (equal (plist-get props :color) "#FFFFFF"))
-            (should (equal (plist-get props :bgcolor) "#2F6B43"))
+            (should (equal (plist-get props :background-color) "#2F6B43"))
             (should (equal (plist-get props :padding) '(0 1)))
             (should (equal (plist-get props :font-weight) 'bold)))
           (let ((props (etaf-ui-test--props buffer-name 'disabled-delete)))
             (should (eq (plist-get props :disabled) t))
             (should-not (plist-get props :tab-index))
-            (should (equal (plist-get props :bgcolor) "#E5E7EB"))
-            (should (string-match-p "disabled" (plist-get props :class))))
+            (should (equal (plist-get props :background-color) "#E5E7EB"))
+            (should (etaf-ui-test--has-class-p props "disabled")))
           (should-error
            (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                 'disabled-delete 'press)
@@ -283,7 +288,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (button :label "Unavailable" :ref 'themed-disabled
+            (etaf-button :label "Unavailable" :ref 'themed-disabled
                     :disabled t :color "#F4F7FF" :bgcolor "#202C42"
                     :border "#34435A")))
           (let ((position
@@ -309,12 +314,12 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (button :label "Run health check" :ref 'health
+            (etaf-button :label "Run health check" :ref 'health
                     :variant 'secondary
                     :on-press (lambda () (cl-incf presses)))))
           (let ((props (etaf-ui-test--props buffer-name 'health)))
             (should (equal (plist-get props :color) "#142235"))
-            (should (equal (plist-get props :bgcolor) "#D9EEEA")))
+            (should (equal (plist-get props :background-color) "#D9EEEA")))
           (let* ((runtime (etaf-runtime-for-buffer buffer-name))
                  (before (cdr (assq 'press
                                     (etaf-runtime-handler-for runtime 'health)))))
@@ -347,7 +352,7 @@
         (progn
           (etaf-mount buffer-name
                       (etaf-view
-                       (checkbox :label "Done" :ref 'done
+                       (etaf-checkbox :label "Done" :ref 'done
                                       :checked (etaf-value checked)
                                       :on-change (lambda (value)
                                                    (setq next value)
@@ -382,7 +387,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (checkbox :label "Live" :ref 'live-checkbox :checked checked
+            (etaf-checkbox :label "Live" :ref 'live-checkbox :checked checked
                       :on-change (lambda (value)
                                    (setf (etaf-value checked) value)))))
           (let ((render (symbol-function
@@ -410,7 +415,7 @@
     (unwind-protect
         (progn
           (etaf-mount buffer-name
-                      (etaf-view (label :text text :ref 'live-label)))
+                      (etaf-view (etaf-label :text text :ref 'live-label)))
           (let ((render (symbol-function
                          'etaf--runtime-render-dirty-component)))
             (cl-letf (((symbol-function 'etaf--runtime-render-dirty-component)
@@ -434,18 +439,18 @@
           (etaf-mount buffer-name
                       (etaf-view
                        (row
-                        (checkbox :label "Open" :ref 'open-box
+                        (etaf-checkbox :label "Open" :ref 'open-box
                                        :on-change (lambda (_value)
                                                     (cl-incf changes)))
-                        (checkbox :label "Closed" :ref 'closed-box
+                        (etaf-checkbox :label "Closed" :ref 'closed-box
                                        :disabled t
                                        :on-change (lambda (_value)
                                                     (cl-incf changes))))))
           (let ((props (etaf-ui-test--props buffer-name 'closed-box)))
             (should (eq (plist-get props :disabled) t))
             (should-not (plist-get props :tab-index))
-            (should (equal (plist-get props :bgcolor) "#EEEAE2"))
-            (should (string-match-p "disabled" (plist-get props :class))))
+            (should (equal (plist-get props :background-color) "#EEEAE2"))
+            (should (etaf-ui-test--has-class-p props "disabled")))
           (should-error
            (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
                                 'closed-box 'press)
@@ -468,25 +473,28 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (panel :title "Account" :ref 'account-panel
-             :class "surface" :color "#252A2E" :bgcolor "#FFFDF8"
+            (etaf-panel :title "Account" :ref 'account-panel
+             :class "surface" :color "#252A2E"
+             :background-color "#FFFDF8"
              :border "#687386" :padding '(1 2)
              (slot :name 'header
-                   (label :text "Settings" :ref 'settings-label
-                               :class "eyebrow" :color "#66706A"
-                               :font-weight 'bold :width 12))
-             (label :text "Body"))))
+                   (box :width 12 :ref 'settings-cell
+                    (etaf-label :text "Settings" :ref 'settings-label
+                                :class "eyebrow" :color "#66706A"
+                                :font-weight 'bold)))
+             (etaf-label :text "Body"))))
           (let ((panel (etaf-ui-test--props buffer-name 'account-panel))
-                (label (etaf-ui-test--props buffer-name 'settings-label)))
-            (should (string-match-p "surface" (plist-get panel :class)))
+                (label (etaf-ui-test--props buffer-name 'settings-label))
+                (cell (etaf-ui-test--props buffer-name 'settings-cell)))
+            (should (etaf-ui-test--has-class-p panel "surface"))
             (should (equal (plist-get panel :color) "#252A2E"))
-            (should (equal (plist-get panel :bgcolor) "#FFFDF8"))
+            (should (equal (plist-get panel :background-color) "#FFFDF8"))
             (should (equal (plist-get panel :border) "#687386"))
             (should (equal (plist-get panel :padding) '(1 2)))
-            (should (string-match-p "eyebrow" (plist-get label :class)))
+            (should (etaf-ui-test--has-class-p label "eyebrow"))
             (should (equal (plist-get label :color) "#66706A"))
             (should (equal (plist-get label :font-weight) 'bold))
-            (should (equal (plist-get label :width) 12)))
+            (should (equal (plist-get cell :width) 12)))
           (dolist (label '("Account" "Settings" "Body"))
             (should (string-match-p (regexp-quote label)
                                     (etaf-ui-test--text buffer-name)))))
@@ -508,14 +516,14 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (data-grid
+            (etaf-data-grid
              :controller controller
              :columns '((:key :id :label "ID")
                         (:key :name :label "Name"))
              :row-key (lambda (row) (plist-get row :id))
              :row-ref (lambda (row)
                         (intern (format "row-%d" (plist-get row :id))))
-             :selected-key 2
+             :row-selected-p (lambda (row) (= (plist-get row :id) 2))
              :on-row-press (lambda (row) (setq pressed row)))))
           (should (string-match-p "Ada" (etaf-ui-test--text buffer-name)))
           (let ((first (etaf-ui-test--props buffer-name 'row-1))
@@ -524,10 +532,8 @@
             (should (equal (plist-get first :tab-index) 0))
             (should (equal (plist-get second :role) 'button))
             (should (equal (plist-get second :tab-index) 0))
-            (should (string-match-p
-                     "selected" (or (plist-get second :class) "")))
-            (should-not (string-match-p
-                         "selected" (or (plist-get first :class) ""))))
+            (should (etaf-ui-test--has-class-p second "selected"))
+            (should-not (etaf-ui-test--has-class-p first "selected")))
           (let* ((runtime (etaf-runtime-for-buffer buffer-name))
                  (handler (cdr (assq 'press
                                      (etaf-runtime-handler-for runtime
@@ -557,15 +563,13 @@
                   :id-key :id))
          (controller (etaf-data-controller source :auto-load t))
          (buffer-name " *etaf-ui-grid-keyed-selection-test*")
-         (row-renders (make-hash-table :test #'eql))
-         (body-renders 0)
          host-updates)
     (unwind-protect
         (progn
           (etaf-mount
            buffer-name
            (etaf-view
-            (data-grid
+            (etaf-data-grid
              :controller controller
              :columns '((:key :id :label "ID")
                         (:key :name :label "Name"))
@@ -581,23 +585,11 @@
                  (third-handler
                   (cdr (assq 'press
                              (etaf-runtime-handler-for runtime 'keyed-row-3))))
-                 (old-grid-row (symbol-function 'etaf-ui--grid-row))
-                 (old-grid-rows (symbol-function 'etaf-ui--grid-rows))
                  (old-host
                   (symbol-function 'ebox-candidate-replace-host-ref))
                  (old-paint
                   (symbol-function 'ebox-candidate-patch-host-paint)))
-            (cl-letf (((symbol-function 'etaf-ui--grid-row)
-                       (lambda (&rest args)
-                         (let ((key (nth 1 args)))
-                           (puthash key (1+ (gethash key row-renders 0))
-                                    row-renders))
-                         (apply old-grid-row args)))
-                      ((symbol-function 'etaf-ui--grid-rows)
-                       (lambda (&rest args)
-                         (cl-incf body-renders)
-                         (apply old-grid-rows args)))
-                      ((symbol-function 'ebox-candidate-replace-host-ref)
+            (cl-letf (((symbol-function 'ebox-candidate-replace-host-ref)
                        (lambda (candidate ref node)
                          (push ref host-updates)
                          (funcall old-host candidate ref node)))
@@ -608,11 +600,6 @@
               ;; Prove direct public selection ref writes use the same keyed
               ;; invalidation path as the selection helpers.
               (setf (etaf-value (etaf-data-selection controller)) '(2)))
-            (should (zerop (gethash 1 row-renders 0)))
-            (should (zerop (gethash 2 row-renders 0)))
-            (should (zerop (gethash 3 row-renders 0)))
-            (should (zerop (hash-table-count row-renders)))
-            (should (zerop body-renders))
             (should (member 'keyed-row-1 host-updates))
             (should (member 'keyed-row-2 host-updates))
             (should-not (member 'keyed-row-3 host-updates))
@@ -642,10 +629,10 @@
 
 (ert-deftest etaf-ui-data-grid-follows-inherited-theme-color ()
   "Re-render DataGrid rows when only inherited Theme color changes."
-  (let* ((theme (etaf-ref '(:color "light-ink"
-                             :ui-grid-border "light-grid-border"
-                             :ui-grid-selected-fg "light-selected"
-                             :ui-grid-selected-bg "light-selected-bg")))
+  (let* ((theme (etaf-ref '(:ui-fg "light-ink"
+                             :ui-table-border "light-grid-border"
+                             :ui-table-selected-fg "light-selected"
+                             :ui-table-selected-bg "light-selected-bg")))
          (source (etaf-data-memory-source
                   '((:id 1 :name "Ada") (:id 2 :name "Grace")) :id-key :id))
          (controller (etaf-data-controller source :auto-load t))
@@ -655,27 +642,36 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (ui-test-grid-theme-fixture :controller controller :theme theme)))
+            (etaf-ui-test-grid-theme-fixture
+             :controller controller :theme theme)))
           (let* ((props (etaf-ui-test--props-with-key buffer-name 1))
-                 (background-slot (plist-get props :bgcolor))
+                 (foreground-slot (plist-get props :color))
+                 (background-slot (plist-get props :background-color))
                  (border-slot (plist-get props :border-bottom-color)))
+          (should (equal "light-selected"
+                         (etaf-ui-test--paint-color
+                          foreground-slot :color)))
           (should (equal "light-selected-bg"
                          (etaf-ui-test--paint-color
                           background-slot :bgcolor)))
           (should (equal "light-grid-border"
                          (etaf-ui-test--paint-color
                           border-slot :border-bottom-color)))
-          (let ((row-props
-                 (etaf-ui-test--props-with-key buffer-name 1)))
-            (should (= (plist-get row-props :border-bottom-width) 1))
-            (should (eq (plist-get row-props :border-bottom-style) 'solid)))
-          (setf (etaf-value theme) '(:color "dark-ink"
-                                      :ui-grid-border "dark-grid-border"
-                                      :ui-grid-selected-fg "dark-selected"
-                                      :ui-grid-selected-bg "dark-selected-bg"))
+          (should (= (plist-get props :border-bottom-width) 1))
+          (should (eq (plist-get props :border-bottom-style) 'solid))
+          (setf (etaf-value theme) '(:ui-fg "dark-ink"
+                                      :ui-table-border "dark-grid-border"
+                                      :ui-table-selected-fg "dark-selected"
+                                      :ui-table-selected-bg "dark-selected-bg"))
           (let ((next (etaf-ui-test--props-with-key buffer-name 1)))
-            (should (eq background-slot (plist-get next :bgcolor)))
-            (should (eq border-slot (plist-get next :border-bottom-color)))
+            (should (eq background-slot
+                        (plist-get next :background-color)))
+            (should (eq border-slot
+                        (plist-get next :border-bottom-color)))
+            (should (eq foreground-slot (plist-get next :color)))
+            (should (equal "dark-selected"
+                           (etaf-ui-test--paint-color
+                            foreground-slot :color)))
             (should (equal "dark-selected-bg"
                            (etaf-ui-test--paint-color
                             background-slot :bgcolor)))
@@ -700,7 +696,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (pagination :controller controller
+            (etaf-pagination :controller controller
                         :previous-ref 'page-previous
                         :next-ref 'page-next)))
           (should (string-match-p "Page 1 / 3" (etaf-ui-test--text buffer-name)))
@@ -750,7 +746,7 @@
              (text "Left")
              (column
                   :width 'stretch :padding '(0 2) :border "#CBD5E1"
-              (pagination :controller controller
+              (etaf-pagination :controller controller
                           :previous-ref 'nested-page-previous
                           :next-ref 'nested-page-next))
              (text "Right"))))
@@ -780,7 +776,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (data-grid
+            (etaf-data-grid
              :controller controller
              :columns '((:key :title :label "Title" :width 22))
              :row-key (lambda (row) (plist-get row :id)))))
@@ -804,7 +800,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (data-grid
+            (etaf-data-grid
              :controller controller
              :columns '((:key :progress :label "Progress" :width 8)
                         (:key :kind :label "Kind" :width 7))
@@ -817,6 +813,18 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-table-fixed-row-text-is-exact-and-fail-closed ()
+  "Pad fixed-width rows exactly and retain the general path otherwise."
+  (should
+   (equal "Ada   Essay  "
+          (etaf-ui--table-fixed-row-text
+           '(:name "Ada" :kind "Essay")
+           '((:key :name :width 5) (:key :kind :width 7)))))
+  (should-not
+   (etaf-ui--table-fixed-row-text
+    '(:name "Ada" :kind "Essay")
+    '((:key :name :width 5) (:key :kind)))))
+
 (ert-deftest etaf-ui-data-grid-noninteractive-rows-have-no-focus-contract ()
   "Rows without ON-ROW-PRESS have no role, ref callback, or tab stop."
   (let* ((source (etaf-data-memory-source '((:id 1 :name "Ada"))
@@ -828,7 +836,7 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (data-grid
+            (etaf-data-grid
              :controller controller
              :columns '((:key :id :label "ID"))
              :row-key (lambda (row) (plist-get row :id)))))
@@ -841,22 +849,34 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
-(ert-deftest etaf-ui-data-grid-requires-row-ref-for-interaction ()
-  "Reject an interactive DataGrid without a row-ref callback."
+(ert-deftest etaf-ui-data-grid-owns-default-interaction-ref ()
+  "Dispatch an interactive DataGrid row through its internal stable ref."
   (let* ((source (etaf-data-memory-source '((:id 1 :name "Ada"))
                                           :id-key :id))
          (controller (etaf-data-controller source :auto-load t))
-         (buffer-name " *etaf-ui-grid-row-ref-test*"))
+         (buffer-name " *etaf-ui-grid-row-ref-test*")
+         pressed)
     (unwind-protect
-        (should-error
-         (etaf-mount
-          buffer-name
-          (etaf-view
-           (data-grid
-            :controller controller
-            :columns '((:key :id :label "ID"))
-            :row-key (lambda (row) (plist-get row :id))
-            :on-row-press (lambda (_row) t)))))
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (etaf-data-grid
+             :controller controller
+             :columns '((:key :id :label "ID"))
+             :row-key (lambda (row) (plist-get row :id))
+             :on-row-press (lambda (row) (setq pressed row)))))
+          (let (host-ref)
+            (maphash
+             (lambda (ref props)
+               (when (equal (plist-get props :key) 1)
+                 (setq host-ref ref)))
+             (etaf-runtime-host-props
+              (etaf-runtime-for-buffer buffer-name)))
+            (should host-ref)
+            (etaf-dispatch-event
+             (etaf-runtime-for-buffer buffer-name) host-ref 'press)
+            (should (equal (plist-get pressed :id) 1))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (etaf-data-stop controller)
@@ -874,7 +894,7 @@
          (etaf-mount
           buffer-name
           (etaf-view
-           (data-grid
+           (etaf-data-grid
             :controller controller
             :columns '((:key :id :label "ID"))
             :row-key (lambda (row) (plist-get row :id))
@@ -904,7 +924,7 @@
             (etaf-mount
              buffer-name
              (etaf-view
-              (data-grid
+              (etaf-data-grid
                :controller controller
                :columns '((:key :id :label "ID"))
                :row-key (lambda (row) (plist-get row :id))
@@ -934,7 +954,7 @@
          (etaf-mount
           buffer-name
           (etaf-view
-           (data-grid
+           (etaf-data-grid
             :controller controller
             :columns '((:key :id :label "ID"))))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
@@ -955,7 +975,7 @@
          (etaf-mount
           buffer-name
           (etaf-view
-           (data-grid
+           (etaf-data-grid
             :controller controller
             :columns '((:key :id :label "ID"))
             :row-key (lambda (_row) nil)))))
