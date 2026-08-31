@@ -40,7 +40,8 @@ Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`�
 目录统一使用语义化的 Theme 色彩 vocabulary，主要 token 包括
 `:ui-fg`、`:ui-bg`、`:ui-border`、`:ui-muted-fg`、`:ui-disabled-*`、
 `:ui-button-primary-*`、`:ui-button-secondary-*`、`:ui-button-ghost-*`、
-`:ui-checkbox-*`、`:ui-grid-*` 和 `:ui-panel-*`。应用通过 ETAF 的
+`:ui-checkbox-*`、`:ui-table-*`、`:ui-data-grid-error-fg`、
+`:ui-pagination-muted-fg` 和 `:ui-panel-*`。应用通过 ETAF 的
 `etaf-theme-provide` 提供这些 token；旧的 `:ui-button-color` 一类 alias
 仍兼容。`etaf-ui` 不依赖 TP，也不直接依赖 renderer-specific palette
 registry；如果应用想使用 TP 的亮/暗 palette 数据，应先通过可选的
@@ -66,14 +67,38 @@ Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil pre
 `etaf-panel` 支持 `:title`、相同的
 surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 
+<!-- M0b1: business-props -->
+公共 Component 的 business props 由实际定义导出，并与透传的 Host 属性分开：
+
+| Component | Business props |
+| --- | --- |
+| `etaf-label` | `:text`、`:variant` |
+| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-weight`、`:tab-index`、`:aria-label`、`:use`、`:variant` |
+| `etaf-checkbox` | `:checked`、`:label`、`:on-change`、`:disabled` |
+| `etaf-panel` | `:title`、`:variant` |
+| `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max` |
+| `etaf-table` | `:columns`、`:rows`、`:row-key`、`:row-ref`、`:on-row-press`、`:row-selected-p` |
+| `etaf-data-grid` | `:controller`、`:columns`、`:row-key`、`:on-row-press`、`:row-ref`、`:row-selected-p`、`:loading-label`、`:error-label`、`:empty-label` |
+| `etaf-pagination` | `:controller`、`:previous-ref`、`:next-ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:aria-label` |
+
+<!-- M0b1: single-host-root -->
+目录中的每个公共 Component 都只挂载一个 Host root。未被作为 business prop
+消费的所有合法 Host 属性（例如 `:ref`、`:class` 和 `:aria-label`）都会透传到
+该 root；透传规则并不意味着这些属性都是每个 Component 的 business prop。
+
 DataGrid 支持列描述、函数型 `:row-key`，以及可选的
-`:loading-label`、`:error-label`、`:empty-label`、`:selected-key` 或函数型
-`:row-selected-p`。提供 `:on-row-press` 后，每一行都是可交互 button：必须
-提供 `:row-ref`，它对每一行返回非 nil 的稳定 Host ref；行会获得
-`button` role 和 `tab-index 0`，且回调接收该行。没有 `:on-row-press` 时，
-行没有回调或 tab stop。`:row-key` 仍然是 retained row 必须具备的非 nil
-稳定标量 identity。DataGrid 按 row key 保留唯一 action closure，因此 selection
-或 Data Range 更新不会为未变化的行重建 handler。
+`:loading-label`、`:error-label`、`:empty-label` 或函数型
+`:row-selected-p`。提供 `:on-row-press` 后，每一行都是带 `button` role 和
+`tab-index 0` 的可交互 button，且回调接收该行；没有 `:on-row-press` 时，行
+没有回调或 tab stop。
+
+<!-- M0b1: row-ref-optional -->
+DataGrid 的 `:row-ref` 是可选项。交互式 grid 省略它时，DataGrid 会根据
+controller 持有的 row identity 派生稳定的内部 Host ref；显式提供它时，
+该回调拥有 identity，并且必须为每一行返回非 nil 的稳定 Host ref。
+`:row-key` 仍然是 retained row 必须具备的非 nil 稳定标量 identity。
+DataGrid 按 row key 保留唯一 action closure，因此 selection 或 Data Range
+更新不会为未变化的行重建 handler。
 整数列 `:width` 表示可读字符容量，不是裸像素；DataGrid 原样使用 Ebox 原生字符单位，
 并在非末列之间保留一个原生字符间距。
 

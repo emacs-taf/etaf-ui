@@ -44,8 +44,9 @@ integer while the caller remains the owner of the ref.
 The catalog uses one semantic Theme vocabulary for color roles. The main
 tokens are `:ui-fg`, `:ui-bg`, `:ui-border`, `:ui-muted-fg`,
 `:ui-disabled-*`, `:ui-button-primary-*`, `:ui-button-secondary-*`,
-`:ui-button-ghost-*`, `:ui-checkbox-*`, `:ui-grid-*`, and
-`:ui-panel-*`. Applications provide these through ETAF's
+`:ui-button-ghost-*`, `:ui-checkbox-*`, `:ui-table-*`,
+`:ui-data-grid-error-fg`, `:ui-pagination-muted-fg`, and `:ui-panel-*`.
+Applications provide these through ETAF's
 `etaf-theme-provide`; legacy `:ui-button-color`-style aliases remain accepted
 for compatibility. `etaf-ui` does not depend on TP or on a renderer-specific
 palette registry. If an application wants TP's light/dark palette data, the
@@ -76,16 +77,41 @@ mouse-face and hit range semantically separate.
 surface presentation props, and projects the named `header` slot plus the
 default slot.
 
+<!-- M0b1: business-props -->
+The public Component business props are derived from the definitions and kept
+separate from forwarded Host attributes:
+
+| Component | Business props |
+| --- | --- |
+| `etaf-label` | `:text`, `:variant` |
+| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`, `:aria-label`, `:use`, `:variant` |
+| `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled` |
+| `etaf-panel` | `:title`, `:variant` |
+| `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max` |
+| `etaf-table` | `:columns`, `:rows`, `:row-key`, `:row-ref`, `:on-row-press`, `:row-selected-p` |
+| `etaf-data-grid` | `:controller`, `:columns`, `:row-key`, `:on-row-press`, `:row-ref`, `:row-selected-p`, `:loading-label`, `:error-label`, `:empty-label` |
+| `etaf-pagination` | `:controller`, `:previous-ref`, `:next-ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:aria-label` |
+
+<!-- M0b1: single-host-root -->
+Every public catalog Component mounts exactly one Host root. All valid Host
+attributes that are not consumed as business props—such as `:ref`, `:class`,
+and `:aria-label`—are forwarded to that root. This forwarding rule does not
+make those attributes business props of every Component.
+
 DataGrid accepts column descriptors, a function-valued `:row-key`, and the
-optional `:loading-label`, `:error-label`, `:empty-label`, `:selected-key`, or
-function-valued `:row-selected-p`. When `:on-row-press` is supplied, every
-row is an interactive button: `:row-ref` is required, must return a non-nil
-stable Host reference for each row, and the row receives role `button` and
-tab index `0`. `:on-row-press` receives the row. Without `:on-row-press`, rows
-have no callback or tab stop. `:row-key` remains a required non-nil stable
-scalar identity for retained rows. DataGrid retains one action closure per
-row key, so selection or data Range updates do not recreate handlers for
-unchanged rows.
+optional `:loading-label`, `:error-label`, `:empty-label`, or function-valued
+`:row-selected-p`. When `:on-row-press` is supplied, every row is an
+interactive button with role `button` and tab index `0`; the callback receives
+the row. Without `:on-row-press`, rows have no callback or tab stop.
+
+<!-- M0b1: row-ref-optional -->
+`:row-ref` is optional for DataGrid. When it is omitted on an interactive
+grid, DataGrid derives a stable internal Host reference from the row identity
+owned by the controller. When it is supplied, the callback owns that identity
+and must return a non-nil stable Host reference for every row. `:row-key`
+remains a required non-nil stable scalar identity for retained rows. DataGrid
+retains one action closure per row key, so selection or Data Range updates do
+not recreate handlers for unchanged rows.
 An integer column `:width` is readable character capacity, not a raw pixel
 value. DataGrid passes Ebox's native character unit through and reserves one
 native character between non-final tracks.
