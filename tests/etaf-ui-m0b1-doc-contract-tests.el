@@ -38,8 +38,9 @@ Use Chinese punctuation when CHINESE-P is non-nil."
       (goto-char (point-min))
       (while (re-search-forward "^;;;###autoload[[:space:]]*$" nil t)
         (forward-comment (point-max))
-        (should-not (eq (car-safe (read (current-buffer)))
-                        'etaf-define-component))))))
+        (should-not
+         (memq (car-safe (read (current-buffer)))
+               '(etaf-define-component etaf-ui--define-component)))))))
 
 (ert-deftest etaf-ui-package-reload-keeps-identical-catalog-definitions ()
   "Allow package.el to reload exact catalog files without duplicate owners."
