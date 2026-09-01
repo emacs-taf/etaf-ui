@@ -202,7 +202,7 @@ ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
              (lambda () (funcall callback row-value))))
      (etaf-ui--table-row-children row columns))))
 
-(etaf-define-component etaf-ui--table-header (&key columns)
+(etaf-ui--define-component etaf-ui--table-header (&key columns)
   "Render one retained Table header."
   :render (etaf-ui--table-header columns)
   :styles
@@ -210,7 +210,7 @@ ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
    (".etaf-table-header" :font-weight bold :padding (0 1))
    (".etaf-table-header-cell" :font-weight bold)))
 
-(etaf-define-component etaf-ui--table-row
+(etaf-ui--define-component etaf-ui--table-row
     (&key row identity columns row-ref on-row-press row-selected-p)
   "Render one retained Table ROW with stable IDENTITY."
   :render
@@ -220,8 +220,7 @@ ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
   (styles
    (".etaf-table-row" :padding (0 1))))
 
-;;;###autoload
-(etaf-define-component etaf-table
+(etaf-ui--define-component etaf-table
     (&key columns rows row-key row-ref on-row-press row-selected-p)
   "Render ordinary ROWS as a presentational Table.
 

@@ -240,7 +240,7 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
      (when (eq kind 'error) "etaf-data-grid-error")
      (and theme (plist-get theme :ui-data-grid-error-fg)))))
 
-(etaf-define-component etaf-ui--data-grid-body-item
+(etaf-ui--define-component etaf-ui--data-grid-body-item
     (&key controller entry columns row-ref on-row-press row-selected-p
           grid-state)
   "Render one retained keyed DataGrid ENTRY with a cached row action."
@@ -252,8 +252,7 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
      (etaf-ui--style-tokens
       :ui-table-border :ui-table-selected-fg :ui-table-selected-bg))))
 
-;;;###autoload
-(etaf-define-component etaf-data-grid
+(etaf-ui--define-component etaf-data-grid
     (&key controller columns row-key on-row-press row-ref row-selected-p
           loading-label error-label empty-label)
   "Render DATA CONTROLLER state through the public Component DSL.
@@ -297,8 +296,7 @@ actions; failed candidates cannot mutate committed handler inputs."
      :grid-state (etaf-state)))
    (slot :name 'footer)))
 
-;;;###autoload
-(etaf-define-component etaf-pagination
+(etaf-ui--define-component etaf-pagination
     (&key controller previous-ref next-ref class color bgcolor border padding
           aria-label)
   "Render a controlled pager for DATA CONTROLLER with retained controls."

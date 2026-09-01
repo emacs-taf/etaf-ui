@@ -52,8 +52,7 @@
           :color (plist-get theme color-key)
           :font-weight (when (memq variant '(strong heading)) 'bold))))
 
-;;;###autoload
-(etaf-define-component etaf-label (&key text variant)
+(etaf-ui--define-component etaf-label (&key text variant)
   "Render TEXT as a semantic Label."
   :view
   (text
@@ -99,8 +98,7 @@
            (funcall callback)))))
     state))
 
-;;;###autoload
-(etaf-define-component etaf-button
+(etaf-ui--define-component etaf-button
     (&key label on-press disabled ref class color bgcolor border padding
           font-weight tab-index aria-label use variant)
   "Render a standard pressable Button with retained callback identity.
@@ -154,8 +152,7 @@ across parent Component rerenders."
           :bgcolor (plist-get theme bg)
           :border (etaf-ui--style-border (plist-get theme border-key)))))
 
-;;;###autoload
-(etaf-define-component etaf-checkbox
+(etaf-ui--define-component etaf-checkbox
     (&key checked label on-change disabled)
   "Render a controlled Checkbox whose next value is sent to ON-CHANGE."
   :view
@@ -187,8 +184,7 @@ across parent Component rerenders."
    ("&.enabled" :padding (0 1))
    (".etaf-checkbox-mark" :font-weight bold :width 1)))
 
-;;;###autoload
-(etaf-define-component etaf-panel (&key title variant)
+(etaf-ui--define-component etaf-panel (&key title variant)
   "Render a titled Panel with named header and default slots."
   :render
   (let ((theme (etaf-ui--style-tokens
@@ -216,8 +212,7 @@ across parent Component rerenders."
    ("&" :padding (1 2))
    (".etaf-panel-title" :font-weight bold)))
 
-;;;###autoload
-(etaf-define-component etaf-number-input
+(etaf-ui--define-component etaf-number-input
     (&key value label on-change disabled min max)
   "Render a controlled minibuffer-backed NumberInput using Button."
   :render

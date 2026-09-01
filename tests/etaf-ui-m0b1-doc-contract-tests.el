@@ -30,6 +30,24 @@ Use Chinese punctuation when CHINESE-P is non-nil."
            (plist-get component :observed-business-props)
            (if chinese-p "、" ", "))))
 
+(ert-deftest etaf-ui-package-autoloads-never-register-components ()
+  "Keep package activation from executing Component registration forms."
+  (dolist (file (directory-files default-directory t "\\.el\\'"))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (re-search-forward "^;;;###autoload[[:space:]]*$" nil t)
+        (forward-comment (point-max))
+        (should-not (eq (car-safe (read (current-buffer)))
+                        'etaf-define-component))))))
+
+(ert-deftest etaf-ui-package-reload-keeps-identical-catalog-definitions ()
+  "Allow package.el to reload exact catalog files without duplicate owners."
+  (let ((before (etaf-ui-m0a-component-inventory)))
+    (dolist (file '("etaf-ui-basic.el" "etaf-ui-table.el" "etaf-ui-data.el"))
+      (load-file (expand-file-name file default-directory)))
+    (should (equal before (etaf-ui-m0a-component-inventory)))))
+
 (ert-deftest etaf-ui-m0b1-readmes-match-runtime-component-manifest ()
   "Keep the README contract aligned with the runtime-derived inventory."
   (let* ((components (etaf-ui-m0a-component-inventory))

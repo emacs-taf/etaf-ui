@@ -12,6 +12,29 @@
 (require 'cl-lib)
 (require 'etaf)
 
+(defvar etaf-ui--component-definition-signatures
+  (make-hash-table :test #'eq)
+  "Exact catalog definitions already installed in the current process.")
+
+(defmacro etaf-ui--define-component (name arguments &rest clauses)
+  "Define catalog Component NAME once for exact ARGUMENTS and CLAUSES.
+
+`package.el' may reload dependency files after byte compilation.  Identical
+catalog definitions are idempotent across that reload, while a changed
+definition still reaches `etaf-define-component' and therefore requires the
+public `etaf-component-redefine-run' boundary."
+  (declare (indent 2) (debug defun))
+  (let ((signature
+         (secure-hash 'sha256
+                      (prin1-to-string (list name arguments clauses)))))
+    `(unless (equal
+              (gethash ',name etaf-ui--component-definition-signatures)
+              ,signature)
+       (prog1
+           (etaf-define-component ,name ,arguments ,@clauses)
+         (puthash ',name ,signature
+                  etaf-ui--component-definition-signatures)))))
+
 (defconst etaf-ui--style-palette
   '(:ui-fg "#252A2E"
     :ui-bg "#FFFDF8"

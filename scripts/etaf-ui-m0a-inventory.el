@@ -106,7 +106,9 @@ it is not a claim that every attribute is a declared business prop.")
                                    "\\`etaf-ui-.*\\.el\\'"))
       (dolist (entry (etaf-ui-m0a--read-top-level-forms file))
         (let ((form (plist-get entry :form)))
-          (when (and (eq (car-safe form) 'etaf-define-component)
+          (when (and (memq (car-safe form)
+                           '(etaf-define-component
+                             etaf-ui--define-component))
                      (symbolp (cadr form))
                      (not (string-prefix-p "etaf-ui--"
                                            (symbol-name (cadr form)))))
