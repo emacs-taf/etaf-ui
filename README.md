@@ -2,27 +2,43 @@
 
 `etaf-ui` is the official ETAF Component catalog. It is a normal optional package above `etaf`; it does not add a second Control or Widget model. Button, Checkbox, Label, Panel, and DataGrid are all ordinary Components with the same View, props, slots, events, and Data contracts.
 
+
+Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
+`etaf-checkbox` in every View. Evaluate this complete example in a lexical-binding
+`.el` file, then switch to `*etaf-preferences*` to use its controls.
+
+<!-- etaf-example: preferences -->
 ```elisp
+;;; -*- lexical-binding: t; -*-
 (require 'etaf-ui)
 
-(let ((done (etaf-ref nil)))
-  (etaf-view
-   (panel :title "Account"
-    (slot :name 'header
-          (button :label "Save" :ref 'save-button
-                  :on-press (lambda () (message "saved"))))
-    (label :text "Preferences")
-    (checkbox :checked (etaf-value done) :label "Done"
-              :ref 'done-checkbox
-              :on-change (lambda (next)
-                           (setf (etaf-value done) next))))))
+(etaf-define-component demo-preferences ()
+  :setup (list (etaf-ref nil) (etaf-ref "Unsaved"))
+  :render
+  (let* ((state (etaf-state))
+         (done (car state))
+         (saved (cadr state)))
+    (etaf-view
+     (etaf-panel :title "Account"
+       (slot :name 'header
+         (etaf-button :label "Save" :ref 'save-button
+                      :on-press (lambda ()
+                                  (setf (etaf-value saved) "Saved"))))
+       (etaf-label :text (etaf-value saved))
+       (etaf-checkbox :checked (etaf-value done) :label "Done"
+                      :ref 'done-checkbox
+                      :on-change (lambda (next)
+                                   (setf (etaf-value done) next)))
+       (text (expr (if (etaf-value done) "Complete" "Pending")))))))
+
+(etaf-mount "*etaf-preferences*" (etaf-view (demo-preferences)))
 ```
 
-In `.etaf` files use the short registered tags (`panel`, `label`, `button`,
-`checkbox`, and `data-grid`) for structure.  The companion `.el` file owns
-reactive values, Actions, Behaviors, and callbacks; keep the `etaf-view` tree
-made from those same short tags.  Canonical `etaf-*` names remain the Elisp
-definition and API names.
+Core does not automatically load `.etaf` files. The optional Playground reads
+inert structural source and explicitly loads its registered Elisp companion;
+that file format does not create shorter Component aliases. Local callbacks
+need no named Action. Components receive props and slots through the same API
+as application-defined Components.
 
 Button and Checkbox are controlled Components. `etaf-button` accepts `:label`,
 `:on-press`, `:disabled`, `:ref`, and the small presentation set
@@ -67,9 +83,25 @@ no callback, pointer activation, or tab stop. The Runtime owns composition of
 an explicit `:on-*` callback with a Behavior callback; the UI package only
 declares the control and its visual state.
 
-Spacing is owned by the parent layout, not by Button. Put adjacent controls in
-a `row`/`flex` with an explicit horizontal `:gap`; this keeps each control's
-mouse-face and hit range semantically separate.
+The parent owns spacing: use `(row :item-gap 1 ...)` or
+`(column :item-gap 1 ...)`; `flex` and `grid` use `:gap`. In particular, migrate
+`row :gap` to `row :item-gap`. Keep an explicit gap between adjacent controls
+so each has a separate hover and hit range.
+
+Root event forwarding appends the business action, inner-to-outer wrapper
+callbacks, then Behaviors in declaration order. For Checkbox, adding
+`:on-press` does not replace its `:on-change` conversion. Errors stop the chain;
+each declaration runs once. Wrapper `:use` lists concatenate and duplicate
+Behavior names are rejected before installation.
+
+Disabled inputs combine with OR; outer nil cannot enable an internally disabled
+control. Disabled dispatch and focus signal `etaf-event-error`; disabled cell
+controls block pointer activation from falling through to their parent row.
+Disabled input Behaviors are not installed. A conflicting fallthrough `:role`
+or owned aria state, such as `:aria-checked`, is an input error; accessible
+`:aria-label` and `:aria-description` remain caller-overridable. See the
+[interaction and migration rules](../etaf/docs/user-guide.en.md#interaction-migration)
+for the complete contract.
 
 `etaf-label` accepts `:text`, `:class`, `:color`, `:bgcolor`, `:font-weight`,
 `:width`, `:border`, `:padding`, and `:ref`.
@@ -90,7 +122,7 @@ separate from forwarded Host attributes:
 | `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max` |
 | `etaf-table` | `:columns`, `:rows`, `:row-key`, `:row-ref`, `:on-row-press`, `:row-selected-p` |
 | `etaf-data-grid` | `:controller`, `:columns`, `:row-key`, `:on-row-press`, `:row-ref`, `:row-selected-p`, `:loading-label`, `:error-label`, `:empty-label` |
-| `etaf-pagination` | `:controller`, `:previous-ref`, `:next-ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:aria-label` |
+| `etaf-pagination` | `:controller`, `:previous-ref`, `:next-ref`, `:previous-label`, `:next-label`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:aria-label` |
 
 <!-- M0b1: single-host-root -->
 Every public catalog Component mounts exactly one Host root. All valid Host
@@ -104,6 +136,11 @@ optional `:loading-label`, `:error-label`, `:empty-label`, or function-valued
 interactive button with role `button` and tab index `0`; the callback receives
 the row. Without `:on-row-press`, rows have no callback or tab stop.
 
+Interactive `etaf-table` rows may also omit `:row-ref`; the framework supplies
+stable references scoped to the retained Table instance. Supply refs only for
+external focus, tests, or integration addresses; do not derive global symbols
+from row labels. Row keys identify data; refs identify interactive Hosts.
+
 <!-- M0b1: row-ref-optional -->
 `:row-ref` is optional for DataGrid. When it is omitted on an interactive
 grid, DataGrid derives a stable internal Host reference from the row identity
@@ -116,13 +153,80 @@ retains one action closure per row key, so selection or Data Range updates do
 not recreate handlers for unchanged rows.
 An integer column `:width` is readable character capacity, not a raw pixel
 value. DataGrid passes Ebox's native character unit through and reserves one
-native character between non-final tracks.
+native character between non-final tracks. Use `:width '(fr 1)` to let a column
+fill the remaining width; multiple fractional columns share that space by
+their positive weights. For example, `(:key :title :width (fr 1))` next to
+`(:key :actions :width 22 :cell render-actions)` lets the title adapt while
+reserving room for the action controls. Headers and rows use the same tracks
+and gap. Fractional cells clip to their allocation without widening neighboring
+columns. Fixed tracks still reserve their declared space, so the containing
+layout must provide enough width for those controls and gaps.
+
+Changing a custom cell's column width between fixed and fractional values does
+not replace its Component state. All-fixed text-only tables retain their compact
+text rendering path.
+
+### Custom cells and column migration
+
+Table and DataGrid share the column contract. Every column needs a unique,
+non-nil `:key` (symbol, integer, or string), including presentation-only columns.
+The default cell reads that field as text. A `:cell` function receives one row
+and returns nil, a string, a typed Host or Component View, or a proper sequence
+of those values. Table owns cell width and clips overflow; text-only tables
+keep their existing compact representation.
+
+The example repeats the `:name` field with two distinct column keys and puts an
+ordinary Button in a third column. Select the row or activate Open independently:
+
+<!-- etaf-example: cells -->
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+
+(etaf-mount
+ "*etaf-cell-demo*"
+ (etaf-view
+  (etaf-table
+   :rows '((:id 1 :name "Ada"))
+   :row-key (lambda (row) (plist-get row :id))
+   :on-row-press (lambda (row) (message "Select %s" (plist-get row :name)))
+   :columns
+   (list
+    '(:key :name :label "Name" :width 12)
+    (list :key :name-upper :label "Uppercase" :width 12
+          :cell (lambda (row) (upcase (plist-get row :name))))
+    (list :key :open :label "Action" :width 10
+          :cell
+          (lambda (row)
+            (etaf-view
+             (etaf-button
+              :label "Open"
+              :on-press (lambda ()
+                          (message "Open %s" (plist-get row :name)))))))))))
+```
+
+To migrate duplicate field columns, keep one `:key :name`, give the other a
+unique key such as `:name-upper`, and use `:cell` to read the original `:name`
+field. Missing or duplicate column keys are errors. Row and column keys retain
+cell identity across reordering; changing a key replaces that cell instance.
+
+Cell functions use their row argument and normal lexical captures. Their
+Context is the consuming Table/Grid location; they do not recover the author's
+props, `etaf-state`, or private styles. Return an ordinary Component when a
+cell needs its own state, styles, or lifecycle, and create persistent refs and
+watches in that Component's `:setup`. Capture an author's stable ref before
+building a callback when sharing it is intentional. Do not create persistent
+state on each cell-function call.
 
 `etaf-pagination` is a controlled Data Component. It accepts a Data controller
-plus stable `:previous-ref` and `:next-ref` values, renders readable `←`/`→`
-controls and a `Page N / M` summary, and disables the boundary action while a
+plus stable `:previous-ref` and `:next-ref` values, renders padded secondary
+Buttons (`‹ Previous` / `Next ›`) around a centered `Page N / M` and item-count
+summary, and disables the boundary action while a
 page is loading or already at the first/last page. It owns no page state and
-uses the same Button interaction contract.
+uses the same Button interaction contract and Theme tokens. Narrow allocations
+wrap the complete controls and summary. Optional `:previous-label` and
+`:next-label` replace the complete captions, for example `"‹ 上一页"` and
+`"下一页 ›"`; the stable English accessibility labels remain unchanged.
 
 Keyboard focus uses ETAF's public runtime ports: call
 `(etaf-focus-next runtime)` to move through visible Hosts with a numeric

@@ -79,6 +79,7 @@
                 :color "explicit-color")
    (etaf-label :text "Themed" :ref 'themed-label
                :color nil :bgcolor nil)
+   (text :ref 'themed-host :color nil :bgcolor nil "Theme defaults")
    (etaf-panel :title "Styled panel" :ref 'styled-panel)))
 
 (etaf-define-component etaf-ui-test-token-theme-fixture ()
@@ -142,14 +143,19 @@
           (let ((styled (etaf-ui-test--props buffer-name 'styled-button))
                 (custom (etaf-ui-test--props buffer-name 'custom-button))
                 (themed (etaf-ui-test--props buffer-name 'themed-label))
+                (host (etaf-ui-test--props buffer-name 'themed-host))
                 (panel (etaf-ui-test--props buffer-name 'styled-panel)))
             (should (equal (plist-get styled :color) "#FFFFFF"))
             (should (equal (plist-get styled :background-color) "#2F6B43"))
             (should (equal (plist-get styled :padding) '(0 1)))
             (should (equal (plist-get custom :color) "explicit-color"))
             (should (equal (plist-get custom :background-color) "#2F6B43"))
-            (should (equal (plist-get themed :color) "theme-color"))
+            ;; Nil fallthrough omits an override; it does not erase Label's
+            ;; explicit presentation.  An omitted Host value uses Theme.
+            (should (equal (plist-get themed :color) "#252A2E"))
             (should (equal (plist-get themed :background-color) "theme-bg"))
+            (should (equal (plist-get host :color) "theme-color"))
+            (should (equal (plist-get host :background-color) "theme-bg"))
             (should-not (plist-get themed :padding))
             (should (equal (plist-get panel :color) "#252A2E"))
             (should (equal (plist-get panel :background-color) "#FFFDF8"))
@@ -301,11 +307,11 @@
             (with-current-buffer buffer-name
               (let ((face (get-text-property position 'face)))
                 (should (string-match-p "#202C42" (format "%S" face)))
-                (should (string-match-p "#F4F7FF" (format "%S" face))))))
+                (should (string-match-p "#F4F7FF" (format "%S" face)))))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (when-let* ((buffer (get-buffer buffer-name)))
-        (kill-buffer buffer))))))
+        (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-button-dispatches-without-retained-press-state ()
   "Buttons dispatch through semantic Host state without local press state."
@@ -687,7 +693,7 @@
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-pagination-is-readable-and-boundary-safe ()
-  "Pagination renders Unicode controls, stable refs, and page boundaries."
+  "Pagination renders labeled controls, stable refs, and page boundaries."
   (let* ((source (etaf-data-memory-source
                   '((:id 1) (:id 2) (:id 3) (:id 4) (:id 5))
                   :id-key :id))
@@ -702,8 +708,8 @@
                         :previous-ref 'page-previous
                         :next-ref 'page-next)))
           (should (string-match-p "Page 1 / 3" (etaf-ui-test--text buffer-name)))
-          (should (string-match-p "←" (etaf-ui-test--text buffer-name)))
-          (should (string-match-p "→" (etaf-ui-test--text buffer-name)))
+          (should (string-match-p "‹ Previous" (etaf-ui-test--text buffer-name)))
+          (should (string-match-p "Next ›" (etaf-ui-test--text buffer-name)))
           ;; Live Ebox windows reserve two pixels for the exclusive display
           ;; boundary; the pager must stay inside the corresponding 360px row.
           (ebox-surface-update-buffer-viewport (get-buffer buffer-name) 358 20)
@@ -929,8 +935,7 @@
           (progn
             (setf (etaf-value (etaf-data-status controller))
                   (car case))
-            (setf (etaf-value (etaf-data-items controller))
-                  (when (eq (car case) 'empty) nil))
+            (setf (etaf-value (etaf-data-items controller)) nil)
             (etaf-mount
              buffer-name
              (etaf-view

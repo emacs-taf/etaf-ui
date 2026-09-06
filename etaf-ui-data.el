@@ -24,10 +24,9 @@
 (defun etaf-ui--data-grid-default-row-ref (state controller row)
   "Return STATE's stable internal Host reference for CONTROLLER and ROW.
 
-DataGrid owns this fallback so the presentational Table can keep its stricter
-interactive-row contract.  The controller's validated item identity is the
-row input.  Per-instance uninterned symbols prevent cross-grid collisions and
-avoid process-global symbol-table growth."
+The controller's validated item identity is the row input.  Like Table's
+retained row references, per-instance uninterned symbols prevent cross-grid
+collisions and avoid process-global symbol-table growth."
   (let* ((identity (etaf-data-item-identity controller row))
          (cache (plist-get state :row-refs))
          (stage (plist-get state :row-ref-stage))
@@ -260,7 +259,8 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
 DataGrid owns loading, error, empty, and controller-selection adaptation.
 Its keyed Range retains row identity across insert, reorder, and update.
 Setup state owns per-instance fallback refs plus commit-staged stable row
-actions; failed candidates cannot mutate committed handler inputs."
+actions; failed candidates cannot mutate committed handler inputs.  COLUMNS
+use Table's unique keys and optional `:cell' row-to-View functions."
   :setup
   (let ((state
          (list :row-actions (make-hash-table :test #'equal)
@@ -297,86 +297,34 @@ actions; failed candidates cannot mutate committed handler inputs."
    (slot :name 'footer)))
 
 (etaf-ui--define-component etaf-pagination
-    (&key controller previous-ref next-ref class color bgcolor border padding
-          aria-label)
-  "Render a controlled pager for DATA CONTROLLER with retained controls."
-  :setup
-  (let* ((state (list :controller nil))
-         (page-value
-          (lambda ()
-            (let ((controller (plist-get state :controller)))
-              (max 1 (or (and controller
-                               (etaf-value (etaf-data-page controller)))
-                          1)))))
-         (page-size-value
-          (lambda ()
-            (let ((controller (plist-get state :controller)))
-              (max 1 (or (and controller
-                               (etaf-value (etaf-data-page-size controller)))
-                          1)))))
-         (total-value
-          (lambda ()
-            (let ((controller (plist-get state :controller)))
-              (max 0 (or (and controller
-                               (etaf-value (etaf-data-total controller)))
-                          0)))))
-         (pages-value
-          (lambda ()
-            (max 1 (ceiling (/ (float (funcall total-value))
-                               (funcall page-size-value))))))
-         (loading-p
-          (lambda ()
-            (let ((controller (plist-get state :controller)))
-              (and controller
-                   (eq (etaf-value (etaf-data-status controller))
-                       'loading)))))
-         (previous-disabled
-          (lambda ()
-            (or (funcall loading-p) (<= (funcall page-value) 1))))
-         (next-disabled
-          (lambda ()
-            (or (funcall loading-p)
-                (>= (funcall page-value) (funcall pages-value)))))
-         (previous
-          (lambda ()
-            (let ((controller (plist-get state :controller)))
-              (when (and controller
-                         (not (funcall previous-disabled)))
-                (etaf-data-previous-page controller)))))
-         (next
-          (lambda ()
-            (let ((controller (plist-get state :controller)))
-              (when (and controller
-                         (not (funcall next-disabled)))
-                (etaf-data-next-page controller))))))
-    (plist-put state :page-value page-value)
-    (plist-put state :page-size-value page-size-value)
-    (plist-put state :total-value total-value)
-    (plist-put state :pages-value pages-value)
-    (plist-put state :loading-p loading-p)
-    (plist-put state :previous-disabled previous-disabled)
-    (plist-put state :next-disabled next-disabled)
-    (plist-put state :previous previous)
-    (plist-put state :next next)
-    state)
+    (&key controller previous-ref next-ref previous-label next-label
+          class color bgcolor border padding aria-label)
+  "Render a controlled pager whose callbacks follow its committed CONTROLLER.
+PREVIOUS-LABEL and NEXT-LABEL override the complete Button captions.
+Each Button captures its render's Controller; Runtime publishes that callback
+together with the visible control after a successful render."
   :render
-  (let* ((state (etaf-state))
-         (controller-value controller))
-    (setf (plist-get state :controller) controller-value)
+  (let ((controller-value controller))
     (let* ((theme (etaf-ui--style-tokens
-                   :ui-fg :ui-bg :ui-disabled-fg
-                   :ui-pagination-muted-fg))
+                   :ui-fg :ui-bg :ui-pagination-muted-fg))
            (parent-color (or color (plist-get theme :ui-fg)))
            (parent-bgcolor (or bgcolor (plist-get theme :ui-bg)))
-           (arrow-border (or border '(0 solid "transparent")))
-           (page (funcall (plist-get state :page-value)))
-           (page-size (funcall (plist-get state :page-size-value)))
-           (total (funcall (plist-get state :total-value)))
-           (pages (funcall (plist-get state :pages-value)))
-           (previous-disabled
-            (funcall (plist-get state :previous-disabled)))
-           (next-disabled
-            (funcall (plist-get state :next-disabled)))
+           (page (max 1 (or (and controller-value
+                                 (etaf-value (etaf-data-page controller-value)))
+                            1)))
+           (page-size
+            (max 1 (or (and controller-value
+                            (etaf-value (etaf-data-page-size controller-value)))
+                       1)))
+           (total (max 0 (or (and controller-value
+                                  (etaf-value (etaf-data-total controller-value)))
+                             0)))
+           (pages (max 1 (ceiling (/ (float total) page-size))))
+           (loading-p (and controller-value
+                           (eq (etaf-value (etaf-data-status controller-value))
+                               'loading)))
+           (previous-disabled (or loading-p (<= page 1)))
+           (next-disabled (or loading-p (>= page pages)))
            (first-item (if (zerop total) 0
                          (1+ (* (1- page) page-size))))
            (last-item (min total (* page page-size))))
@@ -384,10 +332,11 @@ actions; failed candidates cannot mutate committed handler inputs."
        'flex
        (list :class (etaf-ui--class-value "etaf-pagination" nil class)
              :width 'stretch :flex-direction 'row :align-items 'center
+             :flex-wrap 'wrap :justify-content 'center
              :role 'navigation :aria-label (or aria-label "Pagination")
              :color parent-color :background-color parent-bgcolor
              :box-sizing 'border-box :padding (or padding '(0 1))
-             :gap '(0 (1)))
+             :gap '(1 (16)))
        (list
         (etaf-node
          'column
@@ -396,19 +345,18 @@ actions; failed candidates cannot mutate committed handler inputs."
          (list
           (etaf-node
            'etaf-button
-           (list :label "←" :ref previous-ref
+           (list :label (or previous-label "‹ Previous") :ref previous-ref
                  :aria-label "Previous page"
-                 :disabled previous-disabled :padding '(0 0)
-                 :border arrow-border
-                 :color (if previous-disabled
-                            (plist-get theme :ui-disabled-fg)
-                          parent-color)
-                 :background-color parent-bgcolor :font-weight 'bold
-                 :on-press (plist-get state :previous))
+                 :disabled previous-disabled :padding '(0 2)
+                 :variant 'secondary :border border
+                 :color (and (not previous-disabled) color) :bgcolor bgcolor
+                 :on-press
+                 (lambda () (etaf-data-previous-page controller-value)))
            nil)))
         (etaf-node
          'column
-         (list :flex-grow 1 :flex-shrink 1 :flex-basis '(0) :min-width 0)
+         (list :width 'max-content
+               :flex-grow 0 :flex-shrink 0 :flex-basis 'auto)
          (list
           (etaf-node
            'box
@@ -428,15 +376,13 @@ actions; failed candidates cannot mutate committed handler inputs."
          (list
           (etaf-node
            'etaf-button
-           (list :label "→" :ref next-ref
+           (list :label (or next-label "Next ›") :ref next-ref
                  :aria-label "Next page"
-                 :disabled next-disabled :padding '(0 0)
-                 :border arrow-border
-                 :color (if next-disabled
-                            (plist-get theme :ui-disabled-fg)
-                          parent-color)
-                 :background-color parent-bgcolor :font-weight 'bold
-                 :on-press (plist-get state :next))
+                 :disabled next-disabled :padding '(0 2)
+                 :variant 'secondary :border border
+                 :color (and (not next-disabled) color) :bgcolor bgcolor
+                 :on-press
+                 (lambda () (etaf-data-next-page controller-value)))
            nil)))))))
   :styles
   (styles

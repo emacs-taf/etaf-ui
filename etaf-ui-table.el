@@ -19,6 +19,32 @@
       (plist-get column key)
     (alist-get key column)))
 
+(defun etaf-ui--table-validate-columns (columns)
+  "Return COLUMNS after checking stable identities and optional cell functions."
+  (unless (proper-list-p columns)
+    (error "ETAF Table :columns must be a proper list"))
+  (let ((seen (make-hash-table :test #'equal)))
+    (cl-loop for column in columns for index from 1 do
+             (let ((key (etaf-ui--column-value column :key))
+                   (cell (etaf-ui--column-value column :cell))
+                   (width (etaf-ui--column-value column :width)))
+               (unless (and key (or (symbolp key) (stringp key) (integerp key)))
+                 (error "ETAF Table column %d :key must be a non-nil symbol, integer, or string; got %S"
+                        index key))
+               (when (gethash key seen)
+                 (error "ETAF Table column %d duplicates :key %S; use a unique key and :cell to repeat a field"
+                        index key))
+               (puthash key t seen)
+               (when (and cell (not (functionp cell)))
+                 (error "ETAF Table column %d (%S) :cell must be a function of one row; got %S"
+                        index key cell))
+               (when (and (consp width) (eq (car width) 'fr)
+                          (not (and (proper-list-p width) (= (length width) 2)
+                                    (numberp (cadr width)) (> (cadr width) 0))))
+                 (error "ETAF Table column %d (%S) :width must use (fr POSITIVE-WEIGHT); got %S"
+                        index key width)))))
+  columns)
+
 (defun etaf-ui--table-cell-value (row key)
   "Return KEY from ROW, accepting a plist, alist, or hash table."
   (cond
@@ -27,7 +53,7 @@
          (zerop (% (length row) 2))
          (keywordp (car row)))
     (plist-get row key))
-   ((listp row) (alist-get key row))
+   ((listp row) (alist-get key row nil nil #'equal))
    (t nil)))
 
 (defun etaf-ui--table-fit-text (value column)
@@ -39,19 +65,34 @@
         (truncate-string-to-width value width 0 nil "…")
       value)))
 
-(defun etaf-ui--table-track-width (column gap-p)
-  "Return COLUMN width with one character gap when GAP-P is non-nil."
-  (let ((width (etaf-ui--column-value column :width)))
-    (if (and gap-p (integerp width) (> width 0))
-        (1+ width)
-      width)))
+(defun etaf-ui--table-fixed-text-columns-p (columns)
+  "Return non-nil when COLUMNS can share the compact fixed-text path."
+  (and columns
+       (cl-every
+        (lambda (column)
+          (let ((width (etaf-ui--column-value column :width)))
+            (and (not (etaf-ui--column-value column :cell))
+                 (integerp width) (> width 0))))
+        columns)))
 
-(defun etaf-ui--table-header-cell (column gap-p)
-  "Return one Label header for COLUMN, adding air when GAP-P is non-nil."
+(defun etaf-ui--table-grid (columns cells)
+  "Allocate CELLS with shared COLUMNS tracks and one character between them."
+  (etaf-node
+   'grid
+   (list :width 'stretch
+         :grid-template-columns
+         (mapcar (lambda (column)
+                   (or (etaf-ui--column-value column :width) 'max-content))
+                 columns)
+         :column-gap 1)
+   cells))
+
+(defun etaf-ui--table-header-cell (column)
+  "Return one header for COLUMN inside its allocated Grid track."
   (etaf-node
    'box
    (list :class "etaf-table-header-cell"
-         :width (etaf-ui--table-track-width column gap-p)
+         :width 'stretch :overflow 'hidden
          :wrap-mode 'none)
    (list
     (etaf-node
@@ -64,12 +105,7 @@
 
 (defun etaf-ui--table-fixed-header-text (columns)
   "Return one fixed-width header string for COLUMNS, or nil."
-  (when (and columns
-             (cl-every
-              (lambda (column)
-                (let ((width (etaf-ui--column-value column :width)))
-                  (and (integerp width) (> width 0))))
-              columns))
+  (when (etaf-ui--table-fixed-text-columns-p columns)
     (mapconcat
      (lambda (column)
        (let* ((width (etaf-ui--column-value column :width))
@@ -84,51 +120,52 @@
 
 (defun etaf-ui--table-header (columns)
   "Return a Table header row for COLUMNS."
+  (etaf-ui--table-validate-columns columns)
   (let ((theme (etaf-ui--style-tokens :ui-table-border))
         (fixed-text (etaf-ui--table-fixed-header-text columns)))
     (etaf-node
      'row
-     (list :class "etaf-table-header"
-           :border-bottom-width 1 :border-bottom-style 'solid
-           :border-bottom-color (plist-get theme :ui-table-border))
+     (append
+      (unless fixed-text '(:padding (0 0)))
+      (list :class "etaf-table-header"
+            :border-bottom-width 1 :border-bottom-style 'solid
+            :border-bottom-color (plist-get theme :ui-table-border)))
      (if fixed-text
          (list (etaf-node 'text nil (list fixed-text)))
-       (cl-loop for column in columns
-                for tail on columns
-                collect
-                (etaf-ui--table-header-cell column (cdr tail)))))))
+       (list (etaf-ui--table-grid
+              columns (mapcar #'etaf-ui--table-header-cell columns)))))))
 
-(defun etaf-ui--table-cell (row column gap-p)
-  "Return one Label cell for ROW and COLUMN using GAP-P."
+(defun etaf-ui--table-cell (row column)
+  "Return COLUMN's ordinary View cell for ROW inside its allocated track.
+Custom cell functions run at this consuming position; Component output owns
+its usual Context, styles, state, and lifecycle."
   (etaf-node
    'box
-   (list :class "etaf-table-cell"
-         :width (etaf-ui--table-track-width column gap-p)
+   (list :key (etaf-ui--column-value column :key)
+         :class "etaf-table-cell"
+         :width 'stretch
+         :overflow 'hidden
          :wrap-mode 'none)
    (list
-    (etaf-node
-     'text nil
-     (list
-      (etaf-ui--table-fit-text
-       (etaf-ui--table-cell-value
-        row (etaf-ui--column-value column :key))
-       column))))))
+    (if-let* ((cell (etaf-ui--column-value column :cell)))
+        (etaf-view (expr (funcall cell row)))
+      (etaf-node
+       'text nil
+       (list
+        (etaf-ui--table-fit-text
+         (etaf-ui--table-cell-value
+          row (etaf-ui--column-value column :key))
+         column)))))))
 
 (defun etaf-ui--table-cells (row columns)
   "Return cell Components for ROW using COLUMNS."
   (cl-loop for column in columns
-           for tail on columns
            collect
-           (etaf-ui--table-cell row column (cdr tail))))
+           (etaf-ui--table-cell row column)))
 
 (defun etaf-ui--table-fixed-row-text (row columns)
   "Return one fixed-width ROW string for COLUMNS, or nil when not applicable."
-  (when (and columns
-             (cl-every
-              (lambda (column)
-                (let ((width (etaf-ui--column-value column :width)))
-                  (and (integerp width) (> width 0))))
-              columns))
+  (when (etaf-ui--table-fixed-text-columns-p columns)
     (mapconcat
      (lambda (column)
        (let* ((width (etaf-ui--column-value column :width))
@@ -143,11 +180,12 @@
 
 (defun etaf-ui--table-row-children (row columns)
   "Return the smallest presentation-equivalent child list for ROW.
-COLUMNS with fixed positive character widths use one padded Text Host;
-otherwise retain the general per-cell Box path."
+COLUMNS with fixed positive character widths use one padded Text Host.
+Other cells always share a Grid parent, preserving their identity when column
+widths change between fixed and fractional tracks."
   (if-let* ((text (etaf-ui--table-fixed-row-text row columns)))
       (list (etaf-node 'text nil (list text)))
-    (etaf-ui--table-cells row columns)))
+    (list (etaf-ui--table-grid columns (etaf-ui--table-cells row columns)))))
 
 (defun etaf-ui--table-entries (rows row-key)
   "Return `(KEY . ROW)' entries for ROWS using ROW-KEY.
@@ -160,11 +198,10 @@ ETAF validates keys and uniqueness."
     (row identity columns row-ref on-row-press row-selected-p)
   "Return one canonical row Host for ROW and stable IDENTITY.
 
-This helper is shared by the retained presentational Table Component and the
-DataGrid's keyed hot path.  Keeping the row itself as a Host avoids creating a
-second Component boundary for every visible item while preserving the same
-selection, event, and style contract.  COLUMNS define the visible cells;
-ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
+The retained Table row shares its cell construction with DataGrid's keyed
+hot path.  COLUMNS define the visible cells;
+ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction.
+Without ROW-REF the Host receives ETAF's usual instance-local reference."
   (let* ((callback on-row-press)
          (row-value row)
          (interactive-p (not (null callback)))
@@ -180,26 +217,29 @@ ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
     (when interactive-p
       (unless (functionp on-row-press)
         (error "ETAF Table :on-row-press must be a function"))
-      (unless (functionp row-ref)
-        (error "ETAF Table requires :row-ref for interactive rows"))
-      (setq host-ref (funcall row-ref row))
-      (unless host-ref
-        (error "ETAF Table row reference must be non-nil")))
+      (when (and row-ref (not (functionp row-ref)))
+        (error "ETAF Table :row-ref must be a function"))
+      (when row-ref
+        (setq host-ref (funcall row-ref row))
+        (unless host-ref
+          (error "ETAF Table :row-ref must return a non-nil stable ref"))))
     (etaf-node
      'row
-     (list :key identity
-           :class (concat "etaf-table-row" (if selected-p " selected" ""))
-           :ref host-ref :role (when interactive-p 'button)
-           :tab-index (when interactive-p 0)
-           :color
-           (when selected-p (plist-get theme :ui-table-selected-fg))
-           :background-color
-           (when selected-p (plist-get theme :ui-table-selected-bg))
-           :border-bottom-width 1 :border-bottom-style 'solid
-           :border-bottom-color (plist-get theme :ui-table-border)
-           :on-press
-           (when interactive-p
-             (lambda () (funcall callback row-value))))
+     (append
+      (unless (etaf-ui--table-fixed-text-columns-p columns) '(:padding (0 0)))
+      (list :key identity
+            :class (concat "etaf-table-row" (if selected-p " selected" ""))
+            :ref host-ref :role (when interactive-p 'button)
+            :tab-index (when interactive-p 0)
+            :color
+            (when selected-p (plist-get theme :ui-table-selected-fg))
+            :background-color
+            (when selected-p (plist-get theme :ui-table-selected-bg))
+            :border-bottom-width 1 :border-bottom-style 'solid
+            :border-bottom-color (plist-get theme :ui-table-border)
+            :on-press
+            (when interactive-p
+              (lambda () (funcall callback row-value)))))
      (etaf-ui--table-row-children row columns))))
 
 (etaf-ui--define-component etaf-ui--table-header (&key columns)
@@ -224,9 +264,16 @@ ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction."
     (&key columns rows row-key row-ref on-row-press row-selected-p)
   "Render ordinary ROWS as a presentational Table.
 
-COLUMNS contain `:key', optional `:label', and optional character `:width'.
-ROW-KEY supplies stable identity.  Interaction and selection are controlled
-optional inputs; Table never owns application or Data Controller state."
+COLUMNS contain a unique non-nil `:key', optional `:label', `:width',
+and `:cell' function accepting one row and returning ordinary View content.
+Integer widths are character capacities; `(fr N)' shares the remaining width
+by positive weight N.
+Without `:cell', the key reads a text field from the row.  Cell state belongs
+in a returned Component, whose Context comes from the consuming Table.
+ROW-KEY supplies stable identity.  ROW-REF is only needed for caller-owned
+addresses; interactive rows otherwise receive instance-local references.
+Interaction and selection are controlled optional inputs; Table never owns
+application or Data Controller state."
   :view
   (column
    :class "etaf-table"

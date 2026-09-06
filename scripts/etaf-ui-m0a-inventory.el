@@ -55,8 +55,8 @@
      :root-guarantee single-host-root
      :definition "etaf-ui-data.el")
     (:name etaf-pagination
-     :business-props (controller previous-ref next-ref class color bgcolor
-                                 border padding aria-label)
+     :business-props (controller previous-ref next-ref previous-label next-label
+                                 class color bgcolor border padding aria-label)
      :forwarded-host-attrs all-valid-host-attrs
      :root-guarantee single-host-root
      :definition "etaf-ui-data.el"))

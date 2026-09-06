@@ -86,37 +86,19 @@
           :border (etaf-ui--style-border (plist-get theme border-key))
           :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 
-;;;###autoload
-(defun etaf-ui--button-setup ()
-  "Return retained callback state for one Button instance."
-  (let ((state (list :callback nil :press-p nil)))
-    (plist-put
-     state :press
-     (lambda ()
-       (when (plist-get state :press-p)
-         (when-let* ((callback (plist-get state :callback)))
-           (funcall callback)))))
-    state))
-
 (etaf-ui--define-component etaf-button
     (&key label on-press disabled ref class color bgcolor border padding
           font-weight tab-index aria-label use variant)
-  "Render a standard pressable Button with retained callback identity.
+  "Render a standard pressable Button with a committed callback.
 
 DISABLED removes the callback and default focus tab index.  Presentation props
-remain caller-overridable while the setup state keeps the event closure stable
-across parent Component rerenders."
-  :setup
-  (etaf-ui--button-setup)
+remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
+so a failed render keeps the previous callback and its captured values."
   :render
-  (let* ((state (etaf-state))
-         (label (etaf-ui--text-value label))
-         (press-p (and (not disabled) (or on-press use)))
+  (let* ((label (etaf-ui--text-value label))
          (variant-values
           (etaf-ui--button-variant-values
            (and (not disabled) variant) disabled)))
-    (setf (plist-get state :callback) on-press
-          (plist-get state :press-p) press-p)
     (etaf-node
      'box
      (list
@@ -132,8 +114,8 @@ across parent Component rerenders."
       :border (or border (plist-get variant-values :border))
       :padding padding
       :font-weight (or font-weight (plist-get variant-values :font-weight))
-      :use (and (not disabled) use)
-      :on-press (and press-p (plist-get state :press)))
+      :use use
+      :on-press (and (not disabled) on-press))
      (list (etaf-node 'text nil (list label)))))
   :styles
   (styles

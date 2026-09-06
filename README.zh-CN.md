@@ -2,26 +2,41 @@
 
 `etaf-ui` 是 ETAF 的官方 Component 目录，是建立在 `etaf` 之上的可选独立包。它不增加第二套 Control 或 Widget 模型；Button、Checkbox、Label、Panel、DataGrid 都是使用同一套 View、属性、slot、事件和 Data 契约的普通 Component。
 
+
+所有 View 都使用准确的注册名称：`etaf-panel`、`etaf-label`、`etaf-button` 和
+`etaf-checkbox`。把下面完整例子放进启用 lexical-binding 的 `.el` 文件求值，
+再切换到 `*etaf-preferences*` 使用控件。
+
+<!-- etaf-example: preferences -->
 ```elisp
+;;; -*- lexical-binding: t; -*-
 (require 'etaf-ui)
 
-(let ((done (etaf-ref nil)))
-  (etaf-view
-   (panel :title "Account"
-    (slot :name 'header
-          (button :label "Save" :ref 'save-button
-                  :on-press (lambda () (message "saved"))))
-    (label :text "Preferences")
-    (checkbox :checked (etaf-value done) :label "Done"
-              :ref 'done-checkbox
-              :on-change (lambda (next)
-                           (setf (etaf-value done) next))))))
+(etaf-define-component demo-preferences ()
+  :setup (list (etaf-ref nil) (etaf-ref "Unsaved"))
+  :render
+  (let* ((state (etaf-state))
+         (done (car state))
+         (saved (cadr state)))
+    (etaf-view
+     (etaf-panel :title "Account"
+       (slot :name 'header
+         (etaf-button :label "Save" :ref 'save-button
+                      :on-press (lambda ()
+                                  (setf (etaf-value saved) "Saved"))))
+       (etaf-label :text (etaf-value saved))
+       (etaf-checkbox :checked (etaf-value done) :label "Done"
+                      :ref 'done-checkbox
+                      :on-change (lambda (next)
+                                   (setf (etaf-value done) next)))
+       (text (expr (if (etaf-value done) "Complete" "Pending")))))))
+
+(etaf-mount "*etaf-preferences*" (etaf-view (demo-preferences)))
 ```
 
-`.etaf` 文件的结构使用已注册的短标签（`panel`、`label`、`button`、
-`checkbox`、`data-grid`）。配套 `.el` 文件负责响应式值、Action、Behavior
-和回调；其中 `etaf-view` 也使用同一组短标签。Elisp 定义和 API 文档仍使用
-规范的 `etaf-*` 名称。
+Core 不会自动加载 `.etaf`。可选的 Playground 读取 inert 结构源，并显式加载
+已注册的 Elisp companion；这个文件格式不会生成更短的 Component alias。
+普通本地回调不需要命名 Action，目录组件与应用自己定义的组件使用相同的 props 和 slot API。
 
 Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 `:on-press`、`:disabled`、`:ref`，以及最小 presentation 属性
@@ -59,8 +74,20 @@ Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil pre
 显式 `:on-*` 回调和 Behavior 回调的组合由 Runtime 负责；UI 包只声明控件和
 视觉状态。
 
-间距由父布局负责，而不是由 Button 偷塞。相邻控件应放在带明确横向 `:gap`
-的 `row`/`flex` 中，这样每个控件的 mouse-face 和命中范围才保持语义独立。
+间距由父布局负责：`row` 和 `column` 使用 `:item-gap`，例如
+`(row :item-gap 1 ...)`；`flex` 和 `grid` 使用 `:gap`。尤其需要将 `row :gap`
+迁移为 `row :item-gap`。相邻控件保留明确间距，让 hover 和命中范围各自独立。
+
+根事件透传按顺序追加：业务动作、由内到外的 wrapper callback、最后按声明顺序
+运行的 Behavior。给 Checkbox 增加 `:on-press` 不会替换它的 `:on-change` 转换。
+每个声明执行一次，错误会中断后续回调。wrapper 的 `:use` 列表顺序连接，重复
+Behavior name 在安装前报错。
+
+禁用输入取 OR，外层 nil 不能启用内部已经禁用的控件。禁用时 dispatch 和 focus
+抛出 `etaf-event-error`，禁用 cell 控件会阻止指针激活落到父行，输入 Behavior
+也不会安装。透传 `:role` 或 `:aria-checked` 等组件所有的 aria 状态时，冲突值会
+导致输入错误；调用方仍可覆盖 `:aria-label` 与 `:aria-description`。完整规则见
+[交互与迁移说明](../etaf/docs/user-guide.zh.md#interaction-migration)。
 
 `etaf-label` 支持 `:text`、`:class`、`:color`、`:bgcolor`、`:font-weight`、
 `:width`、`:border`、`:padding` 和 `:ref`。
@@ -79,7 +106,7 @@ surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 | `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max` |
 | `etaf-table` | `:columns`、`:rows`、`:row-key`、`:row-ref`、`:on-row-press`、`:row-selected-p` |
 | `etaf-data-grid` | `:controller`、`:columns`、`:row-key`、`:on-row-press`、`:row-ref`、`:row-selected-p`、`:loading-label`、`:error-label`、`:empty-label` |
-| `etaf-pagination` | `:controller`、`:previous-ref`、`:next-ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:aria-label` |
+| `etaf-pagination` | `:controller`、`:previous-ref`、`:next-ref`、`:previous-label`、`:next-label`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:aria-label` |
 
 <!-- M0b1: single-host-root -->
 目录中的每个公共 Component 都只挂载一个 Host root。未被作为 business prop
@@ -92,6 +119,10 @@ DataGrid 支持列描述、函数型 `:row-key`，以及可选的
 `tab-index 0` 的可交互 button，且回调接收该行；没有 `:on-row-press` 时，行
 没有回调或 tab stop。
 
+`etaf-table` 的交互行也可省略 `:row-ref`，框架会提供属于当前保留实例的稳定引用。
+只有外部 focus、测试或集成需要直接寻址时才提供 ref，不要根据行文字拼接全局
+symbol。row key 负责数据身份，ref 负责交互 Host 地址。
+
 <!-- M0b1: row-ref-optional -->
 DataGrid 的 `:row-ref` 是可选项。交互式 grid 省略它时，DataGrid 会根据
 controller 持有的 row identity 派生稳定的内部 Host ref。fallback ref 不会
@@ -102,12 +133,72 @@ controller 持有的 row identity 派生稳定的内部 Host ref。fallback ref 
 DataGrid 按 row key 保留唯一 action closure，因此 selection 或 Data Range
 更新不会为未变化的行重建 handler。
 整数列 `:width` 表示可读字符容量，不是裸像素；DataGrid 原样使用 Ebox 原生字符单位，
-并在非末列之间保留一个原生字符间距。
+并在非末列之间保留一个原生字符间距。使用 `:width '(fr 1)` 让列填充剩余宽度；
+多个 fractional 列按正数权重分配这部分空间。例如让
+`(:key :title :width (fr 1))` 与
+`(:key :actions :width 22 :cell render-actions)` 配合，可以在保留操作控件空间的
+同时自适应标题宽度。表头和数据行使用相同的轨道及间距。自适应 cell 按分配的
+宽度裁剪，不会挤宽相邻列。固定列仍保留声明的空间，父布局需要容纳这些控件
+及列间距。
+
+自定义 cell 的列宽在固定值与 fractional 值之间切换时，其 Component 状态保持。
+全固定列的纯文本表格仍保留紧凑的文本渲染路径。
+
+### 自定义 cell 与列迁移
+
+Table 与 DataGrid 共用列契约。每一列都必须有唯一且非 nil 的 `:key`
+（symbol、整数或字符串），纯展示列也一样。默认 cell 将该字段显示为文字。
+`:cell` 函数接收一个 row，返回 nil、字符串、typed Host 或 Component View，
+或这些值组成的 proper sequence。Table 拥有 cell 宽度并裁剪溢出；纯文本表格
+继续使用原有的紧凑表示。
+
+下面将 `:name` 字段用两个不同的 column key 展示，并在第三列放入普通 Button。
+行选择与 Open 按钮分别执行自己的动作：
+
+<!-- etaf-example: cells -->
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+
+(etaf-mount
+ "*etaf-cell-demo*"
+ (etaf-view
+  (etaf-table
+   :rows '((:id 1 :name "Ada"))
+   :row-key (lambda (row) (plist-get row :id))
+   :on-row-press (lambda (row) (message "Select %s" (plist-get row :name)))
+   :columns
+   (list
+    '(:key :name :label "Name" :width 12)
+    (list :key :name-upper :label "Uppercase" :width 12
+          :cell (lambda (row) (upcase (plist-get row :name))))
+    (list :key :open :label "Action" :width 10
+          :cell
+          (lambda (row)
+            (etaf-view
+             (etaf-button
+              :label "Open"
+              :on-press (lambda ()
+                          (message "Open %s" (plist-get row :name)))))))))))
+```
+
+迁移重复字段列时，保留一列的 `:key :name`，为另一列指定 `:name-upper` 等唯一
+key，再通过 `:cell` 读取原来的 `:name` 字段。缺失或重复 column key 都会报错。
+row key 与 column key 让 cell 身份在重排时保留；改变 key 会替换该 cell 实例。
+
+cell 函数使用 row 参数与普通词法捕获，Context 来自消费它的 Table/Grid 挂载
+位置，不会恢复作者的 props、`etaf-state` 或私有样式。cell 需要自己的状态、样式
+或生命周期时，返回普通 Component，在它的 `:setup` 中创建持久 ref 和 watch。
+若有意共享作者的 ref，应在创建回调前捕获稳定句柄；不要在每次 cell 函数调用时
+创建持久状态。
 
 `etaf-pagination` 是受控 Data Component。它接收 Data controller 以及稳定的
-`:previous-ref`、`:next-ref`，显示易读的 `←`/`→` 控件和 `Page N / M` 摘要；
-加载中或已经位于首/末页时会禁用对应动作。它不拥有页码状态，并复用 Button
-的交互契约。
+`:previous-ref`、`:next-ref`，使用带内边距的 secondary Button（`‹ Previous` /
+`Next ›`），中间显示 `Page N / M` 与条数摘要。空间不足时，完整控件和摘要
+自然换行。加载中或已经位于首/末页时会禁用对应动作。它不拥有页码状态，
+并复用 Button 的交互契约和 Theme token。可选的 `:previous-label`、
+`:next-label` 替换完整按钮文案，例如 `"‹ 上一页"`、`"下一页 ›"`；稳定的英文
+无障碍标签保持不变。
 
 键盘焦点使用 ETAF 的公共 Runtime 端口：用
 `(etaf-focus-next runtime)` 在带数值且非负 `:tab-index` 的可见 Host 之间
