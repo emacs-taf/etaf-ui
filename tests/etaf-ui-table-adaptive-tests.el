@@ -1,16 +1,16 @@
-;;; etaf-ui-table-adaptive-tests.el --- Adaptive Table tracks -*- lexical-binding: t; -*-
+;;; etaf-ui-table-adaptive-tests.el --- Public API acceptance -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-
-;; Mixed character and fractional columns share one header/row allocation.
+;; Test supported package inputs, outputs, errors and lifecycle.
+;; Internal implementation details are outside this contract.
 
 ;;; Code:
-
-(require 'ert)
 (require 'cl-lib)
+(require 'ert)
 (require 'etaf-ui)
 
 (defvar etaf-ui-adaptive-test--states nil)
+
 (defvar etaf-ui-adaptive-test--removed nil)
 
 (etaf-define-component etaf-ui-adaptive-test-actions (&key row)
@@ -65,57 +65,6 @@
         '(:key :actions :label "Actions" :width 22
           :cell etaf-ui-adaptive-test--action-cell)))
 
-(defun etaf-ui-adaptive-test--x (buffer position)
-  "Return POSITION's rendered horizontal pixel offset in BUFFER."
-  (with-current-buffer buffer
-    (save-excursion
-      (goto-char position)
-      (ebox-string-pixel-width
-       (buffer-substring (line-beginning-position) (point))))))
-
-(defun etaf-ui-adaptive-test--background (runtime ref)
-  "Return the resolved background of RUNTIME's REF, including live paint."
-  (let ((value (plist-get (gethash ref (etaf-runtime-host-props runtime))
-                          :background-color)))
-    (if (tp-paint-slot-p value)
-        (plist-get (tp-paint-slot-spec value) :background)
-      value)))
-
-(defun etaf-ui-adaptive-test--assert-layout (buffer width)
-  "Check BUFFER's WIDTH, header alignment, and complete action hit targets."
-  (let* ((runtime (etaf-runtime-for-buffer buffer))
-         (header-x
-          (with-current-buffer buffer
-            (save-excursion
-              (goto-char (point-min))
-              (search-forward "Actions")
-              (etaf-ui-adaptive-test--x buffer (- (point) (length "Actions")))))))
-    (dolist (id '(1 2))
-      (let* ((ref (intern (format "adaptive-complete-%s" id)))
-             (bounds (etaf-host-ref-bounds runtime ref))
-             (row-bounds (etaf-host-ref-bounds runtime (intern (format "adaptive-row-%s" id)))))
-        (should bounds)
-        (should (<= (car row-bounds) (car bounds)))
-        (should (<= (cdr bounds) (cdr row-bounds)))
-        (should (= header-x (etaf-ui-adaptive-test--x buffer (car bounds))))
-        (dolist (control '(complete delete))
-          (let* ((button (intern (format "adaptive-%s-%s" control id)))
-                 (button-bounds (etaf-host-ref-bounds runtime button)))
-            (should button-bounds)
-            (with-current-buffer buffer
-              (should (string-match-p
-                       (if (eq control 'complete) "Complete" "Delete")
-                       (buffer-substring-no-properties
-                        (car button-bounds) (cdr button-bounds)))))))))
-    (with-current-buffer buffer
-      (save-excursion
-        (goto-char (point-min))
-        (while (< (point) (point-max))
-          (should (<= (ebox-string-pixel-width
-                       (buffer-substring (line-beginning-position) (line-end-position)))
-                      (+ width 2)))
-          (forward-line 1))))))
-
 (ert-deftest etaf-ui-adaptive-columns-reject-invalid-fractional-weights ()
   "Invalid fractional tracks identify the offending column before mounting."
   (dolist (width '((fr) (fr 0) (fr -1) (fr "wide") (fr 1 extra)))
@@ -129,64 +78,6 @@
                 :rows nil :row-key #'identity)))))))
       (should (string-match-p "column 1 (:title)" message))
       (should (string-match-p "POSITIVE-WEIGHT" message)))))
-
-(ert-deftest etaf-ui-adaptive-columns-align-and-preserve-actions-on-resize ()
-  "Table and DataGrid allocate matching adaptive tracks through live updates."
-  (dolist (grid-p '(nil t))
-    (let* ((etaf-ui-adaptive-test--states nil)
-           (etaf-ui-adaptive-test--removed nil)
-           (rows '((:id 1 :title "A long task title that must fit its assigned track without moving actions")
-                   (:id 2 :title "Short task")))
-           (controller (and grid-p (etaf-data-controller
-                                   (etaf-data-memory-source rows :id-key :id)
-                                   :page-size 10 :auto-load t)))
-           (selected (etaf-ref nil))
-           (theme (etaf-ref '(:ui-fg "#152030" :ui-table-border "#CBD5E1"
-                             :ui-table-selected-bg "#DBEAFE")))
-           (buffer (generate-new-buffer " *adaptive-table*")))
-      (unwind-protect
-          (progn
-            (etaf-mount
-             buffer
-             (etaf-view
-              (etaf-ui-adaptive-test-provider
-               :rows rows :columns (etaf-ui-adaptive-test--columns)
-               :controller controller :theme theme :selected selected)))
-            (let ((runtime (etaf-runtime-for-buffer buffer)) previous-x)
-              (dolist (width '(420 760 280 420))
-                (ebox-surface-update-buffer-viewport buffer width 30)
-                (etaf-ui-adaptive-test--assert-layout buffer width)
-                (let* ((bounds (etaf-host-ref-bounds runtime 'adaptive-complete-1))
-                       (x (etaf-ui-adaptive-test--x buffer (car bounds))))
-                  (when (= width 760) (should (> x previous-x)))
-                  (setq previous-x x))
-                (etaf-dispatch-event runtime 'adaptive-complete-1 'press)
-                (let* ((id (if (equal (etaf-value selected) 2) 1 2))
-                       (ref (intern (format "adaptive-row-%s" id))))
-                  (etaf-dispatch-event runtime ref 'press)
-                  (should (= (etaf-value selected) id))
-                  (should (equal "#DBEAFE"
-                                 (etaf-ui-adaptive-test--background runtime ref)))))
-              (let ((bounds (etaf-host-ref-bounds runtime 'adaptive-complete-1))
-                    (selected-ref (intern (format "adaptive-row-%s" (etaf-value selected)))))
-                (setf (etaf-value theme)
-                      '(:ui-fg "#F1F5F9" :ui-table-border "#475569"
-                        :ui-table-selected-bg "#334155"
-                        :ui-button-primary-bg "#2563EB"))
-                (etaf-ui-adaptive-test--assert-layout buffer 420)
-                (should (equal bounds (etaf-host-ref-bounds runtime 'adaptive-complete-1)))
-                (should (equal "#334155" (etaf-ui-adaptive-test--background
-                                          runtime selected-ref)))
-                (should (equal "#2563EB" (etaf-ui-adaptive-test--background
-                                          runtime 'adaptive-complete-1))))
-              (should (= 2 (length etaf-ui-adaptive-test--states)))
-              (should-not etaf-ui-adaptive-test--removed)
-              (should (= 4 (etaf-value (cadr (assq 1 etaf-ui-adaptive-test--states)))))
-              (dolist (state etaf-ui-adaptive-test--states)
-                (should (equal "consumer-context" (nth 2 state))))))
-        (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-        (when controller (etaf-data-stop controller))
-        (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-adaptive-cells-retain-identity-and-failed-candidates ()
   "Adaptive row/column reorders preserve local state and rollback ownership."

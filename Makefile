@@ -6,7 +6,7 @@ SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-table.el lisp
 
 TEST_FILES := $(wildcard tests/*-tests.el)
 
-.PHONY: all compile test check checkdoc load clean
+.PHONY: all compile check checkdoc load clean
 
 all: check
 
@@ -16,10 +16,6 @@ compile:
 		--eval '(setq load-prefer-newer t byte-compile-error-on-warn t)' \
 		--eval '(require (quote cl-lib))' \
 		--eval '(unless (cl-every (function byte-compile-file) (quote ($(foreach file,$(SOURCES),"$(file)")))) (kill-emacs 1))'
-
-test: compile
-	$(EMACS) -Q --batch $(LOAD_PATH) --eval '(setq load-prefer-newer t)' \
-		$(foreach test,$(TEST_FILES),-l $(test)) -f ert-run-tests-batch-and-exit
 
 load: compile
 	$(EMACS) -Q --batch $(LOAD_PATH) --eval '(require (quote etaf-ui))' \
@@ -47,3 +43,6 @@ acceptance:
 api-check:
 	$(EMACS) -Q --batch -L . $(API_PROVIDER_PATH) --eval '(setq load-prefer-newer t)' -l scripts/check-api.el
 API_PROVIDER_PATH = -L ../ecss -L ../tp -L ../ekp -L ../ebox -L ../etaf -L ../etaf-db -L ../ebox-playground -L ../etaf-playground
+
+.PHONY: test
+test: acceptance

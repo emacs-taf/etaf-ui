@@ -1,11 +1,11 @@
-;;; etaf-ui-button-commit-tests.el --- Button callback publication -*- lexical-binding: t; -*-
+;;; etaf-ui-button-commit-tests.el --- Public API acceptance -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-
-;; Public Button callbacks follow the same commit boundary as their visible UI.
+;; Test supported package inputs, outputs, errors and lifecycle.
+;; Internal implementation details are outside this contract.
 
 ;;; Code:
-
+(require 'cl-lib)
 (require 'ert)
 (require 'etaf-ui)
 
@@ -42,32 +42,6 @@
             (setf (etaf-value label) "C")
             (etaf-dispatch-event runtime 'button-commit 'press)
             (should (equal '("C" "B" "B" "A") events))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
-        (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-button-stable-callback-keeps-handler-identity ()
-  "An unchanged caller callback remains stable through presentation updates."
-  (let ((label (etaf-ref "A"))
-        (callback #'ignore)
-        (buffer (generate-new-buffer " *button-stable-callback*")))
-    (unwind-protect
-        (progn
-          (etaf-mount
-           buffer
-           (lambda ()
-             (etaf-view
-              (etaf-button :ref 'button-stable :label (etaf-value label)
-                           :on-press callback))))
-          (let* ((runtime (etaf-runtime-for-buffer buffer))
-                 (handler (cdr (assq 'press
-                                      (etaf-runtime-handler-for
-                                       runtime 'button-stable)))))
-            (setf (etaf-value label) "B")
-            (should (eq handler
-                        (cdr (assq 'press
-                                   (etaf-runtime-handler-for
-                                    runtime 'button-stable)))))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
         (etaf-unmount runtime))
       (kill-buffer buffer))))

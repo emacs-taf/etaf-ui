@@ -1,15 +1,15 @@
-;;; etaf-ui-docs-tests.el --- Executable catalog entry docs -*- lexical-binding: t; -*-
+;;; etaf-ui-docs-tests.el --- Public API acceptance -*- lexical-binding: t; -*-
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
-
-;; Execute exact README snippets without preloading the UI or a Playground.
+;; Test supported package inputs, outputs, errors and lifecycle.
+;; Internal implementation details are outside this contract.
 
 ;;; Code:
-
-(require 'ert)
 (require 'cl-lib)
+(require 'ert)
+(require 'etaf-ui)
 
 (defconst etaf-ui-docs-test--root
   (file-name-directory

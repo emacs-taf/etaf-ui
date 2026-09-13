@@ -3,22 +3,146 @@
   "load_path": [
     ".",
     "tests",
-    "../etaf",
     "../ebox",
+    "../ebox-playground",
     "../ecss",
+    "../ekp",
+    "../etaf",
+    "../etaf-db",
+    "../etaf-playground",
     "../tp"
   ],
   "support": [],
   "cases": [
     {
-      "name": "etaf-ui-docs-readmes-mount-and-dispatch-in-fresh-emacs",
-      "file": "tests/etaf-ui-docs-tests.el",
-      "purpose": "docs readmes mount and dispatch in fresh emacs"
-    },
-    {
       "name": "etaf-ui-button-callback-uses-only-committed-props",
       "file": "tests/etaf-ui-button-commit-tests.el",
-      "purpose": "button callback uses only committed props"
+      "purpose": "A later sibling failure cannot replace the live Button callback."
+    },
+    {
+      "name": "etaf-ui-cell-columns-require-unique-non-nil-keys",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "Reject ambiguous column identity with its index and offending key."
+    },
+    {
+      "name": "etaf-ui-cell-stateless-table-keeps-pure-render-support",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "Automatic row references do not introduce setup state into plain Tables."
+    },
+    {
+      "name": "etaf-ui-cell-factory-rejects-ref-and-watch-creation",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "A factory cannot allocate persistent state or subscriptions during render."
+    },
+    {
+      "name": "etaf-ui-cell-row-and-column-reorder-retain-state",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "Counter state follows row and column keys, with one cleanup on deletion."
+    },
+    {
+      "name": "etaf-ui-cell-grid-reorders-without-remounting-cells",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "DataGrid uses the same retained custom cells while preserving row identity."
+    },
+    {
+      "name": "etaf-ui-cell-duplicate-field-migration-retains-distinct-state",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "Name and Uppercase read the same field but retain distinct column identities."
+    },
+    {
+      "name": "etaf-ui-cell-later-factory-error-retains-committed-handler",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "A failed later cell cannot replace an earlier cell's committed callback."
+    },
+    {
+      "name": "etaf-ui-cell-grid-content-update-stays-row-local",
+      "file": "tests/etaf-ui-cell-tests.el",
+      "purpose": "An item update evaluates one custom cell; selection visits only its delta."
+    },
+    {
+      "name": "etaf-ui-docs-readmes-mount-and-dispatch-in-fresh-emacs",
+      "file": "tests/etaf-ui-docs-tests.el",
+      "purpose": "Both catalog READMEs use real names and complete mounted interactions."
+    },
+    {
+      "name": "etaf-ui-pagination-wraps-complete-controls-in-narrow-space",
+      "file": "tests/etaf-ui-pagination-commit-tests.el",
+      "purpose": "A narrow allocation wraps whole controls without clipping page text."
+    },
+    {
+      "name": "etaf-ui-pagination-keeps-explicit-colors-and-semantic-defaults",
+      "file": "tests/etaf-ui-pagination-commit-tests.el",
+      "purpose": "Explicit colors remain effective without replacing omitted variant defaults."
+    },
+    {
+      "name": "etaf-ui-adaptive-columns-reject-invalid-fractional-weights",
+      "file": "tests/etaf-ui-table-adaptive-tests.el",
+      "purpose": "Invalid fractional tracks identify the offending column before mounting."
+    },
+    {
+      "name": "etaf-ui-adaptive-cells-retain-identity-and-failed-candidates",
+      "file": "tests/etaf-ui-table-adaptive-tests.el",
+      "purpose": "Adaptive row/column reorders preserve local state and rollback ownership."
+    },
+    {
+      "name": "etaf-ui-table-string-column-keys-read-equal-alist-keys",
+      "file": "tests/etaf-ui-table-adaptive-tests.el",
+      "purpose": "Table and DataGrid read string keys in both fixed and adaptive cells."
+    },
+    {
+      "name": "etaf-ui-button-use-behavior-dispatches-through-host",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Install Button `:use' Behavior and dispatch its merged callback."
+    },
+    {
+      "name": "etaf-ui-number-input-validates-and-emits-value",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Prompt-backed number input owns bounds and emits the accepted value."
+    },
+    {
+      "name": "etaf-ui-button-disabled-preserves-explicit-theme-surface",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "A disabled Button keeps explicit dark presentation props in its surface."
+    },
+    {
+      "name": "etaf-ui-pagination-is-readable-and-boundary-safe",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Pagination renders labeled controls, stable refs, and page boundaries."
+    },
+    {
+      "name": "etaf-ui-pagination-composes-inside-a-grid-track",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Pagination must distribute free space inside its assigned Grid track."
+    },
+    {
+      "name": "etaf-ui-data-grid-keeps-long-cells-on-one-line",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Long tabular values use an ellipsis instead of increasing row height."
+    },
+    {
+      "name": "etaf-ui-data-grid-converts-character-columns-and-keeps-air",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Character column descriptors become pixel widths with a stable gap."
+    },
+    {
+      "name": "etaf-ui-data-grid-rejects-nil-row-ref",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Reject an interactive row-ref callback that returns nil."
+    },
+    {
+      "name": "etaf-ui-data-grid-projects-loading-error-and-empty",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Project the Data Controller loading, error, and empty states."
+    },
+    {
+      "name": "etaf-ui-data-grid-requires-stable-row-key",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Reject a DataGrid that cannot identify retained rows."
+    },
+    {
+      "name": "etaf-ui-data-grid-rejects-nil-row-key",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "Reject a DataGrid row-key function that returns no identity."
     }
   ]
 }
