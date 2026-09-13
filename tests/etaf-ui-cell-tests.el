@@ -139,7 +139,7 @@
                (list :class "cell-author-private cell-factory-consumer"
                      :color (etaf-theme-token :cell-color))
                (list (format "%s:%d" context (etaf-value captured)))))))
-         (columns (list (list :key :name :width 18 :cell factory))))
+         (columns (list (list :key :name :width '(ch 18) :cell factory))))
     (etaf-node
      'column nil
      (list

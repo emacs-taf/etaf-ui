@@ -26,7 +26,7 @@
   (let ((count (cadr (etaf-state)))
         (id (plist-get row :id)))
     (etaf-view
-     (row :item-gap 1
+     (row :item-gap '(ch 1)
       (etaf-button :label "Complete"
                    :ref (intern (format "adaptive-complete-%s" id))
                    :on-press (lambda () (cl-incf (etaf-value count))))

@@ -70,7 +70,7 @@
   (progn
     (etaf-theme-provide '(:color "theme-color"
                           :background-color "theme-bg"
-                          :padding (9 9)))
+                          :padding ((lh 9) (ch 9))))
     nil)
   :view
   (row
@@ -147,7 +147,7 @@
                 (panel (etaf-ui-test--props buffer-name 'styled-panel)))
             (should (equal (plist-get styled :color) "#FFFFFF"))
             (should (equal (plist-get styled :background-color) "#2F6B43"))
-            (should (equal (plist-get styled :padding) '(0 1)))
+            (should (equal (plist-get styled :padding) '((lh 0) (ch 1))))
             (should (equal (plist-get custom :color) "explicit-color"))
             (should (equal (plist-get custom :background-color) "#2F6B43"))
             ;; Nil fallthrough omits an override; it does not erase Label's
@@ -159,7 +159,7 @@
             (should-not (plist-get themed :padding))
             (should (equal (plist-get panel :color) "#252A2E"))
             (should (equal (plist-get panel :background-color) "#FFFDF8"))
-            (should (equal (plist-get panel :padding) '(1 2)))))
+            (should (equal (plist-get panel :padding) '((lh 1) (ch 2))))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (when-let* ((buffer (get-buffer buffer-name)))
@@ -222,7 +222,7 @@
                                     :color "#FFFFFF"
                                     :bgcolor "#2F6B43"
                                     :border "#2F6B43"
-                                    :padding '(0 2)
+                                    :padding '((lh 0) (ch 2))
                                     :font-weight 'bold
                                     :tab-index 3
                                     :aria-label "Save changes"
@@ -236,7 +236,7 @@
             (should (equal (plist-get props :color) "#FFFFFF"))
             (should (equal (plist-get props :background-color) "#2F6B43"))
             (should (equal (plist-get props :border) "#2F6B43"))
-            (should (equal (plist-get props :padding) '(0 2)))
+            (should (equal (plist-get props :padding) '((lh 0) (ch 2))))
             (should (equal (plist-get props :font-weight) 'bold))
             (should (etaf-ui-test--has-class-p props "primary")))
           (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
@@ -266,7 +266,7 @@
           (let ((props (etaf-ui-test--props buffer-name 'enabled-save)))
             (should (equal (plist-get props :color) "#FFFFFF"))
             (should (equal (plist-get props :background-color) "#2F6B43"))
-            (should (equal (plist-get props :padding) '(0 1)))
+            (should (equal (plist-get props :padding) '((lh 0) (ch 1))))
             (should (equal (plist-get props :font-weight) 'bold)))
           (let ((props (etaf-ui-test--props buffer-name 'disabled-delete)))
             (should (eq (plist-get props :disabled) t))
@@ -484,9 +484,9 @@
             (etaf-panel :title "Account" :ref 'account-panel
              :class "surface" :color "#252A2E"
              :background-color "#FFFDF8"
-             :border "#687386" :padding '(1 2)
+             :border "#687386" :padding '((lh 1) (ch 2))
              (slot :name 'header
-                   (box :width 12 :ref 'settings-cell
+                   (box :width '(ch 12) :ref 'settings-cell
                     (etaf-label :text "Settings" :ref 'settings-label
                                 :class "eyebrow" :color "#66706A"
                                 :font-weight 'bold)))
@@ -498,11 +498,11 @@
             (should (equal (plist-get panel :color) "#252A2E"))
             (should (equal (plist-get panel :background-color) "#FFFDF8"))
             (should (equal (plist-get panel :border) "#687386"))
-            (should (equal (plist-get panel :padding) '(1 2)))
+            (should (equal (plist-get panel :padding) '((lh 1) (ch 2))))
             (should (etaf-ui-test--has-class-p label "eyebrow"))
             (should (equal (plist-get label :color) "#66706A"))
             (should (equal (plist-get label :font-weight) 'bold))
-            (should (equal (plist-get cell :width) 12)))
+            (should (equal (plist-get cell :width) '(ch 12))))
           (dolist (label '("Account" "Settings" "Body"))
             (should (string-match-p (regexp-quote label)
                                     (etaf-ui-test--text buffer-name)))))
@@ -665,7 +665,7 @@
           (should (equal "light-grid-border"
                          (etaf-ui-test--paint-color
                           border-slot :border-bottom-color)))
-          (should (= (plist-get props :border-bottom-width) 1))
+          (should (equal (plist-get props :border-bottom-width) '(px 1)))
           (should (eq (plist-get props :border-bottom-style) 'solid))
           (setf (etaf-value theme) '(:ui-fg "dark-ink"
                                       :ui-table-border "dark-grid-border"
@@ -749,11 +749,11 @@
           (etaf-mount
            buffer-name
            (etaf-view
-            (grid :width '(360)
-                  :grid-template-columns '((80) (200) (80))
+            (grid :width '(px 360)
+                  :grid-template-columns '((px 80) (px 200) (px 80))
              (text "Left")
              (column
-                  :width 'stretch :padding '(0 2) :border "#CBD5E1"
+                  :width 'stretch :padding '((lh 0) (ch 2)) :border "#CBD5E1"
               (etaf-pagination :controller controller
                           :previous-ref 'nested-page-previous
                           :next-ref 'nested-page-next))

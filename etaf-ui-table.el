@@ -82,9 +82,11 @@
    (list :width 'stretch
          :grid-template-columns
          (mapcar (lambda (column)
-                   (or (etaf-ui--column-value column :width) 'max-content))
+                   (let ((width (etaf-ui--column-value column :width)))
+                     (if (integerp width) (list 'ch width)
+                       (or width 'max-content))))
                  columns)
-         :column-gap 1)
+         :column-gap '(ch 1))
    cells))
 
 (defun etaf-ui--table-header-cell (column)
@@ -126,9 +128,9 @@
     (etaf-node
      'row
      (append
-      (unless fixed-text '(:padding (0 0)))
+      (unless fixed-text '(:padding ((lh 0) (ch 0))))
       (list :class "etaf-table-header"
-            :border-bottom-width 1 :border-bottom-style 'solid
+            :border-bottom-width '(px 1) :border-bottom-style 'solid
             :border-bottom-color (plist-get theme :ui-table-border)))
      (if fixed-text
          (list (etaf-node 'text nil (list fixed-text)))
@@ -226,7 +228,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
     (etaf-node
      'row
      (append
-      (unless (etaf-ui--table-fixed-text-columns-p columns) '(:padding (0 0)))
+      (unless (etaf-ui--table-fixed-text-columns-p columns) '(:padding ((lh 0) (ch 0))))
       (list :key identity
             :class (concat "etaf-table-row" (if selected-p " selected" ""))
             :ref host-ref :role (when interactive-p 'button)
@@ -235,7 +237,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
             (when selected-p (plist-get theme :ui-table-selected-fg))
             :background-color
             (when selected-p (plist-get theme :ui-table-selected-bg))
-            :border-bottom-width 1 :border-bottom-style 'solid
+            :border-bottom-width '(px 1) :border-bottom-style 'solid
             :border-bottom-color (plist-get theme :ui-table-border)
             :on-press
             (when interactive-p
@@ -247,7 +249,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
   :render (etaf-ui--table-header columns)
   :styles
   (styles
-   (".etaf-table-header" :font-weight bold :padding (0 1))
+   (".etaf-table-header" :font-weight bold :padding ((lh 0) (ch 1)))
    (".etaf-table-header-cell" :font-weight bold)))
 
 (etaf-ui--define-component etaf-ui--table-row
@@ -258,7 +260,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
    row identity columns row-ref on-row-press row-selected-p)
   :styles
   (styles
-   (".etaf-table-row" :padding (0 1))))
+   (".etaf-table-row" :padding ((lh 0) (ch 1)))))
 
 (etaf-ui--define-component etaf-table
     (&key columns rows row-key row-ref on-row-press row-selected-p)

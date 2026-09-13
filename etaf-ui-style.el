@@ -87,7 +87,7 @@ public `etaf-component-redefine-run' boundary."
                       #'etaf-ui--style-border))
    ((and (stringp value)
          (string-match-p "\\`#[[:xdigit:]]+\\'" value))
-    (list 1 'solid value))
+    (list '(px 1) 'solid value))
    (t value)))
 
 (provide 'etaf-ui-style)

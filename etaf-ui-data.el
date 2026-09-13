@@ -170,7 +170,7 @@ candidate values; THEME is the resolved table-paint snapshot for this item."
                     (plist-get theme :ui-table-selected-fg))
            :background-color (when selected-p
                                (plist-get theme :ui-table-selected-bg))
-           :border-bottom-width 1
+           :border-bottom-width '(px 1)
            :border-bottom-style 'solid
            :border-bottom-color border-color
            :on-press
@@ -335,8 +335,8 @@ together with the visible control after a successful render."
              :flex-wrap 'wrap :justify-content 'center
              :role 'navigation :aria-label (or aria-label "Pagination")
              :color parent-color :background-color parent-bgcolor
-             :box-sizing 'border-box :padding (or padding '(0 1))
-             :gap '(1 (16)))
+             :box-sizing 'border-box :padding (or padding '((lh 0) (ch 1)))
+             :gap '((lh 1) (px 16)))
        (list
         (etaf-node
          'column
@@ -347,7 +347,7 @@ together with the visible control after a successful render."
            'etaf-button
            (list :label (or previous-label "‹ Previous") :ref previous-ref
                  :aria-label "Previous page"
-                 :disabled previous-disabled :padding '(0 2)
+                 :disabled previous-disabled :padding '((lh 0) (ch 2))
                  :variant 'secondary :border border
                  :color (and (not previous-disabled) color) :bgcolor bgcolor
                  :on-press
@@ -378,7 +378,7 @@ together with the visible control after a successful render."
            'etaf-button
            (list :label (or next-label "Next ›") :ref next-ref
                  :aria-label "Next page"
-                 :disabled next-disabled :padding '(0 2)
+                 :disabled next-disabled :padding '((lh 0) (ch 2))
                  :variant 'secondary :border border
                  :color (and (not next-disabled) color) :bgcolor bgcolor
                  :on-press

@@ -120,8 +120,8 @@ so a failed render keeps the previous callback and its captured values."
   :styles
   (styles
    ("&" :width max-content)
-   ("&.disabled" :padding (0 1) :font-weight normal)
-   ("&.enabled" :padding (0 1) :font-weight bold)))
+   ("&.disabled" :padding ((lh 0) (ch 1)) :font-weight normal)
+   ("&.enabled" :padding ((lh 0) (ch 1)) :font-weight bold)))
 
 (defun etaf-ui--checkbox-variant-values (disabled)
   "Return semantic Theme presentation for a DISABLED Checkbox."
@@ -162,9 +162,9 @@ so a failed render keeps the previous callback and its captured values."
   :styles
   (styles
    ("&" :width max-content)
-   ("&.disabled" :padding (0 1))
-   ("&.enabled" :padding (0 1))
-   (".etaf-checkbox-mark" :font-weight bold :width 1)))
+   ("&.disabled" :padding ((lh 0) (ch 1)))
+   ("&.enabled" :padding ((lh 0) (ch 1)))
+   (".etaf-checkbox-mark" :font-weight bold :width (ch 1))))
 
 (etaf-ui--define-component etaf-panel (&key title variant)
   "Render a titled Panel with named header and default slots."
@@ -191,7 +191,7 @@ so a failed render keeps the previous callback and its captured values."
       (etaf-current-slot 'default))))
   :styles
   (styles
-   ("&" :padding (1 2))
+   ("&" :padding ((lh 1) (ch 2)))
    (".etaf-panel-title" :font-weight bold)))
 
 (etaf-ui--define-component etaf-number-input

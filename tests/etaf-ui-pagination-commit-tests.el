@@ -192,7 +192,7 @@
 (ert-deftest etaf-ui-pagination-keeps-explicit-colors-and-semantic-defaults ()
   "Explicit colors remain effective without replacing omitted variant defaults."
   (dolist (styles '(nil (:color "#F01234" :bgcolor "#123456"
-                        :border (1 solid "#ABCDEF"))))
+                        :border ((px 1) solid "#ABCDEF"))))
     (let ((controller (etaf-ui-pagination-test--controller)))
       (with-temp-buffer
         (unwind-protect
