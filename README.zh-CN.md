@@ -1,5 +1,8 @@
 # etaf-ui
 
+源码布局：运行时代码位于 `lisp/`；从源码使用时，将该目录加入 `load-path`。
+升级旧 checkout 配置时，将原来的仓库加载路径改为其 `lisp/` 子目录。
+
 `etaf-ui` 是 ETAF 的官方 Component 目录，是建立在 `etaf` 之上的可选独立包。它不增加第二套 Control 或 Widget 模型；Button、Checkbox、Label、Panel、DataGrid 都是使用同一套 View、属性、slot、事件和 Data 契约的普通 Component。
 
 

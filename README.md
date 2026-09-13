@@ -1,5 +1,9 @@
 # etaf-ui
 
+Source layout: runtime code lives in `lisp/`; add that directory to `load-path`
+when using a checkout. Update older checkout configurations from the repository
+root to its `lisp/` subdirectory.
+
 `etaf-ui` is the official ETAF Component catalog. It is a normal optional package above `etaf`; it does not add a second Control or Widget model. Button, Checkbox, Label, Panel, and DataGrid are all ordinary Components with the same View, props, slots, events, and Data contracts.
 
 

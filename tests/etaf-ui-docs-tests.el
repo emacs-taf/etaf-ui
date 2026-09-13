@@ -20,7 +20,9 @@
 (defun etaf-ui-docs-test--example (file)
   "Extract the complete marked preferences example from README FILE."
   (with-temp-buffer
-    (insert-file-contents (expand-file-name file etaf-ui-docs-test--root))
+    (insert-file-contents (expand-file-name
+       (if (and (string-suffix-p ".el" file) (not (file-name-directory file)))
+           (concat "lisp/" file) file) etaf-ui-docs-test--root))
     (goto-char (point-min))
     (should (search-forward
              "<!-- etaf-example: preferences -->\n```elisp\n" nil t))
@@ -58,8 +60,8 @@
                           (expand-file-name invocation-name invocation-directory)
                           nil (current-buffer) nil "-Q" "--batch"
                           (append
-                           (cl-loop for directory in '("." "../etaf" "../ebox"
-                                                       "../tp" "../ecss")
+                           (cl-loop for directory in '("lisp" "../etaf/lisp" "../ebox/lisp"
+                                                       "../tp/lisp" "../ecss/lisp")
                                     append (list "-L" (expand-file-name
                                                        directory
                                                        etaf-ui-docs-test--root)))

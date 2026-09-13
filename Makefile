@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := check
 .NOTPARALLEL:
 EMACS ?= emacs
-LOAD_PATH = -L . -L ../etaf -L ../ebox -L ../ecss -L ../tp
-SOURCES = etaf-ui-style.el etaf-ui-basic.el etaf-ui-table.el etaf-ui-data.el etaf-ui.el
+LOAD_PATH = -L lisp -L ../etaf/lisp -L ../ebox/lisp -L ../ecss/lisp -L ../tp/lisp
+SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el lisp/etaf-ui.el
 
 TEST_FILES := $(wildcard tests/*-tests.el)
 
@@ -11,7 +11,7 @@ TEST_FILES := $(wildcard tests/*-tests.el)
 all: check
 
 compile:
-	rm -f *.elc tests/*.elc
+	rm -f lisp/*.elc tests/*.elc
 	$(EMACS) -Q --batch $(LOAD_PATH) \
 		--eval '(setq load-prefer-newer t byte-compile-error-on-warn t)' \
 		--eval '(require (quote cl-lib))' \
@@ -26,12 +26,12 @@ load: compile
 		--eval '(princ "etaf-ui load OK\n")'
 
 checkdoc:
-	$(EMACS) -Q --batch --eval '(progn (require (quote checkdoc)) (dolist (file (append (directory-files "." t "\\.el$$") (directory-files-recursively "tests" "\\.el$$") (directory-files-recursively "scripts" "\\.el$$"))) (checkdoc-file file)))'
+	$(EMACS) -Q --batch --eval '(progn (require (quote checkdoc)) (dolist (file (append (directory-files "lisp" t "\\.el$$") (directory-files-recursively "tests" "\\.el$$") (directory-files-recursively "scripts" "\\.el$$"))) (checkdoc-file file)))'
 
 check: structure-check compile acceptance
 
 clean:
-	rm -f *.elc tests/*.elc
+	rm -f lisp/*.elc tests/*.elc
 
 .PHONY: structure-check setup-hooks
 structure-check:
