@@ -1,8 +1,8 @@
 # etaf-ui
 
-Source layout: runtime code lives in `lisp/`; add that directory to `load-path`
-when using a checkout. Update older checkout configurations from the repository
-root to its `lisp/` subdirectory.
+Source layout: add the repository root to `load-path` and use
+`(require 'etaf-ui)`. The supported API and usage notes are in
+[`etaf-ui.el`](etaf-ui.el); implementation modules live in `lisp/`.
 
 `etaf-ui` is the official ETAF Component catalog. It is a normal optional package above `etaf`; it does not add a second Control or Widget model. Button, Checkbox, Label, Panel, and DataGrid are all ordinary Components with the same View, props, slots, events, and Data contracts.
 
@@ -45,3 +45,10 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 After cloning, run `make setup-hooks`. Before submitting a change, run `make check`; `make structure-check` is the fast organization gate. The shared rules are in [AGENTS.md](AGENTS.md).
 
 `make check` runs structure checks, compilation and the public acceptance scenarios listed in [tests/acceptance.json](tests/acceptance.json). `make test` runs the broader regression suite; GUI and performance checks remain explicit targets. The acceptance inventory is selected by user-visible contracts, not by current pass/fail status.
+
+## Source layout migration
+
+Replace checkout paths ending in `/etaf-ui/lisp` with `/etaf-ui` and require
+`etaf-ui`. Package archives must preserve the root entry and `lisp/` directory.
+Use only the public interfaces documented in the entry Commentary; internal
+feature imports and the former entry locations are removed.
