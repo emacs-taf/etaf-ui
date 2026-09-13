@@ -385,8 +385,7 @@ together with the visible control after a successful render."
                  (lambda () (etaf-data-next-page controller-value)))
            nil)))))))
   :styles
-  (styles
-   ("&" :width stretch)
+  (("&" :width stretch)
    (".etaf-pagination-label" :font-weight bold)))
 
 (provide 'etaf-ui-data)

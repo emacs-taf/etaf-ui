@@ -118,8 +118,7 @@ so a failed render keeps the previous callback and its captured values."
       :on-press (and (not disabled) on-press))
      (list (etaf-node 'text nil (list label)))))
   :styles
-  (styles
-   ("&" :width max-content)
+  (("&" :width max-content)
    ("&.disabled" :padding ((lh 0) (ch 1)) :font-weight normal)
    ("&.enabled" :padding ((lh 0) (ch 1)) :font-weight bold)))
 
@@ -160,8 +159,7 @@ so a failed render keeps the previous callback and its captured values."
           (let ((value (etaf-ui--text-value label)))
             (if (string-empty-p value) "" (concat " " value))))))
   :styles
-  (styles
-   ("&" :width max-content)
+  (("&" :width max-content)
    ("&.disabled" :padding ((lh 0) (ch 1)))
    ("&.enabled" :padding ((lh 0) (ch 1)))
    (".etaf-checkbox-mark" :font-weight bold :width (ch 1))))
@@ -190,8 +188,7 @@ so a failed render keeps the previous callback and its captured values."
       (etaf-current-slot 'header)
       (etaf-current-slot 'default))))
   :styles
-  (styles
-   ("&" :padding ((lh 1) (ch 2)))
+  (("&" :padding ((lh 1) (ch 2)))
    (".etaf-panel-title" :font-weight bold)))
 
 (etaf-ui--define-component etaf-number-input
