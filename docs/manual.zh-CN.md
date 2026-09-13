@@ -32,7 +32,7 @@ registry；如果应用想使用 TP 的亮/暗 palette 数据，应先通过可�
 `etaf-theme-tp` adapter 转成同一份 ETAF Theme plist，再交给 UI 目录。
 
 Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil presentation
-属性会覆盖默认值；省略或传 nil 时，继承的 Theme/默认样式仍可生效。Button
+属性覆盖普通默认值，importance 仍遵循 ECSS；省略或传 nil 时，继承的 Theme/默认样式仍可生效。Button
 只提供刻意收敛的 `primary`、`secondary`、`ghost` 三种视觉 variant；这是
 视觉状态集合，不是第二套 widget 分类体系。
 

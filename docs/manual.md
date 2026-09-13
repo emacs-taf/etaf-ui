@@ -39,7 +39,8 @@ optional `etaf-theme-tp` adapter converts it into the same ETAF Theme plist
 before the UI catalog sees it.
 
 Component `:styles` declarations own default appearance. A non-nil
-presentation prop supplied by the caller wins; an omitted or nil prop leaves
+presentation prop supplied by the caller overrides normal defaults; ECSS
+importance still applies. An omitted or nil prop leaves
 the inherited Theme/default style available. Button has the deliberately small
 `primary`, `secondary`, and `ghost` visual vocabulary; it is a visual variant
 set, not a second widget taxonomy.

@@ -248,7 +248,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
   "Render one retained Table header."
   :render (etaf-ui--table-header columns)
   :styles
-  ((".etaf-table-header" :font-weight bold :padding ((lh 0) (ch 1)))
+  (("&.etaf-table-header" :font-weight bold :padding ((lh 0) (ch 1)))
    (".etaf-table-header-cell" :font-weight bold)))
 
 (etaf-ui--define-component etaf-ui--table-row
@@ -258,7 +258,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
   (etaf-ui--table-row-node
    row identity columns row-ref on-row-press row-selected-p)
   :styles
-  ((".etaf-table-row" :padding ((lh 0) (ch 1)))))
+  (("&.etaf-table-row" :padding ((lh 0) (ch 1)))))
 
 (etaf-ui--define-component etaf-table
     (&key columns rows row-key row-ref on-row-press row-selected-p)
