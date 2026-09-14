@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- DataGrid shows idle, background refresh and cancellation states. Refresh
+  retains interactive rows; Pagination disables page changes while refreshing.
+  Update ETAF together with UI for the asynchronous Data status contract.
+
+
 ### Added
 
 - Checkbox and NumberInput accept `:bind` with an existing writable ETAF ref.

@@ -41,7 +41,10 @@
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
 ;; Render DATA CONTROLLER state through the public Component DSL.
 ;;
-;; DataGrid owns loading, error, empty, and controller-selection adaptation.
+;; DataGrid shows idle, loading, refreshing, cancelled, error and empty states.
+;; Refreshing retains interactive rows and adds LOADING-LABEL or Refreshing....
+;; Cancellation uses ERROR-LABEL or Loading cancelled. Pagination disables
+;; page changes while loading or refreshing. Controllers remain caller-owned.
 ;; Its keyed Range retains row identity across insert, reorder, and update.
 ;; Setup state owns per-instance fallback refs plus commit-staged stable row
 ;; actions; failed candidates cannot mutate committed handler inputs.  COLUMNS
