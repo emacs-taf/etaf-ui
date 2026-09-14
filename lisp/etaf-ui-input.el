@@ -15,6 +15,63 @@
             (list (format "Component %S property %S received %S; expected %s"
                           component prop value expected)))))
 
+;;;###autoload
+(defun etaf-confirm-dialog (prompt)
+  "Ask PROMPT from a Host callback; return non-nil only for native confirmation.
+Use in an event callback before changing application data.  Emacs owns the
+yes/no minibuffer; Ebox restores the entry's focus and validates its lifetime.
+No returns nil; user quit and target invalidation abort the callback."
+  (etaf-ui--input-check 'etaf-confirm-dialog :prompt prompt
+                        (and (stringp prompt) (not (string-empty-p prompt)))
+                        "a nonempty string")
+  (etaf-call-with-input
+   (lambda ()
+     (let ((use-dialog-box nil))
+       (yes-or-no-p (concat prompt " "))))))
+
+(etaf-ui--define-component etaf-menu (&key (label "Actions") items on-select disabled)
+  "Choose an action from ITEMS and pass its key to ON-SELECT.
+Each item has a unique scalar :key, nonempty string :label and optional
+:disabled.  Disabled items cannot be selected; an empty menu is disabled."
+  :render
+  (let (choices keys labels)
+    (etaf-ui--input-check 'etaf-menu :label label (stringp label) "a string")
+    (etaf-ui--input-check 'etaf-menu :on-select on-select
+                          (or (null on-select) (functionp on-select)) "a function or nil")
+    (etaf-ui--input-check 'etaf-menu :items items (proper-list-p items) "a list of menu items")
+    (dolist (item items)
+      (etaf-ui--input-check 'etaf-menu :items item
+                            (and (proper-list-p item) (zerop (% (length item) 2)))
+                            "item plists with :key, :label and optional :disabled")
+      (let ((key (plist-get item :key)) (caption (plist-get item :label)))
+        (etaf-ui--input-check
+         'etaf-menu :items item
+         (and key (or (symbolp key) (numberp key) (stringp key))
+              (stringp caption) (not (string-empty-p caption))
+              (not (member key keys)) (not (member caption labels)))
+         "unique non-nil scalar keys and unique nonempty string labels")
+        (push key keys)
+        (push caption labels)
+        (unless (plist-get item :disabled)
+          (push (cons caption key) choices))))
+    (setq choices (nreverse choices))
+    (etaf-node
+     'etaf-button
+     (list :label (concat label " ▾") :aria-label label :variant 'ghost
+           :disabled (or disabled (null choices) (null on-select))
+           :on-press
+           (unless (or disabled (null choices) (null on-select))
+             (lambda ()
+               (let* ((selection
+                       (etaf-call-with-input
+                        (lambda ()
+                          (completing-read (concat label ": ")
+                                           (mapcar #'car choices) nil t))))
+                      (choice (assoc selection choices)))
+                 (unless choice (signal 'quit nil))
+                 (funcall on-select (cdr choice))))))
+     nil)))
+
 (etaf-ui--define-component etaf-text-input
     (&key (value etaf-ui--unsupplied) (label "Text") (placeholder "—")
           (on-change etaf-ui--unsupplied) disabled bind)

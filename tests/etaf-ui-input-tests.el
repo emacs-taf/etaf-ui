@@ -79,13 +79,79 @@
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(ert-deftest etaf-ui-menu-selects-enabled-actions-and-returns-focus ()
+  "Menu choices follow current props and cancel without invoking an action."
+  (let ((buffer (generate-new-buffer " *action-menu*"))
+        (done (etaf-ref nil)) (enabled (etaf-ref t)) selected)
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-menu :ref 'menu :label "操作" :disabled (not (etaf-value enabled))
+                       :items (list '(:key edit :label "编辑")
+                                    (list :key 'delete :label "删除" :disabled (not (etaf-value done))))
+                       :on-select (lambda (key) (push key selected)))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (etaf-focus runtime 'menu)
+            (cl-letf (((symbol-function 'completing-read)
+                       (lambda (_prompt choices &rest _)
+                         (should (equal choices '("编辑"))) "编辑")))
+              (etaf-activate runtime))
+            (should (equal selected '(edit)))
+            (should (eq (etaf-focused-host-ref runtime) 'menu))
+            (setf (etaf-value done) t)
+            (cl-letf (((symbol-function 'completing-read)
+                       (lambda (_prompt choices &rest _)
+                         (should (equal choices '("编辑" "删除"))) "删除")))
+              (etaf-activate runtime))
+            (should (equal selected '(delete edit)))
+            (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "")))
+              (should (eq 'cancelled (condition-case nil (etaf-activate runtime) (quit 'cancelled)))))
+            (should (equal selected '(delete edit)))
+            (should (eq (etaf-focused-host-ref runtime) 'menu))
+            (setf (etaf-value enabled) nil)
+            (should-error (etaf-dispatch-event runtime 'menu 'press) :type 'etaf-event-error)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-confirm-dialog-composes-with-menu-actions ()
+  "A chosen action changes data only after confirmation; no preserves focus."
+  (let ((buffer (generate-new-buffer " *confirm-menu*")) (deleted 0))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-menu :ref 'menu :items '((:key delete :label "删除"))
+                       :on-select (lambda (_)
+                                    (when (etaf-confirm-dialog "删除任务？")
+                                      (cl-incf deleted))))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (dolist (answer '(nil t))
+              (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "删除"))
+                        ((symbol-function 'yes-or-no-p) (lambda (&rest _) answer)))
+                (etaf-dispatch-event runtime 'menu 'press))
+              (should (= deleted (if answer 1 0)))
+              (should (eq (etaf-focused-host-ref runtime) 'menu)))
+            (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "删除"))
+                      ((symbol-function 'yes-or-no-p) (lambda (&rest _) (signal 'quit nil))))
+              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'menu 'press)
+                                      (quit 'cancelled)))))
+            (should (= deleted 1))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-native-inputs-report-invalid-props-in-context ()
   "Invalid values, options and bindings identify the Component and property."
   (dolist (case '((etaf-text-input :value 42) (etaf-text-input :label 42)
                   (etaf-select :options ((a . "Same") (b . "Same")))
                   (etaf-select :options ((a . "One") (a . "Two")))
                   (etaf-select :options ((a . ""))) (etaf-select :options 42)
-                  (etaf-select :value missing) (etaf-select :bind 42)))
+                  (etaf-select :value missing) (etaf-select :bind 42)
+                  (etaf-menu :items ((:key a :label "Same") (:key b :label "Same")))
+                  (etaf-menu :items ((:key a :label "One") (:key a :label "Two")))
+                  (etaf-menu :items ((:key a :label ""))) (etaf-menu :items 42)))
     (let ((buffer (generate-new-buffer " *invalid-input*")))
       (unwind-protect
           (let ((error (should-error (etaf-mount buffer (etaf-node (car case) (cdr case) nil))

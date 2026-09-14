@@ -35,6 +35,35 @@ retained entry; if its mounted target has disappeared, become disabled or
 inaccessible, the result is cancelled. Native Emacs owns input methods, cursor,
 selection and undo; the rendered surface remains owned by Ebox.
 
+`etaf-menu` composes the same Button and native input boundary for actions.
+Disabled items are excluded from native completion. A confirmation dialog can
+be composed directly in the selected action, with no additional state model:
+
+```elisp
+(etaf-define-component task-actions ()
+  :bindings ((done (etaf-ref nil)) (result (etaf-ref "Ready")))
+  :view
+  (column
+   (etaf-checkbox :label "Done" :bind done)
+   (etaf-menu :label "Actions"
+              :items (list '(:key edit :label "Edit")
+                           (list :key 'delete :label "Delete" :disabled (not (etaf-value done))))
+              :on-select (lambda (action)
+                           (pcase action
+                             ('edit (setf (etaf-value result) "Editing"))
+                             ('delete (when (etaf-confirm-dialog "Delete this task?")
+                                        (setf (etaf-value result) "Deleted"))))))
+   (etaf-label :text (etaf-value result))))
+
+(etaf-mount "*task-actions*" (etaf-view (task-actions)))
+```
+
+The caller owns the items and business callbacks. Confirmation returns a
+boolean; no leaves data unchanged, while `C-g` aborts the current callback.
+Menu cancellation, confirmation and ordinary inputs all restore the same
+retained entry through Ebox. If the action subsequently removes that entry,
+normal Ebox focus removal applies. The API contracts are in [the entry](../etaf-ui.el).
+
 A form can keep its draft in ordinary refs and validate before saving:
 
 ```elisp

@@ -183,6 +183,16 @@
       "name": "etaf-ui-native-inputs-report-invalid-props-in-context",
       "file": "tests/etaf-ui-input-tests.el",
       "purpose": "Invalid values, options and bindings identify the Component and property."
+    },
+    {
+      "name": "etaf-ui-menu-selects-enabled-actions-and-returns-focus",
+      "file": "tests/etaf-ui-input-tests.el",
+      "purpose": "Menu choices follow published props; disabled actions are unavailable and cancellation preserves data and focus."
+    },
+    {
+      "name": "etaf-ui-confirm-dialog-composes-with-menu-actions",
+      "file": "tests/etaf-ui-input-tests.el",
+      "purpose": "Menu actions apply only after native confirmation and return focus after a declined dialog."
     }
   ]
 }

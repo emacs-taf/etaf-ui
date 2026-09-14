@@ -81,6 +81,26 @@
 ;; Invalid props signal `etaf-view-error' identifying the Component/property.
 ;; Use inside (etaf-view (etaf-text-input ...)); no explicit Host ref is needed.
 ;;
+;; Component: etaf-menu (&key label items on-select disabled)
+;; Render a Button opening native completion for an action. LABEL defaults to
+;; "Actions". ITEMS are plists with unique non-nil scalar :key values, unique
+;; nonempty string :label values and optional :disabled. Native choices include
+;; only enabled items. ON-SELECT receives the chosen key once, after the input
+;; boundary validates the entry and restores focus. Empty input or C-g cancels.
+;; No enabled items, nil ON-SELECT or DISABLED disables the Button. Like other
+;; inputs, :on-press is an additive observer. Current props supply each published
+;; menu; no application value or extra open-state ref is owned by the control.
+;; Invalid props signal contextual `etaf-view-error'. Use in `etaf-view'.
+;;
+;; Function: etaf-confirm-dialog (prompt)
+;;;###autoload (autoload 'etaf-confirm-dialog "etaf-ui" nil nil)
+;; Ask a nonempty string PROMPT with the native yes/no minibuffer from a Host
+;; callback. Return non-nil on confirmation and nil on no; change application
+;; state only after confirmation. C-g or invalidated entry ownership aborts the
+;; callback. Ebox restores focus to the valid entry; no surface content is edited.
+;; Outside a Host event, signal `etaf-event-error'. Invalid PROMPT signals
+;; `etaf-view-error'. Compose in a Menu's ON-SELECT or a Button's ON-PRESS.
+;;
 ;; Component: etaf-select (&key value options label placeholder on-change disabled bind)
 ;; Choose a controlled value using native completion over OPTIONS labels.
 ;; OPTIONS is an alist of (VALUE . LABEL); values are unique symbols, numbers

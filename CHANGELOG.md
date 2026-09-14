@@ -14,6 +14,9 @@
 
 ### Added
 
+- Add Menu actions with disabled choices and a composable native confirmation
+  dialog. Both reuse the existing Button/input ownership and focus behavior.
+
 - Keep accepted DataGrid rows and their actions visible during pending writes, errors and cancellation, with separate status text.
 
 - Add TextInput and Select with controlled values or `:bind`. All native inputs, including NumberInput, use the shared target lifetime and focus boundary; update ETAF and Ebox together.

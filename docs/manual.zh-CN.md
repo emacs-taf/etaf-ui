@@ -28,6 +28,33 @@ Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`�
 回到存续入口；入口所属挂载消失、被禁用或不可访问时，输入结果取消。原生
 Emacs 管理输入法、光标、选区和撤销，Ebox 继续持有渲染内容。
 
+`etaf-menu` 组合相同的 Button 与原生输入边界，禁用项不进入原生补全候选。
+确认对话框直接组合在操作回调中，不需要额外的状态模型：
+
+```elisp
+(etaf-define-component task-actions ()
+  :bindings ((done (etaf-ref nil)) (result (etaf-ref "准备就绪")))
+  :view
+  (column
+   (etaf-checkbox :label "完成" :bind done)
+   (etaf-menu :label "操作"
+              :items (list '(:key edit :label "编辑")
+                           (list :key 'delete :label "删除" :disabled (not (etaf-value done))))
+              :on-select (lambda (action)
+                           (pcase action
+                             ('edit (setf (etaf-value result) "正在编辑"))
+                             ('delete (when (etaf-confirm-dialog "删除这个任务？")
+                                        (setf (etaf-value result) "已删除"))))))
+   (etaf-label :text (etaf-value result))))
+
+(etaf-mount "*task-actions*" (etaf-view (task-actions)))
+```
+
+调用者持有菜单项和业务回调。确认返回布尔值；回答 no 不改数据，`C-g` 中断
+当前回调。菜单取消、确认和普通输入都通过 Ebox 将焦点恢复到存续入口。
+如果操作随后删除入口，按 Ebox 的普通焦点移除规则处理。精确契约见
+[入口文件](../etaf-ui.el)。
+
 表单可以使用普通 ref 保存草稿，并在保存前校验：
 
 ```elisp
