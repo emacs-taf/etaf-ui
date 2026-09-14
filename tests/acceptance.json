@@ -168,6 +168,21 @@
       "name": "etaf-ui-data-controls-render-async-refresh-and-cancellation",
       "file": "tests/etaf-ui-tests.el",
       "purpose": "Refreshing preserves row actions, disables paging and exposes cancellation."
+    },
+    {
+      "name": "etaf-ui-text-input-shares-values-and-preserves-cancelled-drafts",
+      "file": "tests/etaf-ui-input-tests.el",
+      "purpose": "Text editing emits once, follows external updates and cancels on unmount."
+    },
+    {
+      "name": "etaf-ui-select-maps-labels-to-controlled-values",
+      "file": "tests/etaf-ui-input-tests.el",
+      "purpose": "Selection preserves nil values, handles cancellation and disables empty lists."
+    },
+    {
+      "name": "etaf-ui-native-inputs-report-invalid-props-in-context",
+      "file": "tests/etaf-ui-input-tests.el",
+      "purpose": "Invalid values, options and bindings identify the Component and property."
     }
   ]
 }

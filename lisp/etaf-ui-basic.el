@@ -5,8 +5,7 @@
 ;;; Commentary:
 
 ;; Label, Button, Checkbox, and Panel are the catalog's small semantic
-;; building blocks.  NumberInput is the first compound Component and composes
-;; Button instead of duplicating its interaction contract.
+;; building blocks. Compound inputs compose Button through the same contract.
 
 ;;; Code:
 
@@ -222,36 +221,6 @@ Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
   :styles
   (("&" :padding ((lh 1) (ch 2)))
    (".etaf-panel-title" :font-weight bold)))
-
-(etaf-ui--define-component etaf-number-input
-    (&key (value etaf-ui--unsupplied) label
-          (on-change etaf-ui--unsupplied) disabled min max bind)
-  "Render a minibuffer NumberInput using VALUE/ON-CHANGE or writable ref BIND.
-Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil."
-  :render
-  (let* ((input (etaf-ui--controlled-input 'etaf-number-input :value bind value on-change))
-         (label (or label "Value"))
-         (callback (cdr input))
-         (current-value (etaf-ui--reactive-value (car input)))
-         (minimum min)
-         (maximum max))
-    (etaf-node
-     'etaf-button
-     (list
-      :label (format "%s %s ✎" label (or current-value "—"))
-      :disabled disabled :variant 'ghost
-      :on-press
-      (unless disabled
-        (lambda ()
-          (let ((next (read-number
-                       (format "%s: " label) (or current-value 0))))
-            (unless (and (integerp next)
-                         (or (null minimum) (>= next minimum))
-                         (or (null maximum) (<= next maximum)))
-              (user-error "%s must be an integer from %s to %s"
-                          label (or minimum "—") (or maximum "—")))
-            (when callback (funcall callback next))))))
-     nil)))
 
 (provide 'etaf-ui-basic)
 ;;; etaf-ui-basic.el ends here

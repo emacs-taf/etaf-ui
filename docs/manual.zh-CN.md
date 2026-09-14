@@ -21,6 +21,31 @@ Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`、
 `:max`、`:ref` 和 `:disabled`，回调接收校验后的整数，ref 仍由调用方持有。
 
+`etaf-text-input` 使用原生 minibuffer 编辑字符串，`etaf-select` 从普通 alist
+选择值，例如 `((nil . "进行中") (t . "已完成"))`。两者使用 `:value`／
+`:on-change` 或 `:bind`，组合相同的 Button 入口。TAB 到达入口，RET 或鼠标
+打开原生输入；`C-g` 取消且不触发修改回调或附加的 press 观察者。关闭后焦点
+回到存续入口；入口所属挂载消失、被禁用或不可访问时，输入结果取消。原生
+Emacs 管理输入法、光标、选区和撤销，Ebox 继续持有渲染内容。
+
+表单可以使用普通 ref 保存草稿，并在保存前校验：
+
+```elisp
+(etaf-define-component task-draft ()
+  :bindings ((title (etaf-ref "新任务")) (done (etaf-ref nil)))
+  :view
+  (column :item-gap '(lh 1)
+   (etaf-text-input :label "标题" :bind title)
+   (etaf-select :label "状态" :bind done
+                :options '((nil . "进行中") (t . "已完成")))
+   (etaf-label :variant 'danger
+               :text (if (equal (etaf-value title) "") "标题不能为空" ""))))
+```
+
+TextInput 接受空文本，字段校验由表单负责。Select 的标签和值必须分别唯一；
+nil 可以作为显式选项值。空选项列表禁用入口。精确属性和错误契约见入口文件。
+Task Workbench 演示草稿隔离、字段错误、保存／取消，以及切换任务前确认放弃修改。
+
 需要直接修改一个已有 ref 时，可以使用 `:bind`：
 
 ```elisp
@@ -33,7 +58,7 @@ Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`�
 ```
 
 这是 UI 组件的普通属性，不是新的 View 指令。Checkbox 将 ref 用作 checked
-来源，NumberInput 将其用作 value 来源，修改回调写回同一个 ref。外部写入
+来源，TextInput、Select 和 NumberInput 将其用作 value 来源，修改回调写回同一个 ref。外部写入
 也会更新控件，不产生第二份状态。禁用控件不能写入；取消或校验失败不改值。
 卸载释放控件的订阅与回调，ref 仍归调用者；失败发布保留旧绑定目标。
 

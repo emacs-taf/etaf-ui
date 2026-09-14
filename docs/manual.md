@@ -26,6 +26,35 @@ through Emacs's native minibuffer. It accepts `:value`, `:label`, `:on-change`,
 `:min`, `:max`, `:ref`, and `:disabled`; the callback receives the validated
 integer while the caller remains the owner of the ref.
 
+`etaf-text-input` edits strings with the native minibuffer. `etaf-select`
+chooses a value from an ordinary alist, such as `((nil . "Pending") (t . "Done"))`.
+Both use `:value` / `:on-change` or `:bind`, and compose the same Button entry.
+TAB reaches the entry; RET or a mouse click opens native input. `C-g` cancels
+without a change callback or additive press observer. Focus returns to the
+retained entry; if its mounted target has disappeared, become disabled or
+inaccessible, the result is cancelled. Native Emacs owns input methods, cursor,
+selection and undo; the rendered surface remains owned by Ebox.
+
+A form can keep its draft in ordinary refs and validate before saving:
+
+```elisp
+(etaf-define-component task-draft ()
+  :bindings ((title (etaf-ref "New task")) (done (etaf-ref nil)))
+  :view
+  (column :item-gap '(lh 1)
+   (etaf-text-input :label "Title" :bind title)
+   (etaf-select :label "State" :bind done
+                :options '((nil . "Pending") (t . "Done")))
+   (etaf-label :variant 'danger
+               :text (if (equal (etaf-value title) "") "Title is required" ""))))
+```
+
+TextInput accepts empty text; field validation is the form's responsibility.
+Select labels and values must be unique; a nil value can represent an explicit
+option. An empty options list disables the entry. See the root entry for exact
+prop/error contracts. Task Workbench demonstrates draft isolation, field errors,
+save/cancel and confirmation before discarding edits when changing tasks.
+
 For controls that directly change an existing ref, use `:bind`:
 
 ```elisp
@@ -38,7 +67,7 @@ For controls that directly change an existing ref, use `:bind`:
 ```
 
 This is an ordinary UI Component prop, not a View directive. Checkbox reads
-the ref as its checked source, NumberInput reads it as its value source, and
+the ref as its checked source, TextInput, Select and NumberInput read it as their value source, and
 the change callback writes to that same ref. External writes also update the
 control; no second state is created. Disabled activation cannot write. Cancel
 and validation failure preserve the value. Unmount releases control handlers

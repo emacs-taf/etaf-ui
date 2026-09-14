@@ -63,6 +63,33 @@
 ;; canceling the native prompt leaves the value unchanged. Custom business
 ;; validation or transformation uses the explicit VALUE/ON-CHANGE interface.
 ;; Use inside (etaf-view (etaf-number-input ...)); keyword arguments are component props.
+;; The shared native input boundary restores focus to the retained entry.
+;; Target removal, unmount or a disabled/inaccessible entry cancels the result
+;; before ON-CHANGE or an additive ON-PRESS observer runs.
+;;
+;; Component: etaf-text-input (&key value label placeholder on-change disabled bind)
+;; Edit a controlled string with native `read-string'. Nil VALUE is empty.
+;; LABEL defaults to "Text"; PLACEHOLDER defaults to "—" for empty values.
+;; Both must be strings. VALUE may also be a ref/computed holding string or nil.
+;; ON-CHANGE receives the accepted string, including empty input. Use :bind
+;; for a writable ref under Checkbox's conflict and ownership rules.
+;; Application validation belongs in ON-CHANGE or in the form's draft logic.
+;; The Button entry supports TAB, RET and mouse activation. Native Emacs owns
+;; editing and quit; Ebox owns focus return and retained target validity.
+;; Cancel, error or invalidated ownership emits neither change nor observer.
+;; Invalid props signal `etaf-view-error' identifying the Component/property.
+;; Use inside (etaf-view (etaf-text-input ...)); no explicit Host ref is needed.
+;;
+;; Component: etaf-select (&key value options label placeholder on-change disabled bind)
+;; Choose a controlled value using native completion over OPTIONS labels.
+;; OPTIONS is an alist of (VALUE . LABEL); values are unique symbols, numbers
+;; or strings, labels unique nonempty strings. Nil is a valid option value.
+;; A nil VALUE absent from OPTIONS displays PLACEHOLDER; other absent values
+;; are errors. An empty list disables activation. LABEL defaults to "Select"
+;; and PLACEHOLDER to "—"; both are strings. VALUE may be a ref/computed.
+;; ON-CHANGE receives the accepted option value. :bind and native cancellation
+;; follow TextInput; selection requires a matching label. Invalid props signal
+;; contextual `etaf-view-error'. Use (etaf-view (etaf-select ...)).
 ;;
 ;; Component: etaf-pagination (&key controller previous-ref next-ref previous-label next-label class color bgcolor border padding aria-label)
 ;; Render a controlled pager whose callbacks follow its committed CONTROLLER.
@@ -103,6 +130,7 @@
                                       buffer-file-name)))))
 
 (require 'etaf-ui-basic)
+(require 'etaf-ui-input)
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
 

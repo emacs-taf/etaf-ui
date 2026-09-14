@@ -2,7 +2,7 @@
 .NOTPARALLEL:
 EMACS ?= emacs
 LOAD_PATH = -L . -L lisp -L ../etaf -L ../ebox -L ../ecss -L ../tp
-SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el etaf-ui.el
+SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-input.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el etaf-ui.el
 
 TEST_FILES := $(wildcard tests/*-tests.el)
 

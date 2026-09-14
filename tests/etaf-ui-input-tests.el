@@ -1,0 +1,99 @@
+;;; etaf-ui-input-tests.el --- Controlled native input behavior -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; Native readers supply results; mounted public Components own acceptance.
+
+;;; Code:
+(require 'ert)
+(require 'cl-lib)
+(require 'etaf-ui)
+
+(ert-deftest etaf-ui-text-input-shares-values-and-preserves-cancelled-drafts ()
+  "Text editing emits once, follows external updates and cancels on unmount."
+  (let ((buffer (generate-new-buffer " *text-input*"))
+        (value (etaf-ref "原始标题")) (disabled (etaf-ref nil)) observed)
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (column
+             (etaf-text-input :ref 'title :bind value :label "标题"
+                              :disabled (etaf-value disabled)
+                              :on-press (lambda () (push (etaf-value value) observed)))
+             (etaf-text-input :ref 'explicit :value value :label "镜像"
+                              :on-change (lambda (next) (setf (etaf-value value) next))))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (cl-letf (((symbol-function 'read-string)
+                       (lambda (_prompt initial &rest _) (should (equal initial "原始标题")) "中文新标题")))
+              (etaf-dispatch-event runtime 'title 'press))
+            (should (equal observed '("中文新标题")))
+            (should (eq (etaf-focused-host-ref runtime) 'title))
+            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) (signal 'quit nil))))
+              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'title 'press)
+                                      (quit 'cancelled)))))
+            (should (equal observed '("中文新标题")))
+            (should (equal (etaf-value value) "中文新标题"))
+            (setf (etaf-value value) "外部修改")
+            (should (string-match-p "镜像 外部修改" (with-current-buffer buffer (buffer-string))))
+            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "")))
+              (etaf-dispatch-event runtime 'explicit 'press))
+            (should (equal (etaf-value value) ""))
+            (setf (etaf-value disabled) t)
+            (should-error (etaf-dispatch-event runtime 'title 'press) :type 'etaf-event-error)
+            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) (etaf-unmount runtime) "discard")))
+              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'explicit 'press)
+                                      (quit 'cancelled)))))
+            (should (equal (etaf-value value) ""))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-select-maps-labels-to-controlled-values ()
+  "Selection preserves nil values, handles cancellation and disables empty lists."
+  (let ((buffer (generate-new-buffer " *select-input*"))
+        (value (etaf-ref nil)) (options (etaf-ref '((nil . "进行中") (t . "已完成")))) observed)
+    (unwind-protect
+        (progn
+          (etaf-mount buffer
+                      (etaf-view
+                       (etaf-select :ref 'state :bind value :label "状态" :options (etaf-value options)
+                                    :on-press (lambda () (push (etaf-value value) observed)))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (cl-letf (((symbol-function 'completing-read)
+                       (lambda (_prompt collection _predicate require-match &rest _)
+                         (should (equal collection '("进行中" "已完成")))
+                         (should require-match) "已完成")))
+              (etaf-dispatch-event runtime 'state 'press))
+            (should (etaf-value value))
+            (should (equal observed '(t)))
+            (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "进行中")))
+              (etaf-dispatch-event runtime 'state 'press))
+            (should-not (etaf-value value))
+            (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) (signal 'quit nil))))
+              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'state 'press)
+                                      (quit 'cancelled)))))
+            (should (equal observed '(nil t)))
+            (should (eq (etaf-focused-host-ref runtime) 'state))
+            (setf (etaf-value options) nil)
+            (should-error (etaf-dispatch-event runtime 'state 'press) :type 'etaf-event-error)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-native-inputs-report-invalid-props-in-context ()
+  "Invalid values, options and bindings identify the Component and property."
+  (dolist (case '((etaf-text-input :value 42) (etaf-text-input :label 42)
+                  (etaf-select :options ((a . "Same") (b . "Same")))
+                  (etaf-select :options ((a . "One") (a . "Two")))
+                  (etaf-select :options ((a . ""))) (etaf-select :options 42)
+                  (etaf-select :value missing) (etaf-select :bind 42)))
+    (let ((buffer (generate-new-buffer " *invalid-input*")))
+      (unwind-protect
+          (let ((error (should-error (etaf-mount buffer (etaf-node (car case) (cdr case) nil))
+                                    :type 'etaf-view-error)))
+            (should (string-match-p (symbol-name (car case)) (error-message-string error)))
+            (should (string-match-p (symbol-name (cadr case)) (error-message-string error))))
+        (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+        (kill-buffer buffer)))))
+
+(provide 'etaf-ui-input-tests)
+;;; etaf-ui-input-tests.el ends here
