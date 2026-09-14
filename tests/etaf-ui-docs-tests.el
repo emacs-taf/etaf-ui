@@ -44,9 +44,12 @@
                   (should (string-match-p "Pending" (buffer-string)))
                   (should (string-match-p "Unsaved" (buffer-string))))
                 (etaf-dispatch-event runtime 'done-checkbox 'press)
+                (cl-letf (((symbol-function 'read-number) (lambda (&rest _) 7)))
+                  (etaf-dispatch-event runtime 'rows-input 'press))
                 (etaf-dispatch-event runtime 'save-button 'press)
                 (with-current-buffer "*etaf-preferences*"
                   (should (string-match-p "Complete" (buffer-string)))
+                  (should (string-match-p "Rows 7" (buffer-string)))
                   (should (string-match-p "Saved" (buffer-string))))
                 (etaf-dispatch-event runtime 'done-checkbox 'press)
                 (with-current-buffer "*etaf-preferences*"

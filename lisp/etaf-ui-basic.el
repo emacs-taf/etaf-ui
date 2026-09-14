@@ -13,6 +13,32 @@
 (require 'cl-lib)
 (require 'etaf-ui-style)
 
+(defvar etaf-ui--unsupplied (make-symbol "unsupplied")
+  "Distinguish omitted controlled props from explicitly supplied nil.")
+
+(defun etaf-ui--controlled-input (component value-prop bind value on-change)
+  "Resolve COMPONENT's BIND or explicit VALUE-PROP and ON-CHANGE.
+Return the value source and callback as a cons.  A binding uses the caller's
+ref directly; it owns no state or subscription of its own."
+  (cl-labels ((invalid (prop received expected)
+               (signal 'etaf-view-error
+                       (list (format "Component %S property %S received %S; expected %s"
+                                     component prop received expected)))))
+    (if bind
+        (progn
+          (unless (etaf-ref-p bind)
+            (invalid :bind bind "a writable ETAF ref"))
+          (unless (eq value etaf-ui--unsupplied)
+            (invalid value-prop value "omission when :bind is supplied"))
+          (unless (eq on-change etaf-ui--unsupplied)
+            (invalid :on-change on-change "omission when :bind is supplied"))
+          (cons bind (lambda (next) (setf (etaf-value bind) next))))
+      (unless (or (eq on-change etaf-ui--unsupplied)
+                  (null on-change) (functionp on-change))
+        (invalid :on-change on-change "a function or nil"))
+      (cons (unless (eq value etaf-ui--unsupplied) value)
+            (unless (eq on-change etaf-ui--unsupplied) on-change)))))
+
 (defun etaf-ui--class-value (base state custom)
   "Return BASE and STATE classes with optional CUSTOM classes."
   (let ((custom (cond ((null custom) nil)
@@ -134,30 +160,36 @@ so a failed render keeps the previous callback and its captured values."
           :border (etaf-ui--style-border (plist-get theme border-key)))))
 
 (etaf-ui--define-component etaf-checkbox
-    (&key checked label on-change disabled)
-  "Render a controlled Checkbox whose next value is sent to ON-CHANGE."
-  :view
-  (row
-   :class (etaf-ui--class-value
-           "etaf-checkbox" (if disabled "disabled" "enabled") nil)
-   :role 'checkbox :disabled disabled
-   :aria-label (etaf-ui--text-value label)
-   :tab-index (unless disabled 0)
-   :color (plist-get (etaf-ui--checkbox-variant-values disabled) :color)
-   :background-color
-   (plist-get (etaf-ui--checkbox-variant-values disabled) :bgcolor)
-   :border (plist-get (etaf-ui--checkbox-variant-values disabled) :border)
-   :on-press
-   (and (not disabled) on-change
-        (let ((callback on-change)
-              (source checked))
-          (lambda ()
-            (funcall callback (not (etaf-ui--reactive-value source))))))
-   (box :class "etaf-checkbox-mark"
-    (text (expr (if (etaf-ui--reactive-value checked) "☑" "☐"))))
-   (text (expr
-          (let ((value (etaf-ui--text-value label)))
-            (if (string-empty-p value) "" (concat " " value))))))
+    (&key (checked etaf-ui--unsupplied) label
+          (on-change etaf-ui--unsupplied) disabled bind)
+  "Render a controlled Checkbox using CHECKED/ON-CHANGE or writable ref BIND.
+Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
+  :render
+  (let* ((input (etaf-ui--controlled-input 'etaf-checkbox :checked bind checked on-change))
+         (checked (car input))
+         (on-change (cdr input)))
+    (etaf-view
+     (row
+      :class (etaf-ui--class-value
+              "etaf-checkbox" (if disabled "disabled" "enabled") nil)
+      :role 'checkbox :disabled disabled
+      :aria-label (etaf-ui--text-value label)
+      :tab-index (unless disabled 0)
+      :color (plist-get (etaf-ui--checkbox-variant-values disabled) :color)
+      :background-color
+      (plist-get (etaf-ui--checkbox-variant-values disabled) :bgcolor)
+      :border (plist-get (etaf-ui--checkbox-variant-values disabled) :border)
+      :on-press
+      (and (not disabled) on-change
+           (let ((callback on-change)
+                 (source checked))
+             (lambda ()
+               (funcall callback (not (etaf-ui--reactive-value source))))))
+      (box :class "etaf-checkbox-mark"
+           (text (expr (if (etaf-ui--reactive-value checked) "☑" "☐"))))
+      (text (expr
+             (let ((value (etaf-ui--text-value label)))
+               (if (string-empty-p value) "" (concat " " value))))))))
   :styles
   (("&" :width max-content)
    ("&.disabled" :padding ((lh 0) (ch 1)))
@@ -192,14 +224,17 @@ so a failed render keeps the previous callback and its captured values."
    (".etaf-panel-title" :font-weight bold)))
 
 (etaf-ui--define-component etaf-number-input
-    (&key value label on-change disabled min max)
-  "Render a controlled minibuffer-backed NumberInput using Button."
+    (&key (value etaf-ui--unsupplied) label
+          (on-change etaf-ui--unsupplied) disabled min max bind)
+  "Render a minibuffer NumberInput using VALUE/ON-CHANGE or writable ref BIND.
+Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil."
   :render
-  (let ((label (or label "Value"))
-        (callback on-change)
-        (current-value value)
-        (minimum min)
-        (maximum max))
+  (let* ((input (etaf-ui--controlled-input 'etaf-number-input :value bind value on-change))
+         (label (or label "Value"))
+         (callback (cdr input))
+         (current-value (etaf-ui--reactive-value (car input)))
+         (minimum min)
+         (maximum max))
     (etaf-node
      'etaf-button
      (list

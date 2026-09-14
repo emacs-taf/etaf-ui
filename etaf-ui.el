@@ -26,8 +26,16 @@
 ;; so a failed render keeps the previous callback and its captured values.
 ;; Use inside (etaf-view (etaf-button ...)); keyword arguments are component props.
 ;;
-;; Component: etaf-checkbox (&key checked label on-change disabled)
+;; Component: etaf-checkbox (&key checked label on-change disabled bind)
 ;; Render a controlled Checkbox whose next value is sent to ON-CHANGE.
+;; Alternatively, pass an existing writable ref as :bind; its current value
+;; supplies CHECKED and the next boolean is written to the same ref.  Non-nil
+;; BIND rejects explicitly supplied CHECKED or ON-CHANGE, including nil, with
+;; `etaf-view-error'.  Nil BIND leaves the explicit controlled interface active.
+;; No additional state is created. External ref writes update the control;
+;; disabled activation cannot write. :on-press remains an additive observer.
+;; Failed publication retains the old binding target, and unmount releases
+;; the control's handlers and subscriptions without owning the caller's ref.
 ;; Use inside (etaf-view (etaf-checkbox ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
@@ -44,8 +52,13 @@
 ;; Render TEXT as a semantic Label.
 ;; Use inside (etaf-view (etaf-label ...)); keyword arguments are component props.
 ;;
-;; Component: etaf-number-input (&key value label on-change disabled min max)
+;; Component: etaf-number-input (&key value label on-change disabled min max bind)
 ;; Render a controlled minibuffer-backed NumberInput using Button.
+;; Alternatively, :bind accepts an existing writable ref and replaces VALUE
+;; plus ON-CHANGE. It uses the same conflict, ownership and publication rules
+;; as Checkbox. Min/max and integer validation run before writing the ref;
+;; canceling the native prompt leaves the value unchanged. Custom business
+;; validation or transformation uses the explicit VALUE/ON-CHANGE interface.
 ;; Use inside (etaf-view (etaf-number-input ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-pagination (&key controller previous-ref next-ref previous-label next-label class color bgcolor border padding aria-label)

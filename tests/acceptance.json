@@ -143,6 +143,26 @@
       "name": "etaf-ui-data-grid-rejects-nil-row-key",
       "file": "tests/etaf-ui-tests.el",
       "purpose": "Reject a DataGrid row-key function that returns no identity."
+    },
+    {
+      "name": "etaf-ui-checkbox-binding-shares-the-callers-ref",
+      "file": "tests/etaf-ui-binding-tests.el",
+      "purpose": "Bound and explicit checkboxes observe one ref with additive events, disabled protection and unmount cleanup."
+    },
+    {
+      "name": "etaf-ui-binding-retargets-only-after-successful-publication",
+      "file": "tests/etaf-ui-binding-tests.el",
+      "purpose": "Binding target changes publish atomically; conflicts preserve committed callbacks and explicit nil remains valid."
+    },
+    {
+      "name": "etaf-ui-number-binding-validates-cancel-and-disabled-input",
+      "file": "tests/etaf-ui-binding-tests.el",
+      "purpose": "A bound number input writes accepted integers and preserves its ref after cancellation, invalid or disabled input."
+    },
+    {
+      "name": "etaf-ui-bindings-report-conflicting-or-read-only-inputs",
+      "file": "tests/etaf-ui-binding-tests.el",
+      "purpose": "Conflicts and invalid binding targets report contextual component input errors."
     }
   ]
 }

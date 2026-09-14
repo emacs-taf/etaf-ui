@@ -26,6 +26,33 @@ through Emacs's native minibuffer. It accepts `:value`, `:label`, `:on-change`,
 `:min`, `:max`, `:ref`, and `:disabled`; the callback receives the validated
 integer while the caller remains the owner of the ref.
 
+For controls that directly change an existing ref, use `:bind`:
+
+```elisp
+(etaf-define-component preferences ()
+  :bindings ((done (etaf-ref nil)) (rows (etaf-ref 3)))
+  :view
+  (column
+   (etaf-checkbox :label "Done" :bind done)
+   (etaf-number-input :label "Rows" :bind rows :min 1 :max 10)))
+```
+
+This is an ordinary UI Component prop, not a View directive. Checkbox reads
+the ref as its checked source, NumberInput reads it as its value source, and
+the change callback writes to that same ref. External writes also update the
+control; no second state is created. Disabled activation cannot write. Cancel
+and validation failure preserve the value. Unmount releases control handlers
+and subscriptions without owning the ref; rejected publication keeps the old
+binding target.
+
+A non-nil `:bind` must be a writable ref. Do not also supply `:checked`/`:value`
+or `:on-change`, even explicitly as nil. Conflicts signal `etaf-view-error`
+with the component, property, received value and expected input. `:bind nil`
+leaves the explicit interface active. Additional `:on-press` observers retain
+the existing event order and can read the updated value. For business validation,
+transformation or database operations, use explicit value and `:on-change`
+props instead of hiding those operations in a ref binding.
+
 The catalog uses one semantic Theme vocabulary for color roles. The main
 tokens are `:ui-fg`, `:ui-bg`, `:ui-border`, `:ui-muted-fg`,
 `:ui-disabled-*`, `:ui-button-primary-*`, `:ui-button-secondary-*`,
@@ -87,9 +114,9 @@ separate from forwarded Host attributes:
 | --- | --- |
 | `etaf-label` | `:text`, `:variant` |
 | `etaf-button` | `:label`, `:on-press`, `:disabled`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`, `:aria-label`, `:use`, `:variant` |
-| `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled` |
+| `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
-| `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max` |
+| `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |
 | `etaf-table` | `:columns`, `:rows`, `:row-key`, `:row-ref`, `:on-row-press`, `:row-selected-p` |
 | `etaf-data-grid` | `:controller`, `:columns`, `:row-key`, `:on-row-press`, `:row-ref`, `:row-selected-p`, `:loading-label`, `:error-label`, `:empty-label` |
 | `etaf-pagination` | `:controller`, `:previous-ref`, `:next-ref`, `:previous-label`, `:next-label`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:aria-label` |

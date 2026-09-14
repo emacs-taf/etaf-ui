@@ -21,6 +21,28 @@ Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`、
 `:max`、`:ref` 和 `:disabled`，回调接收校验后的整数，ref 仍由调用方持有。
 
+需要直接修改一个已有 ref 时，可以使用 `:bind`：
+
+```elisp
+(etaf-define-component preferences ()
+  :bindings ((done (etaf-ref nil)) (rows (etaf-ref 3)))
+  :view
+  (column
+   (etaf-checkbox :label "Done" :bind done)
+   (etaf-number-input :label "Rows" :bind rows :min 1 :max 10)))
+```
+
+这是 UI 组件的普通属性，不是新的 View 指令。Checkbox 将 ref 用作 checked
+来源，NumberInput 将其用作 value 来源，修改回调写回同一个 ref。外部写入
+也会更新控件，不产生第二份状态。禁用控件不能写入；取消或校验失败不改值。
+卸载释放控件的订阅与回调，ref 仍归调用者；失败发布保留旧绑定目标。
+
+非 nil `:bind` 必须是可写 ref，不能同时显式传入 `:checked`／`:value` 或
+`:on-change`，即使它们是 nil。冲突以 `etaf-view-error` 报告组件、属性、
+收到的值和期望输入。`:bind nil` 等同于不使用绑定。`:on-press` 仍按既有
+顺序追加执行，可以观察修改后的值。需要业务校验、值转换或数据库操作时，
+使用原有的值与 `:on-change` 接口；不要把这些操作藏入 ref 绑定。
+
 目录统一使用语义化的 Theme 色彩 vocabulary，主要 token 包括
 `:ui-fg`、`:ui-bg`、`:ui-border`、`:ui-muted-fg`、`:ui-disabled-*`、
 `:ui-button-primary-*`、`:ui-button-secondary-*`、`:ui-button-ghost-*`、
@@ -70,9 +92,9 @@ surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 | --- | --- |
 | `etaf-label` | `:text`、`:variant` |
 | `etaf-button` | `:label`、`:on-press`、`:disabled`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-weight`、`:tab-index`、`:aria-label`、`:use`、`:variant` |
-| `etaf-checkbox` | `:checked`、`:label`、`:on-change`、`:disabled` |
+| `etaf-checkbox` | `:checked`、`:label`、`:on-change`、`:disabled`、`:bind` |
 | `etaf-panel` | `:title`、`:variant` |
-| `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max` |
+| `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max`、`:bind` |
 | `etaf-table` | `:columns`、`:rows`、`:row-key`、`:row-ref`、`:on-row-press`、`:row-selected-p` |
 | `etaf-data-grid` | `:controller`、`:columns`、`:row-key`、`:on-row-press`、`:row-ref`、`:row-selected-p`、`:loading-label`、`:error-label`、`:empty-label` |
 | `etaf-pagination` | `:controller`、`:previous-ref`、`:next-ref`、`:previous-label`、`:next-label`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:aria-label` |
