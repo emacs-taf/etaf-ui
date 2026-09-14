@@ -157,7 +157,7 @@ row key 与 column key 让 cell 身份在重排时保留；改变 key 会替换�
 
 cell 函数使用 row 参数与普通词法捕获，Context 来自消费它的 Table/Grid 挂载
 位置，不会恢复作者的 props、`etaf-state` 或私有样式。cell 需要自己的状态、样式
-或生命周期时，返回普通 Component，在它的 `:setup` 中创建持久 ref 和 watch。
+或生命周期时，返回普通 Component，在它的 `:bindings` 或 `:setup` 中创建持久 ref 和 watch。
 若有意共享作者的 ref，应在创建回调前捕获稳定句柄；不要在每次 cell 函数调用时
 创建持久状态。
 

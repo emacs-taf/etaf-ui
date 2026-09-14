@@ -261,22 +261,23 @@ Its keyed Range retains row identity across insert, reorder, and update.
 Setup state owns per-instance fallback refs plus commit-staged stable row
 actions; failed candidates cannot mutate committed handler inputs.  COLUMNS
 use Table's unique keys and optional `:cell' row-to-View functions."
+  :bindings
+  ((state
+    (list :row-actions (make-hash-table :test #'equal)
+          :row-action-stage nil
+          :row-action-live-keys nil
+          :row-refs (make-hash-table :test #'equal)
+          :row-ref-stage nil
+          :row-ref-live-identities nil
+          :row-cache-prune-p nil)))
   :setup
-  (let ((state
-         (list :row-actions (make-hash-table :test #'equal)
-               :row-action-stage nil
-               :row-action-live-keys nil
-               :row-refs (make-hash-table :test #'equal)
-               :row-ref-stage nil
-               :row-ref-live-identities nil
-               :row-cache-prune-p nil)))
+  (progn
     (etaf-on-mounted
      (lambda () (etaf-ui--data-grid-promote-row-actions state)))
     (etaf-on-updated
      (lambda () (etaf-ui--data-grid-promote-row-actions state)))
     (etaf-on-unmounted
-     (lambda () (etaf-ui--data-grid-dispose-row-actions state)))
-    state)
+     (lambda () (etaf-ui--data-grid-dispose-row-actions state))))
   :view
   (column
    :class "etaf-data-grid etaf-table"
@@ -287,13 +288,13 @@ use Table's unique keys and optional `:cell' row-to-View functions."
     (etaf-ui--data-grid-body-item
      :for (entry
            (etaf-ui--data-grid-body-entries
-            (etaf-state) controller row-key on-row-press row-ref
+            state controller row-key on-row-press row-ref
             loading-label error-label empty-label))
      :key (car entry)
      :controller controller :entry entry :columns columns
      :row-ref row-ref :on-row-press on-row-press
      :row-selected-p row-selected-p
-     :grid-state (etaf-state)))
+     :grid-state state))
    (slot :name 'footer)))
 
 (etaf-ui--define-component etaf-pagination

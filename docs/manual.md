@@ -184,7 +184,7 @@ Cell functions use their row argument and normal lexical captures. Their
 Context is the consuming Table/Grid location; they do not recover the author's
 props, `etaf-state`, or private styles. Return an ordinary Component when a
 cell needs its own state, styles, or lifecycle, and create persistent refs and
-watches in that Component's `:setup`. Capture an author's stable ref before
+watches in that Component's `:bindings` or `:setup`. Capture an author's stable ref before
 building a callback when sharing it is intentional. Do not create persistent
 state on each cell-function call.
 

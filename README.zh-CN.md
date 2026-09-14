@@ -16,23 +16,18 @@
 (require 'etaf-ui)
 
 (etaf-define-component demo-preferences ()
-  :setup (list (etaf-ref nil) (etaf-ref "Unsaved"))
-  :render
-  (let* ((state (etaf-state))
-         (done (car state))
-         (saved (cadr state)))
-    (etaf-view
-     (etaf-panel :title "Account"
-       (slot :name 'header
-         (etaf-button :label "Save" :ref 'save-button
-                      :on-press (lambda ()
-                                  (setf (etaf-value saved) "Saved"))))
-       (etaf-label :text (etaf-value saved))
-       (etaf-checkbox :checked (etaf-value done) :label "Done"
-                      :ref 'done-checkbox
-                      :on-change (lambda (next)
-                                   (setf (etaf-value done) next)))
-       (text (expr (if (etaf-value done) "Complete" "Pending")))))))
+  :bindings ((done (etaf-ref nil))
+             (saved (etaf-ref "Unsaved")))
+  :view
+  (etaf-panel :title "Account"
+    (slot :name 'header
+      (etaf-button :label "Save" :ref 'save-button
+                   :on-press (lambda () (setf (etaf-value saved) "Saved"))))
+    (etaf-label :text (etaf-value saved))
+    (etaf-checkbox :checked (etaf-value done) :label "Done"
+                   :ref 'done-checkbox
+                   :on-change (lambda (next) (setf (etaf-value done) next)))
+    (text (expr (if (etaf-value done) "Complete" "Pending")))))
 
 (etaf-mount "*etaf-preferences*" (etaf-view (demo-preferences)))
 ```
