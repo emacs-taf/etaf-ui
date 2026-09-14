@@ -290,8 +290,10 @@ use Table's unique keys and optional `:cell' row-to-View functions."
    :class "etaf-data-grid etaf-table"
    :color (plist-get (etaf-ui--style-tokens :ui-fg) :ui-fg)
    (etaf-label
-    :if (and (etaf-value (etaf-data-items controller))
-             (memq (etaf-value (etaf-data-status controller)) '(loading refreshing error cancelled)))
+    :if (let ((status (etaf-value (etaf-data-status controller))))
+          (or (eq status 'refreshing)
+              (and (etaf-value (etaf-data-items controller))
+                   (memq status '(loading error cancelled)))))
     :variant (if (memq (etaf-value (etaf-data-status controller)) '(error cancelled)) 'danger 'muted)
     :text (pcase (etaf-value (etaf-data-status controller))
             ('loading (or loading-label "Loading..."))

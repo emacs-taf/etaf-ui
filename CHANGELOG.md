@@ -8,6 +8,9 @@
   retains interactive rows; Pagination disables page changes while refreshing.
   Update ETAF together with UI for the asynchronous Data status contract.
 
+### Fixed
+
+- Empty accepted DataGrid pages still announce background refresh while preserving their empty-state message.
 
 ### Added
 
