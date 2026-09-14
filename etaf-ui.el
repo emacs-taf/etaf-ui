@@ -42,7 +42,8 @@
 ;; Render DATA CONTROLLER state through the public Component DSL.
 ;;
 ;; DataGrid shows idle, loading, refreshing, cancelled, error and empty states.
-;; Refreshing retains interactive rows and adds LOADING-LABEL or Refreshing....
+;; Accepted rows stay interactive during pending or failed operations. Status
+;; appears above the rows; refresh uses LOADING-LABEL or Refreshing....
 ;; Cancellation uses ERROR-LABEL or Loading cancelled. Pagination disables
 ;; page changes while loading or refreshing. Controllers remain caller-owned.
 ;; Its keyed Range retains row identity across insert, reorder, and update.

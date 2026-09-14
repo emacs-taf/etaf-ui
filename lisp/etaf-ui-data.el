@@ -197,6 +197,7 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
          (items (etaf-value (etaf-data-items controller)))
          (entries
           (cond
+           (items (etaf-ui--table-entries items row-key))
            ((eq status 'loading)
             (list (cons 'loading
                         (list :etaf-data-grid-state 'loading
@@ -210,7 +211,6 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
                                           "Unable to load data."))))))
            ((eq status 'idle)
             (list (cons 'idle (list :etaf-data-grid-state 'idle :text "Not loaded."))))
-           (items (etaf-ui--table-entries items row-key))
            (t
             (list (cons 'empty
                         (list :etaf-data-grid-state 'empty
@@ -219,7 +219,7 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
          (live (make-hash-table :test #'equal))
          (ref-stage (make-hash-table :test #'equal))
          (ref-live (make-hash-table :test #'equal)))
-    (when (and on-row-press items (memq status '(success refreshing)))
+    (when (and on-row-press items)
       (dolist (entry entries) (puthash (car entry) t live))
       (unless row-ref
         (dolist (row items)
@@ -229,7 +229,7 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
           (plist-get state :row-ref-stage) ref-stage
           (plist-get state :row-ref-live-identities) ref-live
           (plist-get state :row-cache-prune-p)
-          (memq status '(success refreshing)))
+          t)
     entries))
 
 (defun etaf-ui--data-grid-state-entry-node (entry)
@@ -261,7 +261,8 @@ LOADING-LABEL, ERROR-LABEL, and EMPTY-LABEL override the state text."
   "Render DATA CONTROLLER state through the public Component DSL.
 
 DataGrid owns idle, loading, refreshing, cancelled, error and empty states.
-Refreshing keeps accepted rows interactive and adds LOADING-LABEL, defaulting
+Accepted rows remain interactive during loading, refreshing, cancellation and
+failure; status is shown above them.  Refresh uses LOADING-LABEL, defaulting
 to `Refreshing...'.  Cancellation uses ERROR-LABEL or `Loading cancelled.'.
 Its keyed Range retains row identity across insert, reorder, and update.
 Setup state owns per-instance fallback refs plus commit-staged stable row
@@ -288,8 +289,15 @@ use Table's unique keys and optional `:cell' row-to-View functions."
   (column
    :class "etaf-data-grid etaf-table"
    :color (plist-get (etaf-ui--style-tokens :ui-fg) :ui-fg)
-   (etaf-label :if (eq (etaf-value (etaf-data-status controller)) 'refreshing)
-               :text (or loading-label "Refreshing..."))
+   (etaf-label
+    :if (and (etaf-value (etaf-data-items controller))
+             (memq (etaf-value (etaf-data-status controller)) '(loading refreshing error cancelled)))
+    :variant (if (memq (etaf-value (etaf-data-status controller)) '(error cancelled)) 'danger 'muted)
+    :text (pcase (etaf-value (etaf-data-status controller))
+            ('loading (or loading-label "Loading..."))
+            ('refreshing (or loading-label "Refreshing..."))
+            ('cancelled (or error-label "Loading cancelled."))
+            (_ (or error-label "Unable to load data."))))
    (etaf-ui--table-header :columns columns)
    (column
     :class "etaf-table-body"

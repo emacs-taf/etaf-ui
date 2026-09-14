@@ -167,7 +167,7 @@
     {
       "name": "etaf-ui-data-controls-render-async-refresh-and-cancellation",
       "file": "tests/etaf-ui-tests.el",
-      "purpose": "Refreshing preserves row actions, disables paging and exposes cancellation."
+      "purpose": "Pending reads/writes, cancellation and failure retain accepted rows and actions with valid focus."
     },
     {
       "name": "etaf-ui-text-input-shares-values-and-preserves-cancelled-drafts",

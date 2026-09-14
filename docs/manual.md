@@ -169,7 +169,8 @@ from row labels. Row keys identify data; refs identify interactive Hosts.
 
 DataGrid shows `Not loaded.` before the first request. During background
 refresh it keeps existing rows interactive and shows `:loading-label` or
-`Refreshing...`. Cancellation shows `:error-label` or `Loading cancelled.`;
+`Refreshing...`. Accepted rows also remain visible and interactive while writes
+are pending and after failure or cancellation; status appears above the rows. Cancellation shows `:error-label` or `Loading cancelled.`;
 errors and first loading retain their existing labels. Pagination disables
 page changes during both loading and refreshing. The caller owns the Controller
 and uses its cancel/reload API; UI keeps no second request state.

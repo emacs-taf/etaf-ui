@@ -282,13 +282,15 @@
           (kill-buffer buffer))))))
 
 (ert-deftest etaf-ui-data-controls-render-async-refresh-and-cancellation ()
-  "Refreshing preserves row actions, disables paging and exposes cancellation."
-  (let* (resolve picked
+  "Pending reads/writes and failures retain accepted rows, actions and focus."
+  (let* (resolve complete-write picked
          (controller
           (etaf-data-controller
            (etaf-data-source
             :load (lambda (&rest _args)
-                    (etaf-async (lambda (yes _no) (setq resolve yes) nil))))
+                    (etaf-async (lambda (yes _no) (setq resolve yes) nil)))
+            :mutate-v2 (lambda (&rest _args)
+                         (etaf-async (lambda (yes _no) (setq complete-write yes) nil))))
            :page-size 1 :initial-result '(:items ((:id 1 :name "Ada")) :total 2)))
          (buffer (generate-new-buffer " *async-grid*")))
     (unwind-protect
@@ -311,11 +313,26 @@
             (should (equal "Ada" picked))
             (etaf-data-cancel controller)
             (should (string-match-p "Loading cancelled" (etaf-ui-test--text buffer)))
+            (should (string-match-p "Ada" (etaf-ui-test--text buffer)))
+            (setq picked nil)
+            (etaf-dispatch-event runtime 'row 'press)
+            (should (equal "Ada" picked))
             (should-not (plist-get (etaf-runtime-host-props-for runtime 'next) :disabled))
             (etaf-data-load controller)
             (funcall resolve '(:items ((:id 1 :name "Grace")) :total 2))
             (should-not (string-match-p "Refreshing" (etaf-ui-test--text buffer)))
             (should (string-match-p "Grace" (etaf-ui-test--text buffer)))
+            (etaf-dispatch-event runtime 'row 'press)
+            (should (equal "Grace" picked))
+            (etaf-focus runtime 'row)
+            (etaf-data-mutate controller 'update nil)
+            (should (string-match-p "Loading" (etaf-ui-test--text buffer)))
+            (should (string-match-p "Grace" (etaf-ui-test--text buffer)))
+            (should (eq 'row (etaf-focused-host-ref runtime)))
+            (funcall complete-write '(:certainty rolled-back :error (error "Write rejected")))
+            (should (string-match-p "Unable to load" (etaf-ui-test--text buffer)))
+            (should (string-match-p "Grace" (etaf-ui-test--text buffer)))
+            (setq picked nil)
             (etaf-dispatch-event runtime 'row 'press)
             (should (equal "Grace" picked))))
       (when (etaf-runtime-for-buffer buffer) (etaf-unmount (etaf-runtime-for-buffer buffer)))

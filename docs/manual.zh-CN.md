@@ -140,7 +140,8 @@ DataGrid 支持列描述、函数型 `:row-key`，以及可选的
 symbol。row key 负责数据身份，ref 负责交互 Host 地址。
 
 DataGrid 在首次请求前显示 `Not loaded.`；后台刷新保留可交互的旧行，并显示
-`:loading-label` 或 `Refreshing...`。取消显示 `:error-label` 或 `Loading cancelled.`，
+`:loading-label` 或 `Refreshing...`。已有行在等待写入、失败和取消后同样保留显示
+和交互；状态显示在行列表上方。取消显示 `:error-label` 或 `Loading cancelled.`，
 错误和首次加载沿用现有标签。Pagination 在加载和刷新期间禁用翻页。Controller
 由调用者拥有，取消和重载使用其公共 API；UI 不维护第二份请求状态。
 
