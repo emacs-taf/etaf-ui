@@ -24,6 +24,8 @@
 ;; DISABLED removes the callback and default focus tab index.  Presentation props
 ;; remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
 ;; so a failed render keeps the previous callback and its captured values.
+;; Native root attributes :pointer, :help-echo and :hover-style request Ebox
+;; interaction feedback; explicit nil blocks inherited capabilities.
 ;; Use inside (etaf-view (etaf-button ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-checkbox (&key checked label on-change disabled bind)
@@ -32,6 +34,8 @@
 ;; supplies CHECKED and the next boolean is written to the same ref.  Non-nil
 ;; BIND rejects explicitly supplied CHECKED or ON-CHANGE, including nil, with
 ;; `etaf-view-error'.  Nil BIND leaves the explicit controlled interface active.
+;; Native root attributes request Ebox pointer, help and hover feedback,
+;; using the same forwarding contract as Button.
 ;; No additional state is created. External ref writes update the control;
 ;; disabled activation cannot write. :on-press remains an additive observer.
 ;; Failed publication retains the old binding target, and unmount releases

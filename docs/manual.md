@@ -130,16 +130,21 @@ the inherited Theme/default style available. Button has the deliberately small
 `primary`, `secondary`, and `ghost` visual vocabulary; it is a visual variant
 set, not a second widget taxonomy.
 
-Enabled buttons and checkboxes expose the same interaction affordances: a hand
-pointer, native `mouse-face` hover feedback, a readable `help-echo`, a numeric
-tab stop, and a semantic role. Hover ends when the pointer leaves; activation
-does not create retained visual state. Disabled controls retain their text and disabled appearance but expose
-no callback, pointer activation, or tab stop. The Runtime owns composition of
-an explicit `:on-*` callback with a Behavior callback; the UI package only
-declares the control and its visual state.
+Enabled buttons and checkboxes expose a numeric tab stop and a semantic role.
+Disabled controls retain their text and disabled appearance while suppressing
+activation and tab navigation. Runtime composes explicit `:on-*` callbacks
+with Behavior callbacks; UI declares the control and its visual state.
 
-The parent owns spacing: use `(row :item-gap 1 ...)` or
-`(column :item-gap 1 ...)`; `flex` and `grid` use `:gap`. In particular, migrate
+For native feedback, pass `:pointer 'hand :help-echo "Save changes"
+:hover-style '(:text-decoration-line underline)` to a control. These root
+attributes use Ebox capabilities through ETAF, including TextInput, NumberInput,
+Select and Menu composed from Button. Omission preserves inherited feedback;
+explicit nil removes it. Tie these attributes to the same disabled input when
+feedback should disappear while disabled. Hover ends when the pointer leaves
+and does not create retained ETAF visual state.
+
+The parent owns spacing: use `(row :item-gap '(ch 1) ...)` or
+`(column :item-gap '(lh 1) ...)`; `flex` and `grid` use `:gap`. In particular, migrate
 `row :gap` to `row :item-gap`. Keep an explicit gap between adjacent controls
 so each has a separate hover and hit range.
 

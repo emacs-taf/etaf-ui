@@ -193,6 +193,11 @@
       "name": "etaf-ui-confirm-dialog-composes-with-menu-actions",
       "file": "tests/etaf-ui-input-tests.el",
       "purpose": "Menu actions apply only after native confirmation and return focus after a declined dialog."
+    },
+    {
+      "name": "etaf-ui-control-forwards-native-feedback",
+      "file": "tests/etaf-ui-affordance-tests.el",
+      "purpose": "Native root attributes reach Ebox through the public Button component."
     }
   ]
 }

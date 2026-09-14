@@ -10,6 +10,10 @@
 
 ### Fixed
 
+- Native pointer, help and hover feedback can be requested through control
+  root attributes with the updated ETAF bridge. Correct the manual's claim
+  that all controls provide this feedback by default.
+
 - Empty accepted DataGrid pages still announce background refresh while preserving their empty-state message.
 
 ### Added

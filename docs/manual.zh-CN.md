@@ -110,15 +110,18 @@ Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil pre
 只提供刻意收敛的 `primary`、`secondary`、`ghost` 三种视觉 variant；这是
 视觉状态集合，不是第二套 widget 分类体系。
 
-启用的 button 和 checkbox 共享同一套交互反馈：小手指针、原生 `mouse-face`
-悬停反馈、可读的 `help-echo`、数字 tab stop 和语义 role。指针离开后 hover
-自动结束，点击不会产生 retained 视觉状态。禁用控件保留文字和禁用样式，但
-没有回调、指针激活或 tab stop。
-显式 `:on-*` 回调和 Behavior 回调的组合由 Runtime 负责；UI 包只声明控件和
-视觉状态。
+启用的 Button 与 Checkbox 提供数字 tab stop 和语义 role。禁用控件保留文字和
+禁用样式，同时阻止激活与 tab 导航。显式 `:on-*` 回调和 Behavior 回调由 Runtime
+组合；UI 声明控件与视觉状态。
+
+需要原生反馈时，可向控件传入 `:pointer 'hand :help-echo "保存修改"
+:hover-style '(:text-decoration-line underline)`。这些根属性经 ETAF 使用 Ebox
+能力，TextInput、NumberInput、Select 和 Menu 通过 Button 组合也支持它们。
+省略属性保留继承的反馈，显式 nil 移除对应能力。需要禁用时隐藏反馈，应让这些
+属性读取同一个禁用状态。指针离开后悬停结束，不产生 ETAF 保留视觉状态。
 
 间距由父布局负责：`row` 和 `column` 使用 `:item-gap`，例如
-`(row :item-gap 1 ...)`；`flex` 和 `grid` 使用 `:gap`。尤其需要将 `row :gap`
+`(row :item-gap '(ch 1) ...)`；`flex` 和 `grid` 使用 `:gap`。尤其需要将 `row :gap`
 迁移为 `row :item-gap`。相邻控件保留明确间距，让 hover 和命中范围各自独立。
 
 根事件透传按顺序追加：业务动作、由内到外的 wrapper callback、最后按声明顺序
