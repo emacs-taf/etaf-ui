@@ -73,7 +73,12 @@
 ;; Render a controlled minibuffer-backed NumberInput using Button.
 ;; Alternatively, :bind accepts an existing writable ref and replaces VALUE
 ;; plus ON-CHANGE. It uses the same conflict, ownership and publication rules
-;; as Checkbox. Min/max and integer validation run before writing the ref;
+;; as Checkbox. The current value must be an integer or nil, label a string or
+;; nil, and min/max numbers or nil with min <= max. Invalid inputs signal
+;; etaf-component-call-error identifying the Component and property. Input
+;; configuration is checked before initialization or updated props publish;
+;; live values are checked when rendered. Prompt results are checked against
+;; the integer and min/max constraints before writing the ref;
 ;; canceling the native prompt leaves the value unchanged. Custom business
 ;; validation or transformation uses the explicit VALUE/ON-CHANGE interface.
 ;; Use inside (etaf-view (etaf-number-input ...)); keyword arguments are component props.

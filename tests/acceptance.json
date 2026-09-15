@@ -218,6 +218,11 @@
       "name": "etaf-ui-grid-rows-use-framework-identity-and-callbacks",
       "file": "tests/etaf-ui-grid-composition-tests.el",
       "purpose": "Separate grids retain unique automatic targets across reorder and publish current row data and handlers through the framework."
+    },
+    {
+      "name": "etaf-ui-number-input-validates-configuration-and-live-value",
+      "file": "tests/etaf-ui-input-tests.el",
+      "purpose": "NumberInput validates configuration before publishing inputs and follows caller-owned integer values through native editing."
     }
   ]
 }

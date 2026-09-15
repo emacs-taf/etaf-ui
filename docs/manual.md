@@ -24,7 +24,11 @@ handler or tab stop.
 `etaf-number-input` is a small controlled input primitive for values edited
 through Emacs's native minibuffer. It accepts `:value`, `:label`, `:on-change`,
 `:min`, `:max`, `:ref`, and `:disabled`; the callback receives the validated
-integer while the caller remains the owner of the ref.
+integer while the caller remains the owner of the ref. The current value must
+be an integer or nil, and the label a string or nil. Numeric bounds may be nil;
+when both are present, `:min` must not exceed `:max`. Invalid configuration is
+rejected before initialization or updated props publish; invalid live values
+are rejected when rendered. Errors identify the component and property.
 
 `etaf-text-input` edits strings with the native minibuffer. `etaf-select`
 chooses a value from an ordinary alist, such as `((nil . "Pending") (t . "Done"))`.

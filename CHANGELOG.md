@@ -16,6 +16,10 @@
 
 ### Fixed
 
+- NumberInput rejects malformed labels, bounds and current values with component
+  and property context. UI input checks share ETAF's `etaf-check-prop`; update
+  ETAF together with UI for this input validation contract.
+
 - Custom cells continue publishing state changes after combined row and column
   reordering. Table and DataGrid use Ebox's shared source identity matching;
   row Components no longer repeat their key on an internal Host. Update Ebox

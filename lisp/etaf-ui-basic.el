@@ -20,9 +20,7 @@
 Return the value source and callback as a cons.  A binding uses the caller's
 ref directly; it owns no state or subscription of its own."
   (cl-labels ((invalid (prop received expected)
-               (signal 'etaf-view-error
-                       (list (format "Component %S property %S received %S; expected %s"
-                                     component prop received expected)))))
+               (etaf-check-prop prop received nil expected component)))
     (if bind
         (progn
           (unless (etaf-ref-p bind)

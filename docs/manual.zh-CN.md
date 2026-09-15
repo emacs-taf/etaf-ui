@@ -20,6 +20,9 @@ Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 `etaf-number-input` 是一个受控的轻量输入组件；需要编辑数值时，它使用
 Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`、
 `:max`、`:ref` 和 `:disabled`，回调接收校验后的整数，ref 仍由调用方持有。
+当前值必须是整数或 nil，标签必须是字符串或 nil。上下界为数字或 nil；同时
+指定时 `:min` 不能大于 `:max`。无效配置在初始化或新 props 发布前拒绝，
+无效实时值在渲染时拒绝，错误会指出组件和属性。
 
 `etaf-text-input` 使用原生 minibuffer 编辑字符串，`etaf-select` 从普通 alist
 选择值，例如 `((nil . "进行中") (t . "已完成"))`。两者使用 `:value`／

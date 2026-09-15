@@ -8,22 +8,15 @@
 ;;; Code:
 (require 'etaf-ui-basic)
 
-(defun etaf-ui--input-check (component prop value valid expected)
-  "Report COMPONENT PROP VALUE when VALID is nil, describing EXPECTED input."
-  (unless valid
-    (signal 'etaf-view-error
-            (list (format "Component %S property %S received %S; expected %s"
-                          component prop value expected)))))
-
 ;;;###autoload
 (defun etaf-confirm-dialog (prompt)
   "Ask PROMPT from a Host callback; return non-nil only for native confirmation.
 Use in an event callback before changing application data.  Emacs owns the
 yes/no minibuffer; Ebox restores the entry's focus and validates its lifetime.
 No returns nil; user quit and target invalidation abort the callback."
-  (etaf-ui--input-check 'etaf-confirm-dialog :prompt prompt
-                        (and (stringp prompt) (not (string-empty-p prompt)))
-                        "a nonempty string")
+  (etaf-check-prop :prompt prompt
+                   (and (stringp prompt) (not (string-empty-p prompt)))
+                   "a nonempty string" 'etaf-confirm-dialog)
   (etaf-call-with-input
    (lambda ()
      (let ((use-dialog-box nil))
@@ -35,21 +28,26 @@ Each item has a unique scalar :key, nonempty string :label and optional
 :disabled.  Disabled items cannot be selected; an empty menu is disabled."
   :render
   (let (choices keys labels)
-    (etaf-ui--input-check 'etaf-menu :label label (stringp label) "a string")
-    (etaf-ui--input-check 'etaf-menu :on-select on-select
-                          (or (null on-select) (functionp on-select)) "a function or nil")
-    (etaf-ui--input-check 'etaf-menu :items items (proper-list-p items) "a list of menu items")
+    (etaf-check-prop :label label (stringp label) "a string" 'etaf-menu)
+    (etaf-check-prop :on-select on-select
+                     (or (null on-select) (functionp on-select))
+                     "a function or nil" 'etaf-menu)
+    (etaf-check-prop :items items (proper-list-p items)
+                     "a list of menu items" 'etaf-menu)
     (dolist (item items)
-      (etaf-ui--input-check 'etaf-menu :items item
-                            (and (proper-list-p item) (zerop (% (length item) 2)))
-                            "item plists with :key, :label and optional :disabled")
+      (etaf-check-prop :items item
+                       (and (proper-list-p item) (zerop (% (length item) 2)))
+                       "item plists with :key, :label and optional :disabled"
+                       'etaf-menu)
       (let ((key (plist-get item :key)) (caption (plist-get item :label)))
-        (etaf-ui--input-check
-         'etaf-menu :items item
-         (and key (or (symbolp key) (numberp key) (stringp key))
-              (stringp caption) (not (string-empty-p caption))
-              (not (member key keys)) (not (member caption labels)))
-         "unique non-nil scalar keys and unique nonempty string labels")
+        (etaf-check-prop :items item
+                         (and key
+                              (or (symbolp key) (numberp key) (stringp key))
+                              (stringp caption) (not (string-empty-p caption))
+                              (not (member key keys))
+                              (not (member caption labels)))
+                         "unique non-nil scalar keys and unique nonempty string labels"
+                         'etaf-menu)
         (push key keys)
         (push caption labels)
         (unless (plist-get item :disabled)
@@ -81,10 +79,12 @@ Use VALUE/ON-CHANGE or writable ref BIND.  Nil VALUE displays as empty text."
   (let* ((input (etaf-ui--controlled-input 'etaf-text-input :value bind value on-change))
          (current (etaf-ui--reactive-value (car input)))
          (callback (cdr input)))
-    (etaf-ui--input-check 'etaf-text-input :value current
-                          (or (null current) (stringp current)) "a string or nil")
-    (etaf-ui--input-check 'etaf-text-input :label label (stringp label) "a string")
-    (etaf-ui--input-check 'etaf-text-input :placeholder placeholder (stringp placeholder) "a string")
+    (etaf-check-prop :value current (or (null current) (stringp current))
+                     "a string or nil" 'etaf-text-input)
+    (etaf-check-prop :label label (stringp label) "a string"
+                     'etaf-text-input)
+    (etaf-check-prop :placeholder placeholder (stringp placeholder)
+                     "a string" 'etaf-text-input)
     (etaf-node
      'etaf-button
      (list :label (format "%s %s ✎" label (if (or (null current) (equal current "")) placeholder current))
@@ -108,21 +108,29 @@ Values and nonempty string labels must be unique.  Use VALUE/ON-CHANGE or BIND."
          (callback (cdr input))
          choices
          values labels)
-    (etaf-ui--input-check 'etaf-select :options options (proper-list-p options) "an alist of unique values and labels")
+    (etaf-check-prop :options options (proper-list-p options)
+                     "an alist of unique values and labels" 'etaf-select)
     (setq choices (copy-tree options))
     (dolist (option choices)
-      (etaf-ui--input-check
-       'etaf-select :options options
-       (and (consp option) (or (symbolp (car option)) (numberp (car option)) (stringp (car option)))
-            (stringp (cdr option)) (not (equal (cdr option) ""))
-            (not (member (car option) values)) (not (member (cdr option) labels)))
-       "an alist of unique scalar values and unique nonempty string labels")
+      (etaf-check-prop :options options
+                       (and (consp option)
+                            (or (symbolp (car option))
+                                (numberp (car option))
+                                (stringp (car option)))
+                            (stringp (cdr option))
+                            (not (equal (cdr option) ""))
+                            (not (member (car option) values))
+                            (not (member (cdr option) labels)))
+                       "an alist of unique scalar values and unique nonempty string labels"
+                       'etaf-select)
       (push (car option) values)
       (push (cdr option) labels))
-    (etaf-ui--input-check 'etaf-select :value current
-                          (or (null current) (assoc current choices)) "nil or a value in :options")
-    (etaf-ui--input-check 'etaf-select :label label (stringp label) "a string")
-    (etaf-ui--input-check 'etaf-select :placeholder placeholder (stringp placeholder) "a string")
+    (etaf-check-prop :value current
+                     (or (null current) (assoc current choices))
+                     "nil or a value in :options" 'etaf-select)
+    (etaf-check-prop :label label (stringp label) "a string" 'etaf-select)
+    (etaf-check-prop :placeholder placeholder (stringp placeholder)
+                     "a string" 'etaf-select)
     (let ((caption (cdr (assoc current choices))))
       (etaf-node
        'etaf-button
@@ -144,7 +152,17 @@ Values and nonempty string labels must be unique.  Use VALUE/ON-CHANGE or BIND."
     (&key (value etaf-ui--unsupplied) label
           (on-change etaf-ui--unsupplied) disabled min max bind)
   "Render a minibuffer NumberInput using VALUE/ON-CHANGE or writable ref BIND.
-Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil."
+Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil.
+The current value is an integer or nil; LABEL is a string or nil. MIN and
+MAX are numbers or nil with MIN <= MAX. Invalid inputs signal
+`etaf-component-call-error' identifying the Component and property."
+  :validate
+  (progn
+    (etaf-check-prop :label label (or (null label) (stringp label)) "a string or nil")
+    (etaf-check-prop :min min (or (null min) (numberp min)) "a number or nil")
+    (etaf-check-prop :max max (or (null max) (numberp max)) "a number or nil")
+    (etaf-check-prop :max max (or (null min) (null max) (<= min max))
+                     "nil or a bound greater than or equal to :min"))
   :render
   (let* ((input (etaf-ui--controlled-input 'etaf-number-input :value bind value on-change))
          (label (or label "Value"))
@@ -152,6 +170,8 @@ Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil."
          (current-value (etaf-ui--reactive-value (car input)))
          (minimum min)
          (maximum max))
+    (etaf-check-prop :value current-value (or (null current-value) (integerp current-value))
+                     "an integer or nil" 'etaf-number-input)
     (etaf-node
      'etaf-button
      (list

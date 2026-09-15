@@ -8,6 +8,42 @@
 (require 'cl-lib)
 (require 'etaf-ui)
 
+(ert-deftest etaf-ui-number-input-validates-configuration-and-live-value ()
+  "Numeric input checks configuration and follows its caller-owned value."
+  (dolist (props '((:min "low") (:max high) (:min 4 :max 2)
+                   (:label 7) (:value "bad")))
+    (with-temp-buffer
+      (let ((problem (should-error
+                      (etaf-mount (current-buffer)
+                                  (etaf-node 'etaf-number-input props nil))
+                      :type 'etaf-component-call-error)))
+        (should (string-match-p "etaf-number-input.*property.*received.*expected"
+                                (cadr problem))))))
+  (let ((value (etaf-ref 2)) (maximum (etaf-ref 5)))
+    (with-temp-buffer
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (etaf-number-input :ref 'number :bind value :label "Count"
+                                 :min 1.5 :max (etaf-value maximum))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (should-error (setf (etaf-value maximum) 1)
+                            :type 'etaf-component-call-error)
+              (should (string-match-p "Count 2" (buffer-string)))
+              (setf (etaf-value maximum) 4)
+              (cl-letf (((symbol-function 'read-number) (lambda (&rest _) 3)))
+                (etaf-dispatch-event runtime 'number 'press))
+              (should (= 3 (etaf-value value)))
+              (should-error (setf (etaf-value value) "bad")
+                            :type 'etaf-component-call-error)
+              (should (string-match-p "Count 3" (buffer-string)))
+              (setf (etaf-value value) 4)
+              (should (string-match-p "Count 4" (buffer-string)))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-text-input-shares-values-and-preserves-cancelled-drafts ()
   "Text editing emits once, follows external updates and cancels on unmount."
   (let ((buffer (generate-new-buffer " *text-input*"))
