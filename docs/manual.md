@@ -289,6 +289,8 @@ To migrate duplicate field columns, keep one `:key :name`, give the other a
 unique key such as `:name-upper`, and use `:cell` to read the original `:name`
 field. Missing or duplicate column keys are errors. Row and column keys retain
 cell identity across reordering; changing a key replaces that cell instance.
+Custom cell Components can use ordinary unkeyed internal Hosts; there is no
+need to repeat the row or column key on each nested node.
 
 Cell functions use their row argument and normal lexical captures. Their
 Context is the consuming Table/Grid location; they do not recover the author's

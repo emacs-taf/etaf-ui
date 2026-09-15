@@ -246,6 +246,7 @@ Table 与 DataGrid 共用列契约。每一列都必须有唯一且非 nil 的 `
 迁移重复字段列时，保留一列的 `:key :name`，为另一列指定 `:name-upper` 等唯一
 key，再通过 `:cell` 读取原来的 `:name` 字段。缺失或重复 column key 都会报错。
 row key 与 column key 让 cell 身份在重排时保留；改变 key 会替换该 cell 实例。
+自定义 cell 组件内部可以使用普通的无 key 宿主，不需要在每层节点重复行或列的 key。
 
 cell 函数使用 row 参数与普通词法捕获，Context 来自消费它的 Table/Grid 挂载
 位置，不会恢复作者的 props、`etaf-state` 或私有样式。cell 需要自己的状态、样式

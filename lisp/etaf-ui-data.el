@@ -65,7 +65,7 @@ use Table's unique keys and optional `:cell' row-to-View functions."
                   (etaf-ui--table-rows
                     (etaf-value (etaf-data-items controller)) row-key)))
      :key (funcall row-key item)
-     :row item :identity (funcall row-key item) :columns columns
+     :row item :columns columns
      :row-ref row-ref :on-row-press on-row-press
      :row-selected-p (lambda (row)
                        (etaf-ui--data-grid-row-selected-p controller row row-selected-p))))

@@ -197,8 +197,8 @@ ETAF validates the collection, keys and uniqueness."
   rows)
 
 (defun etaf-ui--table-row-node
-    (row identity columns row-ref on-row-press row-selected-p)
-  "Return one canonical row Host for ROW and stable IDENTITY.
+    (row columns row-ref on-row-press row-selected-p)
+  "Return one canonical row Host for ROW.
 
 Table and DataGrid compose the same retained row Component and its cells.
 COLUMNS define the visible cells;
@@ -229,8 +229,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
      'row
      (append
       (unless (etaf-ui--table-fixed-text-columns-p columns) '(:padding ((lh 0) (ch 0))))
-      (list :key identity
-            :class (concat "etaf-table-row" (if selected-p " selected" ""))
+      (list :class (concat "etaf-table-row" (if selected-p " selected" ""))
             :ref host-ref :role (when interactive-p 'button)
             :tab-index (when interactive-p 0)
             :color
@@ -252,11 +251,11 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
    (".etaf-table-header-cell" :font-weight bold)))
 
 (etaf-ui--define-component etaf-ui--table-row
-    (&key row identity columns row-ref on-row-press row-selected-p)
-  "Render one retained Table ROW with stable IDENTITY."
+    (&key row columns row-ref on-row-press row-selected-p)
+  "Render one retained Table ROW."
   :render
   (etaf-ui--table-row-node
-   row identity columns row-ref on-row-press row-selected-p)
+   row columns row-ref on-row-press row-selected-p)
   :styles
   (("&.etaf-table-row" :padding ((lh 0) (ch 1)))))
 
@@ -285,7 +284,7 @@ callbacks even with equal contents; its stable key preserves cell state."
      (etaf-ui--table-row
       :for (item (etaf-ui--table-rows rows row-key))
       :key (funcall row-key item)
-      :row item :identity (funcall row-key item) :columns columns
+      :row item :columns columns
       :row-ref row-ref :on-row-press on-row-press
       :row-selected-p row-selected-p))))
 
