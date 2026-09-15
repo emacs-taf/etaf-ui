@@ -215,16 +215,19 @@ errors and first loading retain their existing labels. Pagination disables
 page changes during both loading and refreshing. The caller owns the Controller
 and uses its cancel/reload API; UI keeps no second request state.
 
-<!-- M0b1: row-ref-optional -->
-`:row-ref` is optional for DataGrid. When it is omitted on an interactive
-grid, DataGrid derives a stable internal Host reference from the row identity
-owned by the controller. Fallback refs are uninterned and scoped to each
-retained DataGrid instance, so separate grids may share row identities without
-colliding. When `:row-ref` is supplied, the callback owns that identity and
-must return a non-nil stable Host reference for every row. `:row-key`
-remains a required non-nil stable scalar identity for retained rows. DataGrid
-retains one action closure per row key, so selection or Data Range updates do
-not recreate handlers for unchanged rows.
+DataGrid composes the same row Components as Table. `:row-key` supplies the
+non-nil stable scalar identity used to retain each row and its custom cell
+Components. Without `:row-ref`, ETAF provides the row's instance-local Host
+reference, so multiple grids can display the same data without collisions.
+An explicit `:row-ref` function supplies a caller-owned address and must return
+a non-nil stable reference for each interactive row.
+
+Ordinary row callbacks capture the displayed row and handler. ETAF publishes
+them with the corresponding successful render and releases them with the row;
+applications need no callback cache or post-update synchronization. Use Host
+references for addressing, not callback object identity. Loading status comes
+from the Data Controller; arbitrary fields in a row remain business data.
+
 An integer column `:width` is readable character capacity, not a raw pixel
 value. DataGrid passes Ebox's native character unit through and reserves one
 native character between non-final tracks. Use `:width '(fr 1)` to let a column

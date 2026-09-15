@@ -208,6 +208,16 @@
       "name": "etaf-ui-control-forwards-native-feedback",
       "file": "tests/etaf-ui-affordance-tests.el",
       "purpose": "Native root attributes reach Ebox through the public Button component."
+    },
+    {
+      "name": "etaf-ui-grid-and-table-share-row-presentation",
+      "file": "tests/etaf-ui-grid-composition-tests.el",
+      "purpose": "Table and DataGrid produce matching layout and selection paint while all row fields remain business data."
+    },
+    {
+      "name": "etaf-ui-grid-rows-use-framework-identity-and-callbacks",
+      "file": "tests/etaf-ui-grid-composition-tests.el",
+      "purpose": "Separate grids retain unique automatic targets across reorder and publish current row data and handlers through the framework."
     }
   ]
 }

@@ -50,10 +50,12 @@
 ;; appears above the rows; refresh uses LOADING-LABEL or Refreshing....
 ;; Cancellation uses ERROR-LABEL or Loading cancelled. Pagination disables
 ;; page changes while loading or refreshing. Controllers remain caller-owned.
-;; Its keyed Range retains row identity across insert, reorder, and update.
-;; Setup state owns per-instance fallback refs plus commit-staged stable row
-;; actions; failed candidates cannot mutate committed handler inputs.  COLUMNS
-;; use Table's unique keys and optional `:cell' row-to-View functions.
+;; Table row Components retain keyed identity and custom cell state across
+;; insert, reorder and update. ETAF supplies instance-local Host references and
+;; publishes each row callback with its visible data; callers need :row-ref only
+;; for explicit external addresses. UI owns no callback or reference cache.
+;; COLUMNS use Table's unique keys and optional `:cell' row-to-View functions.
+;; Row fields remain business data and are never interpreted as loading status.
 ;; Use inside (etaf-view (etaf-data-grid ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-label (&key text variant)

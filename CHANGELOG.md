@@ -4,11 +4,20 @@
 
 ### Changed
 
+- DataGrid composes the same row Components as Table, including row layout,
+  selection paint and custom cell state. ETAF owns automatic row references and
+  publishes current callback inputs. Address rows by Host reference; callback
+  object identity is no longer kept stable by a separate UI cache. Public
+  DataGrid props and explicit row references are unchanged.
+
 - DataGrid shows idle, background refresh and cancellation states. Refresh
   retains interactive rows; Pagination disables page changes while refreshing.
   Update ETAF together with UI for the asynchronous Data status contract.
 
 ### Fixed
+
+- DataGrid no longer interprets a row's `:etaf-data-grid-state` or `:text`
+  business fields as loading/error metadata.
 
 - Label now supports its documented width, padding and border attributes.
   It composes an Ebox Box and Text, so constrained prose can wrap and reflow

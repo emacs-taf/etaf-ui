@@ -200,8 +200,8 @@ ETAF validates keys and uniqueness."
     (row identity columns row-ref on-row-press row-selected-p)
   "Return one canonical row Host for ROW and stable IDENTITY.
 
-The retained Table row shares its cell construction with DataGrid's keyed
-hot path.  COLUMNS define the visible cells;
+Table and DataGrid compose the same retained row Component and its cells.
+COLUMNS define the visible cells;
 ROW-REF, ON-ROW-PRESS, and ROW-SELECTED-P define optional interaction.
 Without ROW-REF the Host receives ETAF's usual instance-local reference."
   (let* ((callback on-row-press)
