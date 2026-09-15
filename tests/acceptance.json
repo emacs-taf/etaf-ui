@@ -65,9 +65,9 @@
       "purpose": "A failed later cell cannot replace an earlier cell's committed callback."
     },
     {
-      "name": "etaf-ui-cell-grid-content-update-stays-row-local",
+      "name": "etaf-ui-cell-grid-publishes-current-rows-and-selection",
       "file": "tests/etaf-ui-cell-tests.el",
-      "purpose": "An item update evaluates one custom cell; selection visits only its delta."
+      "purpose": "Replacing a row with equal or changed contents updates cell output and callback identity, while focus and selection remain consistent under retained keys."
     },
     {
       "name": "etaf-ui-docs-readmes-mount-and-dispatch-in-fresh-emacs",

@@ -13,15 +13,12 @@
 
 (defvar etaf-ui-cell-test--removed nil)
 
-(defvar etaf-ui-cell-test--calls nil)
-
 (defun etaf-ui-cell-test--row-key (row)
   "Return ROW's stable identity."
   (plist-get row :id))
 
 (defun etaf-ui-cell-test--name (row)
-  "Return ROW's name, recording factory evaluation for locality assertions."
-  (push (plist-get row :id) etaf-ui-cell-test--calls)
+  "Return ROW's name as custom cell content."
   (plist-get row :name))
 
 (defmacro etaf-ui-cell-test--with-buffer (name &rest body)
@@ -273,35 +270,48 @@
         (etaf-dispatch-event runtime first-ref 'press)
         (should (equal "Published" pressed))))))
 
-(ert-deftest etaf-ui-cell-grid-content-update-stays-row-local ()
-  "An item update evaluates one custom cell; selection visits only its delta."
-  (let* ((etaf-ui-cell-test--calls nil)
-         (rows (cl-loop for id from 1 to 12
+(ert-deftest etaf-ui-cell-grid-publishes-current-rows-and-selection ()
+  "Cells, row callbacks and selection follow current inputs under retained keys."
+  (let* ((rows (cl-loop for id from 1 to 12
                         collect (list :id id :name (format "Row %d" id))))
          (source (etaf-data-memory-source rows :id-key :id))
          (controller (etaf-data-controller source :page-size 12 :auto-load t))
-         (columns '((:key :name :width 12 :cell etaf-ui-cell-test--name))))
+         (columns '((:key :name :width 12 :cell etaf-ui-cell-test--name)))
+         (replacement (copy-sequence (nth 5 rows)))
+         (row-ref (lambda (row) (intern (format "grid-row-%s" (plist-get row :id)))))
+         pressed)
     (unwind-protect
         (etaf-ui-cell-test--with-buffer buffer
           (etaf-mount
            buffer
            (etaf-view
             (etaf-data-grid :controller controller :columns columns
-                            :row-key #'etaf-ui-cell-test--row-key)))
-          (setq etaf-ui-cell-test--calls nil)
-          (setf (etaf-value (etaf-data-items controller))
-                (mapcar (lambda (row)
-                          (if (= 6 (plist-get row :id))
-                              '(:id 6 :name "Changed")
-                            row))
-                        rows))
-          (should (equal '(6) etaf-ui-cell-test--calls))
-          (etaf-data-select-one controller 1)
-          (setq etaf-ui-cell-test--calls nil)
-          (etaf-data-select-one controller 2)
-          (should (cl-every (lambda (id) (memq id '(1 2)))
-                            etaf-ui-cell-test--calls))
-          (should (<= (length etaf-ui-cell-test--calls) 2)))
+                            :row-key #'etaf-ui-cell-test--row-key
+                            :row-ref row-ref :on-row-press (lambda (row) (setq pressed row)))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (etaf-focus runtime 'grid-row-6)
+            (setf (etaf-value (etaf-data-items controller))
+                  (mapcar (lambda (row)
+                            (if (= 6 (plist-get row :id)) replacement row)) rows))
+            (etaf-dispatch-event runtime 'grid-row-6 'press)
+            (should (eq pressed replacement))
+            (should (eq (etaf-focused-host-ref runtime) 'grid-row-6))
+            (setq replacement '(:id 6 :name "Changed"))
+            (setf (etaf-value (etaf-data-items controller))
+                  (mapcar (lambda (row)
+                            (if (= 6 (plist-get row :id)) replacement row)) rows))
+            (should (string-match-p "Changed" (with-current-buffer buffer (buffer-string))))
+            (etaf-dispatch-event runtime 'grid-row-6 'press)
+            (should (eq pressed replacement))
+            (etaf-dispatch-event runtime 'grid-row-1 'press)
+            (should (eq pressed (car rows)))
+            (etaf-data-select-one controller 1)
+            (etaf-data-select-one controller 2)
+            (dolist (id '(1 2 6))
+              (let ((class (plist-get (etaf-runtime-host-props-for
+                                      runtime (funcall row-ref (list :id id))) :class)))
+                (should (equal (not (null (string-match-p "selected" (format "%s" class))))
+                               (= id 2)))))))
       (etaf-data-stop controller))))
 
 (provide 'etaf-ui-cell-tests)

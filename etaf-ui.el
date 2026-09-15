@@ -149,6 +149,8 @@
 ;; addresses; interactive rows otherwise receive instance-local references.
 ;; Interaction and selection are controlled optional inputs; Table never owns
 ;; application or Data Controller state.
+;; Rows retain their application object identity. A replacement row updates
+;; callbacks even with equal contents; its stable key preserves cell state.
 ;; Use inside (etaf-view (etaf-table ...)); keyword arguments are component props.
 ;;
 

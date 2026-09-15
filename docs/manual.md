@@ -227,6 +227,9 @@ them with the corresponding successful render and releases them with the row;
 applications need no callback cache or post-update synchronization. Use Host
 references for addressing, not callback object identity. Loading status comes
 from the Data Controller; arbitrary fields in a row remain business data.
+Table and DataGrid iterate the supplied row objects directly. Replace a row
+object to update its input, including replacements with equal contents; keep
+its key to retain cell state and focus. In-place mutation is not reactive.
 
 An integer column `:width` is readable character capacity, not a raw pixel
 value. DataGrid passes Ebox's native character unit through and reserves one

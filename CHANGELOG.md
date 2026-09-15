@@ -16,6 +16,10 @@
 
 ### Fixed
 
+- Table and DataGrid pass original rows through keyed iteration, preserving
+  unchanged input identities. Replacement row objects update callbacks even
+  when contents match, while stable keys retain cell state and focus.
+
 - DataGrid no longer interprets a row's `:etaf-data-grid-state` or `:text`
   business fields as loading/error metadata.
 

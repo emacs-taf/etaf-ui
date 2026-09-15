@@ -189,12 +189,12 @@ widths change between fixed and fractional tracks."
       (list (etaf-node 'text nil (list text)))
     (list (etaf-ui--table-grid columns (etaf-ui--table-cells row columns)))))
 
-(defun etaf-ui--table-entries (rows row-key)
-  "Return `(KEY . ROW)' entries for ROWS using ROW-KEY.
-ETAF validates keys and uniqueness."
+(defun etaf-ui--table-rows (rows row-key)
+  "Validate ROW-KEY and return the original ROWS for keyed iteration.
+ETAF validates the collection, keys and uniqueness."
   (unless (functionp row-key)
     (error "ETAF Table requires a function-valued :row-key"))
-  (mapcar (lambda (row) (cons (funcall row-key row) row)) rows))
+  rows)
 
 (defun etaf-ui--table-row-node
     (row identity columns row-ref on-row-press row-selected-p)
@@ -273,7 +273,9 @@ in a returned Component, whose Context comes from the consuming Table.
 ROW-KEY supplies stable identity.  ROW-REF is only needed for caller-owned
 addresses; interactive rows otherwise receive instance-local references.
 Interaction and selection are controlled optional inputs; Table never owns
-application or Data Controller state."
+application or Data Controller state.
+Rows retain their application object identity. A replacement row updates
+callbacks even with equal contents; its stable key preserves cell state."
   :view
   (column
    :class "etaf-table"
@@ -281,9 +283,9 @@ application or Data Controller state."
    (etaf-ui--table-header :columns columns)
    (column :class "etaf-table-body"
      (etaf-ui--table-row
-      :for (entry (etaf-ui--table-entries rows row-key))
-      :key (car entry)
-      :row (cdr entry) :identity (car entry) :columns columns
+      :for (item (etaf-ui--table-rows rows row-key))
+      :key (funcall row-key item)
+      :row item :identity (funcall row-key item) :columns columns
       :row-ref row-ref :on-row-press on-row-press
       :row-selected-p row-selected-p))))
 
