@@ -45,6 +45,9 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 保存回调中提交。
 
 运行 `M-x etaf-ui-surfaces-open` 查看完整的[菜单、帮助和偏好设置示例](../examples/etaf-ui-surfaces.el)。
+用 `make gui-check EMACSCLIENT=/path/to/emacsclient` 在已经打开的图形 Emacs 中
+重复检查键盘与鼠标激活、禁用项、原生中文文本输入与取消、嵌套焦点返回、关闭和
+卸载后重开。脚本保留示例可见；截图质量、操作系统输入法和前台输入延迟仍需单独验收。
 重新打开重置示例状态，关闭 buffer 或调用 `etaf-unmount` 释放 Runtime。
 
 ## 基础控件

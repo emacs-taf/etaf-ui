@@ -12,7 +12,7 @@ SOURCES += $(wildcard examples/*.el) scripts/etaf-ui-surfaces-gui.el
 all: check
 
 compile:
-	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc
+	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc scripts/etaf-ui-surfaces-gui.elc
 	$(EMACS) -Q --batch $(LOAD_PATH) \
 		--eval '(setq load-prefer-newer t byte-compile-error-on-warn t)' \
 		--eval '(require (quote cl-lib))' \
@@ -28,7 +28,7 @@ checkdoc:
 check: structure-check compile acceptance api-check
 
 clean:
-	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc
+	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc scripts/etaf-ui-surfaces-gui.elc
 
 .PHONY: structure-check setup-hooks gui-check
 structure-check:

@@ -1,4 +1,11 @@
-;;; -*- lexical-binding: t; -*-
+;;; etaf-ui-surfaces-gui.el --- Native floating UI interaction check -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; Loaded by scripts/run-gui-check.sh in an existing graphical Emacs server.
+;; Exercise native command bindings and minibuffer input in the dedicated
+;; example buffer. This is not an OS input-method or latency certification.
+
+;;; Code:
 (require 'etaf-ui)
 (require 'cl-lib)
 (defvar etaf-ui-gui-interactions nil)
@@ -92,6 +99,9 @@
 
 ;;;###autoload
 (defun etaf-ui-gui-interactions-start ()
+  "Run the example's interaction sequence in the existing graphical frame."
+  (unless (display-graphic-p) (user-error "GUI checks require a graphical Emacs frame"))
+  (when (active-minibuffer-window) (user-error "Finish the active minibuffer before GUI checks"))
   (when-let* ((runtime (etaf-runtime-for-buffer "*ETAF UI Surfaces*")))
     (etaf-unmount runtime))
   (setq etaf-ui-gui-interactions nil
