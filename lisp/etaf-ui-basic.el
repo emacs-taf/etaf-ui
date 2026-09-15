@@ -78,9 +78,9 @@ ref directly; it owns no state or subscription of its own."
           :font-weight (when (memq variant '(strong heading)) 'bold))))
 
 (etaf-ui--define-component etaf-label (&key text variant)
-  "Render TEXT as a semantic Label."
+  "Render TEXT in a semantic Label with ordinary Box layout."
   :view
-  (text
+  (box
    :class (let ((presentation (etaf-ui--label-presentation variant)))
             (etaf-ui--class-value
              "etaf-label"
@@ -88,7 +88,7 @@ ref directly; it owns no state or subscription of its own."
    :color (plist-get (etaf-ui--label-presentation variant) :color)
    :font-weight
    (plist-get (etaf-ui--label-presentation variant) :font-weight)
-   (expr (etaf-ui--text-value text))))
+   (text (expr (etaf-ui--text-value text)))))
 
 (defun etaf-ui--button-variant-values (variant disabled)
   "Return themed presentation defaults for Button VARIANT and DISABLED."

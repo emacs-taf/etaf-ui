@@ -164,7 +164,13 @@ or owned aria state, such as `:aria-checked`, is an input error; accessible
 for the complete contract.
 
 `etaf-label` accepts `:text`, `:class`, `:color`, `:bgcolor`, `:font-weight`,
-`:width`, `:border`, `:padding`, and `:ref`.
+`:width`, `:border`, `:padding`, `:wrap-mode`, and `:ref`. Its Box owns layout;
+the contained Text inherits typography. For a paragraph that follows its parent,
+use `(etaf-label :text description :width 'stretch :wrap-mode 'word)`.
+`description` may be a plain value, ref or computed; updates reflow the same
+Label. Use `:wrap-mode 'none` with `:overflow 'hidden` to clip without soft wrapping,
+or omit geometry for an intrinsic caption. A raw `text` Host remains available
+when the caller wants Text without a layout container.
 `etaf-panel` accepts `:title`, the same
 surface presentation props, and projects the named `header` slot plus the
 default slot.

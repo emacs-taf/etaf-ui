@@ -57,7 +57,14 @@
 ;; Use inside (etaf-view (etaf-data-grid ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-label (&key text variant)
-;; Render TEXT as a semantic Label.
+;; Render TEXT in a semantic Label with ordinary Box layout. TEXT accepts a
+;; value, ref or computed; nil is empty, strings retain their text properties,
+;; and other values use their printed representation. VARIANT selects the
+;; default, muted, danger, success, strong or heading presentation.
+;; Layout attributes such as :width, :padding, :border and :wrap-mode apply
+;; to the Label's Box; its Text child inherits typography and color.
+;; Use :width 'stretch to follow the containing width and :wrap-mode 'word
+;; for wrapping prose. Reactive text and viewport changes use Ebox reflow.
 ;; Use inside (etaf-view (etaf-label ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-number-input (&key value label on-change disabled min max bind)

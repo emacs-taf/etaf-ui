@@ -15,6 +15,16 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-label-supports-box-geometry-and-text-presentation",
+      "file": "tests/etaf-ui-label-tests.el",
+      "purpose": "Label width, padding, border, wrapping and inherited text presentation match direct Ebox composition."
+    },
+    {
+      "name": "etaf-ui-label-reflows-reactive-text-and-preserves-following-content",
+      "file": "tests/etaf-ui-label-tests.el",
+      "purpose": "Reactive English and Chinese text reflow inside the allocated width, preserving the Label ref and following content after resize."
+    },
+    {
       "name": "etaf-ui-button-callback-uses-only-committed-props",
       "file": "tests/etaf-ui-button-commit-tests.el",
       "purpose": "A later sibling failure cannot replace the live Button callback."

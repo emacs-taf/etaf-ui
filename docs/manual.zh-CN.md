@@ -136,7 +136,13 @@ Behavior name 在安装前报错。
 [交互与迁移说明](https://gitea.gklazycat.heiyu.space/geekinney/etaf/src/branch/main/docs/manual.zh-CN.md#interaction-migration)。
 
 `etaf-label` 支持 `:text`、`:class`、`:color`、`:bgcolor`、`:font-weight`、
-`:width`、`:border`、`:padding` 和 `:ref`。
+`:width`、`:border`、`:padding`、`:wrap-mode` 和 `:ref`。Box 负责布局，
+内部 Text 继承字体和颜色。随父容器宽度换行的段落可写为
+`(etaf-label :text description :width 'stretch :wrap-mode 'word)`。
+`description` 可以是普通值、ref 或 computed；更新会重新排版同一个 Label。
+`:wrap-mode 'none` 配合 `:overflow 'hidden` 表示不软换行并裁剪超宽内容；
+短标签可以省略几何属性，使用内容固有尺寸。只需要 Text 而不需要布局容器时，
+直接使用 `text` Host。
 `etaf-panel` 支持 `:title`、相同的
 surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 

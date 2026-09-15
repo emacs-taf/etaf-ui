@@ -10,6 +10,12 @@
 
 ### Fixed
 
+- Label now supports its documented width, padding and border attributes.
+  It composes an Ebox Box and Text, so constrained prose can wrap and reflow
+  after content or viewport changes. The `etaf-label` class and forwarded
+  attributes address the Box; selectors explicitly requiring a Text root
+  should use `.etaf-label` instead. Raw `text` Hosts remain unchanged.
+
 - Native pointer, help and hover feedback can be requested through control
   root attributes with the updated ETAF bridge. Correct the manual's claim
   that all controls provide this feedback by default.
