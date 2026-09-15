@@ -159,6 +159,45 @@
 ;; Use inside (etaf-view (etaf-table ...)); keyword arguments are component props.
 ;;
 
+;; Component: etaf-popover (&key open anchor placement width title on-close)
+;; Show controlled OPEN content on Ebox's root layer, anchored to a unique
+;; semantic ID. OPEN can be a value, ref or computed; ON-CLOSE requests closing
+;; without owning application state. Default PLACEMENT is bottom-start and
+;; WIDTH is (ch 32). Other placements follow Ebox's anchor contract. TITLE is
+;; optional. Default and footer slots retain their author Context and state.
+;; Opening focuses the first eligible control (or the panel when empty).
+;; TAB/Shift-TAB and arrow keys navigate within the panel; Escape/C-g request
+;; close. Closing restores a still-valid prior focus. Shortcuts are buffer-local
+;; and disposed with the open panel. Outside controls remain mouse-accessible.
+;; The application root must reserve a canvas height for floating content.
+;; Ebox owns clipping, flipping, occlusion and layout. No child frame is created.
+;;
+;; Component: etaf-dialog (&key open title width close-label on-close)
+;; Show a controlled modal panel using the same floating surface as Popover.
+;; TITLE defaults to Dialog and WIDTH to (ch 48). Default content and footer
+;; slots compose ordinary Components; a CLOSE-LABEL button (default "Close")
+;; requests ON-CLOSE.
+;; The opaque backdrop covers the root canvas, blocking covered controls and
+;; their focus targets. It does not close on a backdrop click. Keyboard
+;; navigation, dismissal and focus return follow Popover. The backdrop uses
+;; solid paint; Ebox does not provide alpha blending. Dialogs own no form data.
+;;
+;; Component: etaf-dropdown-menu (&key label items on-select disabled width)
+;; Render a Button and an anchored Popover of menu items. LABEL defaults to
+;; Actions; WIDTH defaults to (ch 28). ITEMS use etaf-menu's item contract.
+;; Enabled selection closes the menu and invokes ON-SELECT once with its key.
+;; Disabled items remain visible and cannot be activated or focused. Empty
+;; menus or nil ON-SELECT disable the trigger. Open state and the unique anchor
+;; belong to each retained Component; application data remains caller-owned.
+;; Keyboard shortcuts and focus return follow Popover. Use native etaf-menu
+;; when completion matching, rather than an in-buffer menu, suits the task.
+;;
+;; Function: etaf-ui-surfaces-open ()
+;;;###autoload (autoload 'etaf-ui-surfaces-open "etaf-ui" nil t)
+;; Mount the runnable floating-component example in *ETAF UI Surfaces* and
+;; return its buffer. Interactive calls display it. Reopening resets its
+;; application state; unmount the Runtime or close the buffer to dispose it.
+;;
 ;;; Code:
 
 ;;;###autoload
@@ -172,8 +211,11 @@
 
 (require 'etaf-ui-basic)
 (require 'etaf-ui-input)
+(require 'etaf-ui-surface)
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
+
+(autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
 
 (provide 'etaf-ui)
 ;;; etaf-ui.el ends here

@@ -2,16 +2,17 @@
 .NOTPARALLEL:
 EMACS ?= emacs
 LOAD_PATH = -L . -L lisp -L ../etaf -L ../ebox -L ../ecss -L ../tp
-SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-input.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el etaf-ui.el
+SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-input.el lisp/etaf-ui-surface.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el etaf-ui.el
 
 TEST_FILES := $(wildcard tests/*-tests.el)
+SOURCES += $(wildcard examples/*.el) scripts/etaf-ui-surfaces-gui.el
 
 .PHONY: all compile check checkdoc load clean
 
 all: check
 
 compile:
-	rm -f *.elc lisp/*.elc tests/*.elc
+	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc
 	$(EMACS) -Q --batch $(LOAD_PATH) \
 		--eval '(setq load-prefer-newer t byte-compile-error-on-warn t)' \
 		--eval '(require (quote cl-lib))' \
@@ -27,13 +28,16 @@ checkdoc:
 check: structure-check compile acceptance api-check
 
 clean:
-	rm -f *.elc lisp/*.elc tests/*.elc
+	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc
 
-.PHONY: structure-check setup-hooks
+.PHONY: structure-check setup-hooks gui-check
 structure-check:
 	python3 scripts/check-repository.py
 setup-hooks:
 	git config --local core.hooksPath .githooks
+
+gui-check:
+	scripts/run-gui-check.sh
 
 .PHONY: acceptance
 acceptance:

@@ -22,23 +22,16 @@ No returns nil; user quit and target invalidation abort the callback."
      (let ((use-dialog-box nil))
        (yes-or-no-p (concat prompt " "))))))
 
-(etaf-ui--define-component etaf-menu (&key (label "Actions") items on-select disabled)
-  "Choose an action from ITEMS and pass its key to ON-SELECT.
-Each item has a unique scalar :key, nonempty string :label and optional
-:disabled.  Disabled items cannot be selected; an empty menu is disabled."
-  :render
-  (let (choices keys labels)
-    (etaf-check-prop :label label (stringp label) "a string" 'etaf-menu)
-    (etaf-check-prop :on-select on-select
-                     (or (null on-select) (functionp on-select))
-                     "a function or nil" 'etaf-menu)
+(defun etaf-ui--check-menu-items (items component)
+  "Validate menu ITEMS for COMPONENT and return the same items."
+  (let (keys labels)
     (etaf-check-prop :items items (proper-list-p items)
-                     "a list of menu items" 'etaf-menu)
+                     "a list of menu items" component)
     (dolist (item items)
       (etaf-check-prop :items item
                        (and (proper-list-p item) (zerop (% (length item) 2)))
                        "item plists with :key, :label and optional :disabled"
-                       'etaf-menu)
+                       component)
       (let ((key (plist-get item :key)) (caption (plist-get item :label)))
         (etaf-check-prop :items item
                          (and key
@@ -47,12 +40,24 @@ Each item has a unique scalar :key, nonempty string :label and optional
                               (not (member key keys))
                               (not (member caption labels)))
                          "unique non-nil scalar keys and unique nonempty string labels"
-                         'etaf-menu)
+                         component)
         (push key keys)
-        (push caption labels)
-        (unless (plist-get item :disabled)
-          (push (cons caption key) choices))))
-    (setq choices (nreverse choices))
+        (push caption labels)))
+    items))
+
+(etaf-ui--define-component etaf-menu (&key (label "Actions") items on-select disabled)
+  "Choose an action from ITEMS and pass its key to ON-SELECT.
+Each item has a unique scalar :key, nonempty string :label and optional
+:disabled.  Disabled items cannot be selected; an empty menu is disabled."
+  :render
+  (let ((choices
+         (cl-loop for item in (etaf-ui--check-menu-items items 'etaf-menu)
+                  unless (plist-get item :disabled)
+                  collect (cons (plist-get item :label) (plist-get item :key)))))
+    (etaf-check-prop :label label (stringp label) "a string" 'etaf-menu)
+    (etaf-check-prop :on-select on-select
+                     (or (null on-select) (functionp on-select))
+                     "a function or nil" 'etaf-menu)
     (etaf-node
      'etaf-button
      (list :label (concat label " ▾") :aria-label label :variant 'ghost

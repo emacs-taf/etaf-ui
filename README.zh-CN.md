@@ -34,6 +34,10 @@
 
 [完整用法与接口契约](docs/manual.zh-CN.md)。
 
+浮层界面可用 `etaf-popover`、`etaf-dropdown-menu` 和 `etaf-dialog` 组合普通控件
+与 slot。运行 `M-x etaf-ui-surfaces-open` 打开[菜单与偏好设置示例](examples/etaf-ui-surfaces.el)。
+定位和遮挡由 Ebox 负责，区域内键盘导航复用 Ebox 的共享焦点。
+
 ## 开发
 
 克隆后运行 `make setup-hooks`。提交变更前运行 `make check`；`make structure-check` 用于快速检查目录、命名和引用。

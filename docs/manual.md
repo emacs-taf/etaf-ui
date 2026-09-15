@@ -2,6 +2,67 @@
 
 [Installation and first example](../README.md).
 
+## Floating content and modal composition
+
+Use `etaf-dropdown-menu` for a short in-buffer action list; `etaf-menu` remains
+the native completion choice for searchable lists. Use `etaf-popover` for
+arbitrary content anchored to a unique Host `:id`, and `etaf-dialog` for a
+modal form or task. These components compose the same Button, inputs and
+slots. Their supported props and lifecycle are listed in [the entry](../etaf-ui.el).
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(etaf-define-component preferences-dialog ()
+  :bindings ((open (etaf-ref nil)) (enabled (etaf-ref t)))
+  :view
+  (column :width 'stretch :height '(vh 90)
+    (etaf-button :label "Preferences"
+                 :on-press (lambda () (setf (etaf-value open) t)))
+    (etaf-dialog :open open :title "Preferences"
+                 :on-close (lambda () (setf (etaf-value open) nil))
+      (etaf-checkbox :bind enabled :label "Notifications")
+      (slot :name 'footer
+        (etaf-button :label "Done"
+                     :on-press (lambda () (setf (etaf-value open) nil)))))))
+(etaf-mount "*Preferences*" (etaf-view (preferences-dialog)))
+```
+
+The root reserves the floating canvas; absolute panels do not grow normal
+flow. Ebox places anchored panels, flips them when space allows, clips to that
+canvas and resolves occlusion. A dialog's opaque backdrop blocks covered
+controls. Floating content must use the canvas line height; alpha blending
+and child frames are outside this rendering contract. A small canvas can clip
+content, so reserve sufficient height and choose a width suitable for the app.
+
+Opening focuses the first eligible control. Tab/Shift-Tab and Up/Down cycle
+within the panel through ETAF's Ebox focus adapter; Escape/C-g call `on-close`.
+The application accepts closing by changing `open`. A dropdown manages only
+its own open state and calls `on-select` with an enabled item's key. Popovers
+leave outside controls mouse-accessible; outside clicks do not dismiss them.
+Dialog backdrops do not dismiss on click. Native Emacs commands remain
+available, and this modal interaction policy is not an access-control boundary.
+
+Closing or unmounting removes buffer-local shortcuts. Nested panels restore
+the enclosing panel's shortcuts and a valid prior target; a menu handing off
+to a dialog retains the original trigger as a return route. Ebox remains the
+current-focus authority. A panel whose anchor is absent cannot intercept
+keys. Slots retain their author's Context; form data stays in caller refs.
+For drafts, keep separate draft and accepted values in the application and
+apply them from the footer's save callback.
+
+Run `M-x etaf-ui-surfaces-open` for the complete
+[menu, help and preferences example](../examples/etaf-ui-surfaces.el). Reopening
+resets its state. Closing its buffer or calling `etaf-unmount` disposes it.
+
+To run the repeatable interaction check in the existing graphical Emacs server,
+use `make gui-check EMACSCLIENT=/path/to/emacsclient`. It exercises keyboard and
+mouse activation, disabled items, native Chinese input and cancellation, nested
+focus return, modal closing, and unmount/remount cleanup. It leaves the example
+visible; it does not certify screenshot quality or foreground input latency.
+
+## Basic controls
+
 
 Core does not automatically load `.etaf` files. The optional Playground reads
 inert structural source and explicitly loads its registered Elisp companion;

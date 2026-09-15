@@ -2,6 +2,53 @@
 
 [安装和最小示例](../README.zh-CN.md)。
 
+## 浮层与模态组合
+
+短操作列表使用 buffer 内的 `etaf-dropdown-menu`；需要补全检索时仍可使用原生
+`etaf-menu`。`etaf-popover` 把任意内容锚定到唯一的 Host `:id`，`etaf-dialog`
+提供模态表单或任务区域。它们组合相同的 Button、输入控件和 slot，完整参数及
+生命周期见[公共入口](../etaf-ui.el)。
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(etaf-define-component preferences-dialog ()
+  :bindings ((open (etaf-ref nil)) (enabled (etaf-ref t)))
+  :view
+  (column :width 'stretch :height '(vh 90)
+    (etaf-button :label "偏好设置"
+                 :on-press (lambda () (setf (etaf-value open) t)))
+    (etaf-dialog :open open :title "偏好设置"
+                 :on-close (lambda () (setf (etaf-value open) nil))
+      (etaf-checkbox :bind enabled :label "接收通知")
+      (slot :name 'footer
+        (etaf-button :label "完成"
+                     :on-press (lambda () (setf (etaf-value open) nil)))))))
+(etaf-mount "*Preferences*" (etaf-view (preferences-dialog)))
+```
+
+根容器预留浮层画布，绝对定位面板不增大普通流的高度。Ebox 负责锚点定位、
+空间允许时翻转、画布裁剪及遮挡。模态框的不透明背景阻止被覆盖的控件接收
+命中与焦点。浮层须与画布使用相同行高；不提供透明混合或 child frame。
+画布过小会裁剪内容，应用应预留足够高度并选择合适宽度。
+
+打开后焦点进入首个有效控件，Tab／Shift-Tab 和上下方向键通过共享 Ebox
+接口在面板内循环。Escape／C-g 调用 `on-close`，应用修改 `open` 接受关闭。
+下拉菜单仅管理自身展开状态，选择后将启用项的 key 交给 `on-select`。
+Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态背景点击也不关闭。
+原生 Emacs 命令仍然可用，这个交互策略不作为访问控制边界。
+
+关闭和卸载释放 buffer 局部按键。嵌套面板恢复外层按键及仍有效的原焦点；
+菜单打开模态框时保留最初入口作为返回路径。Ebox 始终是当前焦点的权威。
+锚点不存在、面板未绘制时不截获按键。slot 保留声明方 Context，表单数据仍
+由调用者 ref 管理；需要草稿时，应用分开保存草稿和已接受值，在 footer 的
+保存回调中提交。
+
+运行 `M-x etaf-ui-surfaces-open` 查看完整的[菜单、帮助和偏好设置示例](../examples/etaf-ui-surfaces.el)。
+重新打开重置示例状态，关闭 buffer 或调用 `etaf-unmount` 释放 Runtime。
+
+## 基础控件
+
 
 Core 不会自动加载 `.etaf`。可选的 Playground 读取 inert 结构源，并显式加载
 已注册的 Elisp companion；这个文件格式不会生成更短的 Component alias。

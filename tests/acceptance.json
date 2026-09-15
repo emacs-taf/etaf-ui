@@ -223,6 +223,41 @@
       "name": "etaf-ui-number-input-validates-configuration-and-live-value",
       "file": "tests/etaf-ui-input-tests.el",
       "purpose": "NumberInput validates configuration before publishing inputs and follows caller-owned integer values through native editing."
+    },
+    {
+      "name": "etaf-ui-dropdown-opens-navigates-selects-and-restores-focus",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A dropdown renders its items, skips disabled ones and invokes selection once."
+    },
+    {
+      "name": "etaf-ui-dialog-composes-slots-and-blocks-covered-controls",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "The modal canvas covers background targets and returns focus after closing."
+    },
+    {
+      "name": "etaf-ui-floating-surfaces-nest-and-release-buffer-shortcuts",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A menu inside a dialog restores the dialog keys, then the buffer's keys."
+    },
+    {
+      "name": "etaf-ui-popover-keeps-instance-state-and-independent-open-inputs",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "Two controlled popovers have independent state and clean up their slots."
+    },
+    {
+      "name": "etaf-ui-nested-dialog-covers-parent-and-restores-its-controls",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A nested modal blocks the outer panel and restores it on close."
+    },
+    {
+      "name": "etaf-ui-unpainted-popover-does-not-capture-keys",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "An unavailable anchor leaves the mounted buffer's ordinary keys usable."
+    },
+    {
+      "name": "etaf-ui-surfaces-example-composes-menu-dialog-and-input",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "The runnable example hands menu focus to a dialog and back to its trigger."
     }
   ]
 }

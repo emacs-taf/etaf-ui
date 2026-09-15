@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- `etaf-popover`, `etaf-dropdown-menu` and `etaf-dialog` provide in-buffer
+  floating content, disabled action items and modal composition. They share
+  Ebox positioning, occlusion and scoped focus through ETAF; closing and
+  nested handoff restore a valid prior entry. Escape/C-g dismiss and Tab or
+  arrow keys navigate. The application owns dialog state and form values.
+- `etaf-ui-surfaces-open` opens a runnable composition example. These
+  components require ETAF's `etaf-focus-within` and its Ebox provider.
+
 ### Changed
 
 - DataGrid composes the same row Components as Table, including row layout,

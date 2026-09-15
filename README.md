@@ -35,6 +35,13 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 
 [Complete usage and interface contracts](docs/manual.md).
 
+For in-buffer floating UI, compose `etaf-popover`, `etaf-dropdown-menu` and
+`etaf-dialog` with ordinary controls and slots. Run `M-x etaf-ui-surfaces-open`
+for the [menu and preferences example](examples/etaf-ui-surfaces.el).
+Placement and occlusion come from Ebox; panel navigation uses its shared focus.
+Run `make gui-check` against the existing graphical Emacs server for the
+maintained keyboard/mouse interaction workflow.
+
 ## Development
 
 After cloning, run `make setup-hooks`. Before submitting a change, run `make check`; `make structure-check` is the fast organization gate.
