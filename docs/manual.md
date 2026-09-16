@@ -2,6 +2,68 @@
 
 [Installation and first example](../README.md).
 
+## Component catalog by responsibility
+
+The catalog is organized by the job a component performs. This keeps the
+public surface composable: a container arranges content, a feedback component
+describes state, a floating component owns placement and dismissal, and an
+input component changes caller-owned values. Every category uses the same ETAF
+View, props, slots, lifecycle and Ebox host interaction contracts.
+
+| Category | Components | Foundation owned by |
+| --- | --- | --- |
+| Layout and containers | `etaf-panel`, `etaf-table`, `etaf-data-grid`, `etaf-tabs`, `etaf-accordion`, `etaf-divider` | Ebox flow/flex/grid geometry; ETAF controls which branch is visible |
+| Feedback and status | `etaf-label`, `etaf-badge`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton`, `etaf-card`, `etaf-avatar`, `etaf-timeline` | Ebox text and box paint; caller owns the status value |
+| Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-toast`, `etaf-dialog` | Ebox anchor/layer/occlusion plus shared panel focus |
+| Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-input`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
+| Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination` | ETAF Data Controller and Ebox retained rows |
+
+The maintained Atelier Gallery exercises every category in one compact workspace.
+Run `M-x etaf-ui-gallery-open` to inspect it; the source is
+[`examples/etaf-ui-gallery.el`](../examples/etaf-ui-gallery.el).
+It is a composition check, not a separate widget framework: components must
+remain useful independently and must not copy Ebox hit testing, focus or
+layout state.
+
+## Choosing `:view` or `:render`
+
+Both forms return the same typed ETAF View. Use `:view` as the normal authoring
+form: its DSL describes the host tree and lets the compiler validate component
+props, slots and child placement. Use `:render` when ordinary Elisp must first
+compute a value, choose a branch, or produce a sequence of Views. Wrap the
+resulting DSL in `etaf-view`; use `(expr FORM)` at a child position when FORM
+returns a string, View, or proper sequence of Views.
+
+```elisp
+(etaf-define-component greeting-view (&key name)
+  :view
+  (row :item-gap '(ch 1)
+    (text "Hello")
+    (text (expr (format "%s!" name)))))
+
+(etaf-define-component greeting-render (&key name items)
+  :render
+  (let ((caption (if name (format "Hello %s!" name) "Hello!")))
+    (etaf-view
+     (column
+       (text (expr caption))
+       (expr
+        (mapcar (lambda (item)
+                  (etaf-view (etaf-label :text item)))
+                items))))))
+```
+
+The first definition is the preferred static template. The second keeps the
+same DSL while using ordinary Elisp for a conditional and a list traversal;
+`etaf-node` is only needed when a program must construct a View tree directly.
+This is a compiler boundary, not a second rendering model: both definitions
+participate in the same props, slots, retained identity and Ebox host lifecycle.
+
+Use `etaf-input` when a form needs one shared field contract. Its `:type`
+selects `text`, `password`, `email`, `url`, `number` or ISO `date`; `:bind` or
+`value`/`on-change` remains the same for every type. `etaf-text-input` and
+`etaf-number-input` remain readable convenience names for the common cases.
+
 ## Floating content and modal composition
 
 Use `etaf-dropdown-menu` for a short in-buffer action list; `etaf-menu` remains

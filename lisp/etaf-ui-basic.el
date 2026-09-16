@@ -75,7 +75,7 @@ ref directly; it owns no state or subscription of its own."
           :color (plist-get theme color-key)
           :font-weight (when (memq variant '(strong heading)) 'bold))))
 
-(etaf-ui--define-component etaf-label (&key text variant)
+(etaf-define-component etaf-label (&key text variant)
   "Render TEXT in a semantic Label with ordinary Box layout."
   :view
   (box
@@ -109,7 +109,7 @@ ref directly; it owns no state or subscription of its own."
           :border (etaf-ui--style-border (plist-get theme border-key))
           :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 
-(etaf-ui--define-component etaf-button
+(etaf-define-component etaf-button
     (&key label on-press disabled ref class color bgcolor border padding
           font-weight tab-index aria-label use variant)
   "Render a standard pressable Button with a committed callback.
@@ -156,7 +156,7 @@ so a failed render keeps the previous callback and its captured values."
           :bgcolor (plist-get theme bg)
           :border (etaf-ui--style-border (plist-get theme border-key)))))
 
-(etaf-ui--define-component etaf-checkbox
+(etaf-define-component etaf-checkbox
     (&key (checked etaf-ui--unsupplied) label
           (on-change etaf-ui--unsupplied) disabled bind)
   "Render a controlled Checkbox using CHECKED/ON-CHANGE or writable ref BIND.
@@ -193,7 +193,7 @@ Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
    ("&.enabled" :padding ((lh 0) (ch 1)))
    (".etaf-checkbox-mark" :font-weight bold :width (ch 1))))
 
-(etaf-ui--define-component etaf-panel (&key title variant)
+(etaf-define-component etaf-panel (&key title variant)
   "Render a titled Panel with named header and default slots."
   :render
   (let ((theme (etaf-ui--style-tokens

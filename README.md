@@ -35,6 +35,10 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 
 [Complete usage and interface contracts](docs/manual.md).
 
+For a complete modern composition, run `M-x etaf-ui-gallery-open` to inspect
+the maintained Atelier workspace. It combines the catalog's layout, feedback,
+navigation, input, data and floating Components in one caller-owned flow.
+
 For in-buffer floating UI, compose `etaf-popover`, `etaf-dropdown-menu` and
 `etaf-dialog` with ordinary controls and slots. Run `M-x etaf-ui-surfaces-open`
 for the [menu and preferences example](examples/etaf-ui-surfaces.el).

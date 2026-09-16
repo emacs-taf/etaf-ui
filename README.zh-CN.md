@@ -34,6 +34,9 @@
 
 [完整用法与接口契约](docs/manual.zh-CN.md)。
 
+运行 `M-x etaf-ui-gallery-open` 查看维护中的 Atelier 现代化工作台。它把布局、
+反馈、导航、输入、数据和浮层组件组合到同一个由调用方持有状态的流程中。
+
 浮层界面可用 `etaf-popover`、`etaf-dropdown-menu` 和 `etaf-dialog` 组合普通控件
 与 slot。运行 `M-x etaf-ui-surfaces-open` 打开[菜单与偏好设置示例](examples/etaf-ui-surfaces.el)。
 运行 `make gui-check`，通过已有图形 Emacs 的 emacsclient 重复执行键盘和鼠标交互验收。

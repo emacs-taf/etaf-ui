@@ -243,14 +243,14 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
               (lambda () (funcall callback row-value)))))
      (etaf-ui--table-row-children row columns))))
 
-(etaf-ui--define-component etaf-ui--table-header (&key columns)
+(etaf-define-component etaf-ui--table-header (&key columns)
   "Render one retained Table header."
   :render (etaf-ui--table-header columns)
   :styles
   (("&.etaf-table-header" :font-weight bold :padding ((lh 0) (ch 1)))
    (".etaf-table-header-cell" :font-weight bold)))
 
-(etaf-ui--define-component etaf-ui--table-row
+(etaf-define-component etaf-ui--table-row
     (&key row columns row-ref on-row-press row-selected-p)
   "Render one retained Table ROW."
   :render
@@ -259,7 +259,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
   :styles
   (("&.etaf-table-row" :padding ((lh 0) (ch 1)))))
 
-(etaf-ui--define-component etaf-table
+(etaf-define-component etaf-table
     (&key columns rows row-key row-ref on-row-press row-selected-p)
   "Render ordinary ROWS as a presentational Table.
 

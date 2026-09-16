@@ -2,6 +2,63 @@
 
 [安装和最小示例](../README.zh-CN.md)。
 
+## 按职责分类的组件目录
+
+组件按其解决的问题分类。容器负责组织内容，反馈组件表达状态，浮层
+组件负责定位和关闭，输入组件修改调用方持有的值。所有类别都使用同一套
+ETAF View、props、slot、生命周期和 Ebox 宿主交互契约，因此可以组合也可以
+独立使用。
+
+| 类别 | 组件 | 所依赖的基础能力 |
+| --- | --- | --- |
+| 布局与容器 | `etaf-panel`、`etaf-table`、`etaf-data-grid`、`etaf-tabs`、`etaf-accordion`、`etaf-divider` | Ebox flow/flex/grid 几何；ETAF 决定显示哪个分支 |
+| 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton`、`etaf-card`、`etaf-avatar`、`etaf-timeline` | Ebox 文本和盒子绘制；调用方持有状态值 |
+| 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-toast`、`etaf-dialog` | Ebox 锚点、分层、遮挡和共享面板焦点 |
+| 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-input`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
+| 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination` | ETAF Data Controller 和 Ebox 保留行 |
+
+维护中的 Atelier Gallery 将每个类别组合在一个紧凑工作台中。运行
+`M-x etaf-ui-gallery-open` 查看它，源码在
+[`examples/etaf-ui-gallery.el`](../examples/etaf-ui-gallery.el)。Gallery 是组合验收，
+不是另一个控件框架；组件必须可以独立使用，也不能复制 Ebox 的命中、焦点或布局状态。
+
+## 选择 `:view` 还是 `:render`
+
+两种写法都会返回同一种带类型的 ETAF View。通常应优先使用 `:view`：它用
+DSL 描述宿主树，编译器可以检查组件 props、slot 和子节点位置。当需要先用
+普通 Elisp 计算值、选择分支或生成一组 View 时，才使用 `:render`。此时让
+`:render` 返回 `(etaf-view ...)`，并在子节点位置用 `(expr FORM)` 注入字符串、
+View 或合法的 View 序列。
+
+```elisp
+(etaf-define-component greeting-view (&key name)
+  :view
+  (row :item-gap '(ch 1)
+    (text "你好")
+    (text (expr (format "%s！" name)))))
+
+(etaf-define-component greeting-render (&key name items)
+  :render
+  (let ((caption (if name (format "你好，%s！" name) "你好！")))
+    (etaf-view
+     (column
+       (text (expr caption))
+       (expr
+        (mapcar (lambda (item)
+                  (etaf-view (etaf-label :text item)))
+                items))))))
+```
+
+第一个定义是静态模板的推荐写法。第二个保留同一套 DSL，同时用普通 Elisp
+处理条件和列表遍历；只有程序必须直接构造 View 树时才需要 `etaf-node`。
+这不是两套渲染模型，而是编译边界：两者使用同一套 props、slot、保留身份
+以及 Ebox 宿主生命周期。
+
+表单需要统一输入契约时使用 `etaf-input`。它通过 `:type` 选择 `text`、
+`password`、`email`、`url`、数字或 ISO 日期；所有类型都使用相同的 `:bind`
+或 `value`/`on-change`。`etaf-text-input` 和 `etaf-number-input` 仍作为
+两个常用场景的可读特化入口。
+
 ## 浮层与模态组合
 
 短操作列表使用 buffer 内的 `etaf-dropdown-menu`；需要补全检索时仍可使用原生

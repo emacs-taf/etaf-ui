@@ -258,6 +258,21 @@
       "name": "etaf-ui-surfaces-example-composes-menu-dialog-and-input",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "The runnable example hands menu focus to a dialog and back to its trigger."
+    },
+    {
+      "name": "etaf-ui-gallery-mounts-composed-catalog-and-opens-tooltip",
+      "file": "tests/etaf-ui-modern-tests.el",
+      "purpose": "The integrated Gallery mounts catalog categories and toggles a controlled tooltip."
+    },
+    {
+      "name": "etaf-ui-feedback-and-navigation-render-public-contracts",
+      "file": "tests/etaf-ui-modern-tests.el",
+      "purpose": "Feedback and navigation Components render and dispatch through public refs."
+    },
+    {
+      "name": "etaf-ui-selection-components-render-public-contracts",
+      "file": "tests/etaf-ui-modern-tests.el",
+      "purpose": "Radio, Segmented, Switch and Slider render controlled values through the public DSL."
     }
   ]
 }

@@ -12,29 +12,6 @@
 (require 'cl-lib)
 (require 'etaf)
 
-(defvar etaf-ui--component-definition-signatures
-  (make-hash-table :test #'eq)
-  "Exact catalog definitions already installed in the current process.")
-
-(defmacro etaf-ui--define-component (name arguments &rest clauses)
-  "Define catalog Component NAME once for exact ARGUMENTS and CLAUSES.
-
-`package.el' may reload dependency files after byte compilation.  Identical
-catalog definitions are idempotent across that reload, while a changed
-definition still reaches `etaf-define-component' and therefore requires the
-public `etaf-component-redefine-run' boundary."
-  (declare (indent 2) (debug defun))
-  (let ((signature
-         (secure-hash 'sha256
-                      (prin1-to-string (list name arguments clauses)))))
-    `(unless (equal
-              (gethash ',name etaf-ui--component-definition-signatures)
-              ,signature)
-       (prog1
-           (etaf-define-component ,name ,arguments ,@clauses)
-         (puthash ',name ,signature
-                  etaf-ui--component-definition-signatures)))))
-
 (defconst etaf-ui--style-palette
   '(:ui-fg "#252A2E"
     :ui-bg "#FFFDF8"
@@ -42,6 +19,25 @@ public `etaf-component-redefine-run' boundary."
     :ui-muted-fg "#526174"
     :ui-danger-fg "#FF6B6B"
     :ui-success-fg "#2F6B43"
+    :ui-success-bg "#DCEBDD"
+    :ui-success-border "#6D8A73"
+    :ui-danger-bg "#FFF0F0"
+    :ui-danger-border "#CF6A6A"
+    :ui-warning-fg "#8A4B08"
+    :ui-warning-bg "#FFF3D6"
+    :ui-warning-border "#D99A2B"
+    :ui-info-fg "#155E75"
+    :ui-info-bg "#E0F2FE"
+    :ui-info-border "#38A3C7"
+    :ui-selection-enabled-fg "#334155"
+    :ui-selection-enabled-bg "#F8FAFC"
+    :ui-selection-enabled-border "#CBD5E1"
+    :ui-selection-selected-fg "#FFFFFF"
+    :ui-selection-selected-bg "#6D5DFB"
+    :ui-selection-selected-border "#6D5DFB"
+    :ui-selection-disabled-fg "#94A3B8"
+    :ui-selection-disabled-bg "#E2E8F0"
+    :ui-selection-disabled-border "#CBD5E1"
     :ui-disabled-fg "#687386"
     :ui-disabled-bg "#E5E7EB"
     :ui-disabled-border "#9CA3AF"

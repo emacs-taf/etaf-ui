@@ -129,6 +129,23 @@
 ;; ON-CHANGE receives the accepted option value. :bind and native cancellation
 ;; follow TextInput; selection requires a matching label. Invalid props signal
 ;; contextual `etaf-view-error'. Use (etaf-view (etaf-select ...)).
+
+;; Component: etaf-radio (&key value options label on-change disabled bind)
+;; Render a controlled single-choice group from an options alist. VALUE/ON-CHANGE
+;; or the writable BIND ref owns the selection.
+;;
+;; Component: etaf-switch (&key checked label on-change disabled bind)
+;; Render a controlled binary switch with Checkbox's ownership contract.
+;;
+;; Component: etaf-segmented (&key value options on-change disabled bind)
+;; Render a compact mutually-exclusive selector from an options alist.
+;;
+;; Component: etaf-slider (&key value min max step label on-change disabled bind)
+;; Render a controlled integer value within MIN..MAX aligned to STEP.
+
+;; Component: etaf-input (&key type value label placeholder on-change disabled bind min max step)
+;; Render one controlled native input. TYPE is text, password, email, url,
+;; number or date; specialized input components use the same value contract.
 ;;
 ;; Component: etaf-pagination (&key controller previous-ref next-ref previous-label next-label class color bgcolor border padding aria-label)
 ;; Render a controlled pager whose callbacks follow its committed CONTROLLER.
@@ -192,11 +209,68 @@
 ;; Keyboard shortcuts and focus return follow Popover. Use native etaf-menu
 ;; when completion matching, rather than an in-buffer menu, suits the task.
 ;;
+;; Component: etaf-badge (&key text variant)
+;; Render compact semantic status text using neutral, success, warning, danger
+;; or info styling. The value is caller-owned and may be reactive.
+;;
+;; Component: etaf-divider (&key orientation label)
+;; Render a horizontal or vertical separator, optionally with a centered label.
+;;
+;; Component: etaf-progress (&key value max label variant)
+;; Render a determinate progress bar. VALUE and MAX are numeric (or reactive)
+;; with 0 <= VALUE <= MAX and MAX > 0. LABEL is optional.
+;;
+;; Component: etaf-alert (&key title message variant dismissible on-dismiss)
+;; Render an alert with semantic styling. A dismissible alert invokes ON-DISMISS;
+;; the caller decides whether its state remains visible.
+;;
+;; Component: etaf-statistic (&key label value trend)
+;; Render a compact metric card from caller-owned display values.
+;;
+;; Component: etaf-empty (&key title description action-label on-action)
+;; Render an empty state with optional action callback.
+;;
+;; Component: etaf-skeleton (&key width height)
+;; Render a neutral loading placeholder without owning loading state.
+
+;; Component: etaf-card (&key title description variant)
+;; Render a reusable titled surface with default content slots.
+;;
+;; Component: etaf-avatar (&key name initials size variant)
+;; Render a compact initials avatar with semantic color and accessible name.
+;;
+;; Component: etaf-timeline (&key items)
+;; Render chronological item plists containing :title, :content and :status.
+;;
+;; Component: etaf-tabs (&key items active on-change variant)
+;; Render controlled tabs from unique scalar keys and labels. ON-CHANGE receives
+;; the selected key; content can be composed with ordinary conditional Views.
+;;
+;; Component: etaf-accordion (&key items open on-toggle multiple)
+;; Render controlled disclosure sections. Items contain :key, :label and
+;; string or zero-argument function :content. OPEN is a list of expanded keys.
+;;
+;; Component: etaf-breadcrumb (&key items on-select)
+;; Render a navigation trail of strings; ON-SELECT receives a zero-based index.
+;;
+;; Component: etaf-tooltip (&key open anchor text placement on-close)
+;; Show controlled short text near an anchor using Popover placement. The caller
+;; controls visibility; no second hover event system is introduced.
+;;
+;; Component: etaf-toast (&key open anchor message title variant on-close)
+;; Show a controlled dismissible anchored notification. The caller owns its
+;; lifecycle and message state.
+;;
 ;; Function: etaf-ui-surfaces-open ()
 ;;;###autoload (autoload 'etaf-ui-surfaces-open "etaf-ui" nil t)
 ;; Mount the runnable floating-component example in *ETAF UI Surfaces* and
 ;; return its buffer. Interactive calls display it. Reopening resets its
 ;; application state; unmount the Runtime or close the buffer to dispose it.
+
+;; Function: etaf-ui-gallery-open ()
+;;;###autoload (autoload 'etaf-ui-gallery-open "etaf-ui" nil t)
+;; Mount the integrated catalog Gallery and return its buffer. It exercises
+;; layout, feedback, navigation, input, data and floating Components.
 ;;
 ;;; Code:
 
@@ -211,11 +285,15 @@
 
 (require 'etaf-ui-basic)
 (require 'etaf-ui-input)
+(require 'etaf-ui-selection)
+(require 'etaf-ui-feedback)
+(require 'etaf-ui-navigation)
 (require 'etaf-ui-surface)
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
 
 (autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
+(autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)
 
 (provide 'etaf-ui)
 ;;; etaf-ui.el ends here

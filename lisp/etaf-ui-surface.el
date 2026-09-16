@@ -8,6 +8,7 @@
 
 ;;; Code:
 (require 'etaf-ui-input)
+(require 'etaf-ui-feedback)
 
 (defvar-local etaf-ui--surface-return-stack nil
   "Saved return routes for open surfaces, newest first; not current focus.")
@@ -59,7 +60,7 @@ Target selection and navigation stay with the public Runtime."
             (setq etaf-ui--surface-return-stack (delq route etaf-ui--surface-return-stack))
             (kill-local-variable tag)))))))
 
-(etaf-ui--define-component etaf-ui--open-surface
+(etaf-define-component etaf-ui--open-surface
     (&key anchor (placement 'bottom-start) (width '(ch 32)) title on-close modal)
   "Render one open floating surface and own its keyboard attachment."
   :bindings
@@ -126,7 +127,7 @@ Target selection and navigation stay with the public Runtime."
          content))
       content)))
 
-(etaf-ui--define-component etaf-popover
+(etaf-define-component etaf-popover
     (&key open anchor (placement 'bottom-start) (width '(ch 32)) title on-close)
   "Show controlled OPEN content anchored to a semantic ID."
   :validate
@@ -144,7 +145,7 @@ Target selection and navigation stay with the public Runtime."
                (etaf-current-slot 'default)
                (list (cons 'footer (etaf-current-slot 'footer))))))
 
-(etaf-ui--define-component etaf-dialog
+(etaf-define-component etaf-dialog
     (&key open (title "Dialog") (width '(ch 48)) (close-label "Close") on-close)
   "Show a controlled modal panel with default content and a footer slot."
   :validate
@@ -161,9 +162,52 @@ Target selection and navigation stay with the public Runtime."
                            (append (etaf-current-slot 'footer)
                                    (list (etaf-node 'etaf-button
                                                     (list :label close-label :variant 'ghost :on-press on-close)
-                                                    nil))))))))
+                                   nil))))))))
 
-(etaf-ui--define-component etaf-dropdown-menu
+(etaf-define-component etaf-tooltip
+    (&key open anchor text (placement 'top-start) on-close)
+  "Show short controlled TEXT near ANCHOR.
+Tooltip visibility is controlled by OPEN; applications may toggle it from a
+button or another host event. It does not invent a second hover event system."
+  :validate
+  (progn
+    (etaf-check-prop :text text (stringp (etaf-ui--reactive-value text))
+                     "a string or reactive string" 'etaf-tooltip)
+    (etaf-check-prop :on-close on-close (functionp on-close)
+                     "a function" 'etaf-tooltip))
+  :render
+  (when (etaf-ui--reactive-value open)
+    (etaf-node 'etaf-popover
+               (list :open t :anchor anchor :placement placement :width '(ch 32)
+                     :on-close on-close)
+               (list (etaf-node 'etaf-label
+                                (list :text text :variant 'default) nil)))))
+
+(etaf-define-component etaf-toast
+    (&key open anchor message (title "Notification") (variant 'info) on-close)
+  "Show controlled MESSAGE as a dismissible anchored notification.
+The caller owns OPEN and chooses when the toast is removed; VARIANT controls
+the message's semantic color. Anchored placement follows Popover."
+  :validate
+  (progn
+    (etaf-check-prop :message message (stringp (etaf-ui--reactive-value message))
+                     "a string or reactive string" 'etaf-toast)
+    (etaf-check-prop :title title (stringp title) "a string" 'etaf-toast)
+    (etaf-check-prop :on-close on-close (functionp on-close)
+                     "a function" 'etaf-toast))
+  :render
+  (when (etaf-ui--reactive-value open)
+    (etaf-node 'etaf-popover
+               (list :open t :anchor anchor :placement 'top-end :width '(ch 42)
+                     :title title :on-close on-close)
+               (list (etaf-node 'column nil
+                                (list (etaf-node 'etaf-badge
+                                                 (list :text (capitalize (symbol-name variant))
+                                                       :variant variant) nil)
+                                      (etaf-node 'etaf-label
+                                                 (list :text message) nil)))))))
+
+(etaf-define-component etaf-dropdown-menu
     (&key (label "Actions") items on-select disabled (width '(ch 28)))
   "Open an anchored menu of ITEMS and pass the selected key to ON-SELECT."
   :bindings ((open (etaf-ref nil))
@@ -189,9 +233,9 @@ Target selection and navigation stay with the public Runtime."
         (mapcar
          (lambda (item)
            (let ((key (plist-get item :key)))
-             (etaf-node 'etaf-button
+                        (etaf-node 'etaf-button
                         (list :key key :label (plist-get item :label)
-                              :width 'stretch :variant 'ghost :disabled (plist-get item :disabled)
+                              :variant 'ghost :disabled (plist-get item :disabled)
                               :on-press (lambda ()
                                           (setf (etaf-value open) nil)
                                           (funcall on-select key)))

@@ -18,7 +18,7 @@
        (etaf-data-selected-ref
         controller (etaf-data-item-identity controller row)))))
 
-(etaf-ui--define-component etaf-data-grid
+(etaf-define-component etaf-data-grid
     (&key controller columns row-key on-row-press row-ref row-selected-p
           loading-label error-label empty-label)
   "Compose Table rows with DATA CONTROLLER state and controlled selection.
@@ -71,7 +71,7 @@ use Table's unique keys and optional `:cell' row-to-View functions."
                        (etaf-ui--data-grid-row-selected-p controller row row-selected-p))))
    (slot :name 'footer)))
 
-(etaf-ui--define-component etaf-pagination
+(etaf-define-component etaf-pagination
     (&key controller previous-ref next-ref previous-label next-label
           class color bgcolor border padding aria-label)
   "Render a controlled pager whose callbacks follow its committed CONTROLLER.
