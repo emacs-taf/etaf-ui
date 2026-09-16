@@ -8,6 +8,8 @@
   with bounded side placement, modal blocking, keyboard dismissal and focus return.
 - Add Tag, Kbd, Steps and List. Button accepts non-interactive default-slot
   content, so rich list rows share the standard focus and activation contract.
+- Add DatePicker, Tree, Calendar and CommandPalette as compositions of the
+  shared input, navigation, list and Dialog surfaces.
 - Atelier Gallery includes responsive catalog columns, a paginated collection
   browser, dismissible tags, steps and an inspector drawer. Run
   `make gui-check GUI_EXAMPLE=gallery` for its native Emacs interaction workflow.

@@ -16,8 +16,9 @@ View, props, slots, lifecycle and Ebox host interaction contracts.
 | Feedback and status | `etaf-label`, `etaf-badge`, `etaf-tag`, `etaf-kbd`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton` | Ebox text and box paint; caller owns the status value |
 | Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-context-menu`, `etaf-toast`, `etaf-dialog`, `etaf-drawer` | Ebox anchor/layer/occlusion plus shared panel focus |
 | Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-input`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
-| Navigation and collections | `etaf-tabs`, `etaf-accordion`, `etaf-breadcrumb`, `etaf-steps` | Ebox flow and focus; ETAF publishes caller-owned selection callbacks |
-| Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination`, `etaf-list`, `etaf-avatar`, `etaf-timeline` | ETAF Data Controller and Ebox retained rows |
+| Navigation and collections | `etaf-tabs`, `etaf-accordion`, `etaf-breadcrumb`, `etaf-steps`, `etaf-tree` | Ebox flow and focus; ETAF publishes caller-owned selection callbacks |
+| Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination`, `etaf-list`, `etaf-avatar`, `etaf-timeline`, `etaf-calendar` | ETAF Data Controller and Ebox retained rows |
+| Advanced composition | `etaf-date-picker`, `etaf-command-palette` | Shared input and Dialog/List composition; caller owns values and dismissal |
 
 The maintained Atelier Gallery exercises every category in one compact workspace.
 Run `M-x etaf-ui-gallery-open` to inspect it; the source is
@@ -30,7 +31,9 @@ Library columns wrap with the available width and follow their own content heigh
 `etaf-list` composes title and description through Button’s default slot, giving
 each rich row one focus and activation target; do not nest interactive controls
 inside that slot. Steps selection and tag removal remain caller-owned. The
-Collection browser connects DataGrid and Pagination to one Data Controller.
+Collection browser connects DataGrid and Pagination to one Data Controller. The
+advanced panel adds a date picker, month calendar, nested tree and command palette
+using the same public Component contracts.
 
 Run `make gui-check GUI_EXAMPLE=gallery` through the existing emacsclient for
 menu, drawer, Chinese input, selection, steps, tag removal, list and pagination

@@ -15,8 +15,9 @@ ETAF View、props、slot、生命周期和 Ebox 宿主交互契约，因此可�
 | 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-tag`、`etaf-kbd`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton` | Ebox 文本和盒子绘制；调用方持有状态值 |
 | 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-context-menu`、`etaf-toast`、`etaf-dialog`、`etaf-drawer` | Ebox 锚点、分层、遮挡和共享面板焦点 |
 | 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-input`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
-| 导航与集合 | `etaf-tabs`、`etaf-accordion`、`etaf-breadcrumb`、`etaf-steps` | Ebox flow 和焦点；ETAF 发布调用方持有的选择回调 |
-| 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination`、`etaf-list`、`etaf-avatar`、`etaf-timeline` | ETAF Data Controller 和 Ebox 保留行 |
+| 导航与集合 | `etaf-tabs`、`etaf-accordion`、`etaf-breadcrumb`、`etaf-steps`、`etaf-tree` | Ebox flow 和焦点；ETAF 发布调用方持有的选择回调 |
+| 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination`、`etaf-list`、`etaf-avatar`、`etaf-timeline`、`etaf-calendar` | ETAF Data Controller 和 Ebox 保留行 |
+| 高级组合 | `etaf-date-picker`、`etaf-command-palette` | 复用输入和 Dialog/List；调用方持有值和关闭状态 |
 
 维护中的 Atelier Gallery 将每个类别组合在一个紧凑工作台中。运行
 `M-x etaf-ui-gallery-open` 查看它，源码在

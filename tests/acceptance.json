@@ -285,6 +285,11 @@
       "purpose": "Malformed shortcut keys, duplicate list identities and absent current steps are rejected through public component inputs."
     },
     {
+      "name": "etaf-ui-advanced-components-compose-public-contracts",
+      "file": "tests/etaf-ui-advanced-tests.el",
+      "purpose": "DatePicker, Tree, Calendar and CommandPalette compose shared public input, navigation and floating-surface contracts."
+    },
+    {
       "name": "etaf-ui-composition-components-render-public-contracts",
       "file": "tests/etaf-ui-modern-tests.el",
       "purpose": "Tag, Kbd, Steps and List compose through public props and caller-owned selection callbacks."

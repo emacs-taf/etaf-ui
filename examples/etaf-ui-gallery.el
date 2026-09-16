@@ -61,6 +61,9 @@
              (notice (etaf-ref nil)) (dialog (etaf-ref nil))
              (drawer (etaf-ref nil))
              (draft-tag (etaf-ref t)) (phase (etaf-ref 'shape))
+             (tree-expanded (etaf-ref '(root)))
+             (picked-date (etaf-ref "2026-09-16"))
+             (palette-open (etaf-ref nil))
              (alert-visible (etaf-ref t))
              (workspace (etaf-ref "Atelier Studio"))
              (project-name (etaf-ref "Untitled project"))
@@ -118,6 +121,8 @@
                        :variant 'ghost :on-press (lambda () (setf (etaf-value notice) t)))
           (etaf-button :ref 'gallery-new :label "+ New project"
                        :on-press (lambda () (setf (etaf-value dialog) t)))
+          (etaf-button :label "⌘ K" :variant 'ghost
+                       :on-press (lambda () (setf (etaf-value palette-open) t)))
           (etaf-context-menu
            :label "More"
            :items '((:key inspect :label "Open inspector")
@@ -278,6 +283,25 @@
                   :on-row-press (lambda (row)
                                   (setf (etaf-value activity)
                                         (format "Opened %s." (plist-get row :name)))))
+                 (etaf-panel :title "Advanced compositions"
+                   (etaf-date-picker :bind picked-date :label "Release date")
+                   (etaf-calendar :month '(2026 9) :value 16
+                                  :on-change (lambda (date)
+                                               (setf (etaf-value picked-date)
+                                                     (format "%04d-%02d-%02d"
+                                                             (nth 0 date) (nth 1 date) (nth 2 date)))))
+                   (etaf-tree
+                    :items '((:key root :label "Release system" :children
+                               ((:key tokens :label "Design tokens")
+                                (:key patterns :label "Component patterns")))
+                             (:key notes :label "Studio notes"))
+                    :expanded tree-expanded
+                    :on-toggle (lambda (keys) (setf (etaf-value tree-expanded) keys))
+                    :on-select (lambda (key)
+                                 (setf (etaf-value activity)
+                                       (format "Opened %s." (symbol-name key)))))
+                   (etaf-button :label "⌘ K  Open command palette"
+                                :on-press (lambda () (setf (etaf-value palette-open) t))))
                  (etaf-pagination :controller assets)))))))
          ('settings
           (etaf-view
@@ -326,6 +350,15 @@
                                       (etaf-value activity)
                                       (format "Created %s." (etaf-value project-name))
                                       (etaf-value notice) t))))
+      (etaf-command-palette :open palette-open :title "Jump to a collection"
+                            :items '((:key orbit :title "Orbit identity" :description "Brand system")
+                                     (:key relay :title "Relay launch" :description "Product launch")
+                                     (:key mosaic :title "Mosaic notes" :description "Studio notes"))
+                            :on-select (lambda (key)
+                                         (setf (etaf-value palette-open) nil
+                                               (etaf-value activity)
+                                               (format "Opened %s." (symbol-name key))))
+                            :on-close (lambda () (setf (etaf-value palette-open) nil)))
       (etaf-drawer :open drawer :title "Workspace inspector" :placement 'right
                    :width '(ch 42) :modal nil
                    :on-close (lambda () (setf (etaf-value drawer) nil))

@@ -266,6 +266,19 @@
 ;; Each row composes one Button with title/description content. ON-SELECT is
 ;; optional; no selection state is created by the List.
 ;;
+;; Component: etaf-date-picker (&key value label on-change disabled bind)
+;; Semantic date input backed by `etaf-input' and its ISO date contract.
+;;
+;; Component: etaf-tree (&key items expanded on-toggle on-select)
+;; Render nested items with caller-owned expanded keys and selection callbacks.
+;;
+;; Component: etaf-calendar (&key month value on-change label)
+;; Render a controlled month grid; MONTH is `(YEAR MONTH)' and ON-CHANGE gets
+;; `(YEAR MONTH DAY)'.
+;;
+;; Component: etaf-command-palette (&key open title items on-select on-close)
+;; Compose a modal Dialog and List for caller-owned command selection.
+;;
 ;; Component: etaf-tabs (&key items active on-change variant)
 ;; Render controlled tabs from unique scalar keys and labels. ON-CHANGE receives
 ;; the selected key; content can be composed with ordinary conditional Views.
@@ -325,6 +338,7 @@
 (require 'etaf-ui-surface)
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
+(require 'etaf-ui-advanced)
 
 (autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
 (autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)
