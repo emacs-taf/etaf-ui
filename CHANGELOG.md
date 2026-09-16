@@ -33,6 +33,11 @@
 
 ### Changed
 
+- Replace the callback-only Gallery latency script with `make perf-check`.
+  The new input-path screening tool mounts into the selected graphical window,
+  compares callback/keyboard/mouse routes, keeps all samples and waits for
+  foreground focus. Provider tracing is a separate pass.
+
 - DataGrid composes the same row Components as Table, including row layout,
   selection paint and custom cell state. ETAF owns automatic row references and
   publishes current callback inputs. Address rows by Host reference; callback
