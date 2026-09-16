@@ -45,6 +45,9 @@
 
 ### Fixed
 
+- Passive Tooltip and Toast surfaces no longer move focus to an empty panel
+  root after mounting. Their dismissal keymap remains active while the extra
+  focus-only Ebox publication is avoided, reducing overlay interaction latency.
 - Avatar derives visible initials from its name when initials are omitted.
   Steps retain each label and number, and Breadcrumb callbacks report the
   selected index instead of the final loop index.
