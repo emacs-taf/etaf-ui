@@ -126,17 +126,47 @@ ON-SELECT, when supplied, receives the zero-based item index."
   (etaf-node 'row (list :class "etaf-breadcrumb" :width 'stretch
                         :item-gap '(ch 1))
              (cl-loop for item in items for index from 0 append
-                      (list (if on-select
+                      (let ((selected-index index))
+                       (list (if on-select
                                 (etaf-node 'etaf-button
                                            (list :label item :variant 'ghost
                                                  :on-press
                                                  (lambda ()
-                                                   (funcall on-select index)))
+                                                   (funcall on-select selected-index)))
                                            nil)
                               (etaf-node 'etaf-label (list :text item) nil))
                             (unless (= index (1- (length items)))
                               (etaf-node 'etaf-label
-                                         (list :text "/" :variant 'muted) nil))))))
+                                         (list :text "/" :variant 'muted) nil)))))))
+
+(etaf-define-component etaf-steps (&key items current on-change)
+  "Render ordered STEPS with a caller-owned CURRENT key."
+  :validate
+  (progn
+    (etaf-ui--navigation-items items 'etaf-steps)
+    (etaf-check-prop :on-change on-change (or (null on-change) (functionp on-change))
+                     "a function or nil" 'etaf-steps))
+  :render
+  (let ((current (etaf-ui--reactive-value current)))
+    (etaf-check-prop :current current
+                     (cl-some (lambda (item) (equal current (plist-get item :key))) items)
+                     "a key present in :items" 'etaf-steps)
+    (etaf-view
+     (flex :class "etaf-steps" :width 'stretch :column-gap '(ch 1)
+           :row-gap '(lh 1) :flex-wrap 'wrap :align-items 'center
+       (expr
+        (cl-loop for item in items for index from 1 append
+                 (let* ((key (plist-get item :key))
+                        (caption (plist-get item :label))
+                        (label (format "%d  %s" index caption))
+                        (active (equal key current)))
+                   (list (etaf-view
+                          (etaf-button :label label :aria-label caption
+                                       :variant (if active 'secondary 'ghost)
+                                       :on-press (and on-change
+                                                      (lambda () (funcall on-change key)))))
+                         (when (< index (length items))
+                           (etaf-view (etaf-label :text "→" :variant 'muted)))))))))))
 
 (provide 'etaf-ui-navigation)
 ;;; etaf-ui-navigation.el ends here

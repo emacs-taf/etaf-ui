@@ -273,6 +273,21 @@
       "name": "etaf-ui-selection-components-render-public-contracts",
       "file": "tests/etaf-ui-modern-tests.el",
       "purpose": "Radio, Segmented, Switch and Slider render controlled values through the public DSL."
+    },
+    {
+      "name": "etaf-ui-drawer-composes-both-sides-and-restores-focus",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "Both modal drawer edges retain caller-owned values, compose footer actions, dismiss and restore the opener."
+    },
+    {
+      "name": "etaf-ui-composition-components-reject-invalid-props",
+      "file": "tests/etaf-ui-modern-tests.el",
+      "purpose": "Malformed shortcut keys, duplicate list identities and absent current steps are rejected through public component inputs."
+    },
+    {
+      "name": "etaf-ui-composition-components-render-public-contracts",
+      "file": "tests/etaf-ui-modern-tests.el",
+      "purpose": "Tag, Kbd, Steps and List compose through public props and caller-owned selection callbacks."
     }
   ]
 }

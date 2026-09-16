@@ -139,7 +139,8 @@ so a failed render keeps the previous callback and its captured values."
       :font-weight (or font-weight (plist-get variant-values :font-weight))
       :use use
       :on-press (and (not disabled) on-press))
-     (list (etaf-node 'text nil (list label)))))
+     (or (etaf-current-slot 'default)
+         (list (etaf-node 'text nil (list label))))))
   :styles
   (("&" :width max-content)
    ("&.disabled" :padding ((lh 0) (ch 1)) :font-weight normal)
@@ -207,7 +208,8 @@ Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
            (unless (eq variant 'flat) (plist-get theme :ui-panel-bg))
            :border
            (unless (eq variant 'flat)
-             (etaf-ui--style-border (plist-get theme :ui-panel-border))))
+             (etaf-ui--style-border (plist-get theme :ui-panel-border)))
+           :item-gap '(lh 1))
      (append
       (when title
         (list (etaf-node

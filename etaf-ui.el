@@ -27,6 +27,9 @@
 ;; Native root attributes :pointer, :help-echo and :hover-style request Ebox
 ;; interaction feedback; explicit nil blocks inherited capabilities.
 ;; Use inside (etaf-view (etaf-button ...)); keyword arguments are component props.
+;; A default slot replaces the visible label with ordinary non-interactive
+;; content (for example, a title and description). LABEL or ARIA-LABEL still
+;; names the single focus/activation target; nested controls are inappropriate.
 ;;
 ;; Component: etaf-checkbox (&key checked label on-change disabled bind)
 ;; Render a controlled Checkbox whose next value is sent to ON-CHANGE.
@@ -242,6 +245,27 @@
 ;; Component: etaf-timeline (&key items)
 ;; Render chronological item plists containing :title, :content and :status.
 ;;
+;; Component: etaf-tag (&key text variant closable on-close)
+;; Render a compact semantic tag; an optional close action remains caller-owned.
+;; A closable tag requires ON-CLOSE. It reports dismissal without removing
+;; itself; the caller decides whether to retain it.
+;;
+;; Component: etaf-kbd (&key keys)
+;; Render a keyboard shortcut as accessible keycaps from a nonempty string list.
+;;
+;; Component: etaf-steps (&key items current on-change)
+;; Render ordered step buttons. ITEMS contain :key and :label; CURRENT and the
+;; callback are controlled by the caller.
+;; Keys and nonempty labels must be unique; CURRENT is a value/ref/computed
+;; containing one of the keys. ON-CHANGE is optional and receives a selected key.
+;;
+;; Component: etaf-list (&key items on-select)
+;; Render a selectable list. ITEMS contain :key, :title and optional
+;; :description; selection is reported to ON-SELECT.
+;; Keys are unique and titles are nonempty strings; an empty list is allowed.
+;; Each row composes one Button with title/description content. ON-SELECT is
+;; optional; no selection state is created by the List.
+;;
 ;; Component: etaf-tabs (&key items active on-change variant)
 ;; Render controlled tabs from unique scalar keys and labels. ON-CHANGE receives
 ;; the selected key; content can be composed with ordinary conditional Views.
@@ -260,6 +284,16 @@
 ;; Component: etaf-toast (&key open anchor message title variant on-close)
 ;; Show a controlled dismissible anchored notification. The caller owns its
 ;; lifecycle and message state.
+
+;; Component: etaf-context-menu (&key label items on-select disabled width)
+;; Compose a keyboard and mouse accessible context action trigger from the
+;; DropdownMenu contract.
+;;
+;; Component: etaf-drawer (&key open title placement width modal on-close)
+;; Show a controlled left or right side surface with default and footer slots.
+;; PLACEMENT defaults to right, WIDTH to (ch 42), and MODAL to t. Width is
+;; constrained to the root canvas. OPEN accepts a value/ref/computed; ON-CLOSE
+;; must be a function. Focus, dismissal, return and disposal follow Dialog.
 ;;
 ;; Function: etaf-ui-surfaces-open ()
 ;;;###autoload (autoload 'etaf-ui-surfaces-open "etaf-ui" nil t)

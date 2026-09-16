@@ -1,4 +1,4 @@
-;;; etaf-ui-surfaces-gui.el --- Native floating UI interaction check -*- lexical-binding: t; -*-
+;;; etaf-ui-gui.el --- Native component example interaction checks -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; Loaded by scripts/run-gui-check.sh in an existing graphical Emacs server.
@@ -12,9 +12,10 @@
 (defvar etaf-ui-gui-steps nil)
 (defvar etaf-ui-gui-original-keys nil)
 (defvar etaf-ui-gui-expected-quit nil)
+(defvar etaf-ui-gui-buffer "*ETAF UI Surfaces*")
 
 (defun etaf-ui-gui-runtime ()
-  (or (etaf-runtime-for-buffer "*ETAF UI Surfaces*") (error "Fixture is unmounted")))
+  (or (etaf-runtime-for-buffer etaf-ui-gui-buffer) (error "Fixture is unmounted")))
 (defun etaf-ui-gui-control (label)
   (let ((runtime (etaf-ui-gui-runtime)))
     (car (cl-find-if
@@ -44,9 +45,10 @@
   (etaf-ui-gui-expect (eq (and (etaf-ui-gui-control label) t) expected)
                          "Visibility mismatch for %s" label))
 (defun etaf-ui-gui-text (text)
-  (etaf-ui-gui-expect (string-match-p (regexp-quote text) (buffer-string))
+  (etaf-ui-gui-expect (string-match-p (regexp-quote text)
+                                    (buffer-substring-no-properties (point-min) (point-max)))
                          "Missing rendered text %s" text))
-(defun etaf-ui-gui-input (text &optional cancel)
+(defun etaf-ui-gui-input (text &optional cancel label)
   (let ((entered nil))
     (setq etaf-ui-gui-expected-quit cancel)
     (minibuffer-with-setup-hook
@@ -56,10 +58,10 @@
           (setq unread-command-events
                 (append (listify-key-sequence (vconcat text (kbd (if cancel "C-g" "RET"))))
                         unread-command-events)))
-      (etaf-ui-gui-press "名称"))
+      (etaf-ui-gui-press (or label "名称")))
     (etaf-ui-gui-expect entered "Native minibuffer was not entered")
     (etaf-ui-gui-expect (not (active-minibuffer-window)) "Minibuffer stayed active")
-    (etaf-ui-gui-focused "名称")))
+    (etaf-ui-gui-focused (or label "名称"))))
 (defun etaf-ui-gui-mouse (label)
   (let* ((ref (or (etaf-ui-gui-control label) (error "Missing mouse target %s" label)))
          (position (etaf-host-ref-position (etaf-ui-gui-runtime) ref)))
@@ -76,9 +78,9 @@
           (progn
             (etaf-ui-gui-expect
              (and (not (active-minibuffer-window))
-                  (equal (buffer-name (window-buffer (selected-window))) "*ETAF UI Surfaces*"))
+                  (equal (buffer-name (window-buffer (selected-window))) etaf-ui-gui-buffer))
              "Selected window drifted or another minibuffer is active")
-            (with-current-buffer "*ETAF UI Surfaces*"
+            (with-current-buffer etaf-ui-gui-buffer
               (let ((command-errors nil) (etaf-ui-gui-expected-quit nil))
                 (let ((command-error-function
                        (lambda (data _context _caller) (push data command-errors))))
@@ -104,7 +106,8 @@
   (when (active-minibuffer-window) (user-error "Finish the active minibuffer before GUI checks"))
   (when-let* ((runtime (etaf-runtime-for-buffer "*ETAF UI Surfaces*")))
     (etaf-unmount runtime))
-  (setq etaf-ui-gui-interactions nil
+  (setq etaf-ui-gui-buffer "*ETAF UI Surfaces*"
+        etaf-ui-gui-interactions nil
         etaf-ui-gui-steps
         (list
          (cons "mount" (lambda ()
@@ -141,5 +144,67 @@
          (cons "unmount-with-open-dialog" (lambda () (etaf-ui-gui-press "偏好设置") (etaf-unmount (etaf-ui-gui-runtime)) (etaf-ui-gui-expect (not (etaf-runtime-for-buffer (current-buffer))) "Runtime survived unmount")))
          (cons "remount-interaction" (lambda () (etaf-ui-surfaces-open) (etaf-ui-gui-press "操作") (etaf-ui-gui-key "<escape>") (etaf-ui-gui-focused "操作") (etaf-ui-gui-text "准备就绪")))))
   (switch-to-buffer (get-buffer-create "*ETAF UI Surfaces*"))
+  (run-at-time 0.1 nil #'etaf-ui-gui-next-step)
+  'scheduled)
+
+(defun etaf-ui-gui-activate (label)
+  "Focus LABEL through the public API and execute native Return."
+  (let ((target (or (etaf-ui-gui-control label) (error "Missing control %s" label))))
+    (etaf-focus (etaf-ui-gui-runtime) target)
+    (etaf-ui-gui-key "RET")))
+
+(defun etaf-ui-gui-reveal (label)
+  "Use the mounted buffer's scrolling keys to reveal LABEL."
+  (let ((attempts 0))
+    (while (and (< attempts 12) (not (etaf-ui-gui-control label)))
+      (cl-incf attempts)
+      (goto-char (point-min))
+      (call-interactively (key-binding (kbd "C-v")))))
+  (etaf-ui-gui-visible label t))
+
+(defun etaf-ui-gui-top ()
+  "Return to the top using the mounted buffer's native scroll command."
+  (let ((attempts 0))
+    (while (and (< attempts 200) (not (etaf-ui-gui-control "Workspace")))
+      (cl-incf attempts)
+      (goto-char (point-min))
+      (let ((current-prefix-arg 1))
+        (call-interactively (key-binding (kbd "M-v"))))))
+  (etaf-ui-gui-visible "Workspace" t))
+
+(defun etaf-ui-gallery-gui-interactions-start ()
+  "Run the Gallery workflow in the existing graphical Emacs frame."
+  (unless (display-graphic-p) (user-error "GUI checks require a graphical Emacs frame"))
+  (when (active-minibuffer-window) (user-error "Finish the active minibuffer before GUI checks"))
+  (when-let* ((runtime (etaf-runtime-for-buffer "*ETAF UI Gallery*")))
+    (etaf-unmount runtime))
+  (setq etaf-ui-gui-buffer "*ETAF UI Gallery*"
+        etaf-ui-gui-interactions nil
+        etaf-ui-gui-steps
+        (list
+         (cons "mount-gallery" (lambda () (etaf-ui-gallery-open) (etaf-ui-gui-text "Release checklist")))
+         (cons "tooltip-dismiss" (lambda () (etaf-ui-gui-activate "Quick help") (etaf-ui-gui-text "Tab to explore") (etaf-ui-gui-key "<escape>") (etaf-ui-gui-focused "Quick help")))
+         (cons "profile-popover" (lambda () (etaf-ui-gui-activate "GK · Studio") (etaf-ui-gui-visible "Manage preferences" t) (etaf-ui-gui-key "<escape>")))
+         (cons "activity-toast" (lambda () (etaf-ui-gui-activate "Activity") (etaf-ui-gui-text "Studio activity") (etaf-ui-gui-key "<escape>")))
+         (cons "context-to-drawer" (lambda () (etaf-ui-gui-activate "More") (etaf-ui-gui-activate "Open inspector") (etaf-ui-gui-text "Workspace inspector")))
+         (cons "drawer-close" (lambda () (etaf-ui-gui-activate "Close inspector") (etaf-ui-gui-visible "Close inspector" nil) (etaf-ui-gui-focused "More")))
+         (cons "dialog-open" (lambda () (etaf-ui-gui-activate "+ New project") (etaf-ui-gui-focused "Project name")))
+         (cons "dialog-chinese-input" (lambda () (etaf-ui-gui-input "中文创作计划" nil "Project name") (etaf-ui-gui-text "中文创作计划")))
+         (cons "dialog-create" (lambda () (etaf-ui-gui-activate "Create project") (etaf-ui-gui-text "Created 中文创作计划.") (etaf-ui-gui-key "<escape>")))
+         (cons "dialog-cancel" (lambda () (etaf-ui-gui-activate "+ New project") (etaf-ui-gui-activate "Cancel") (etaf-ui-gui-visible "Project name" nil)))
+         (cons "library-open" (lambda () (etaf-ui-gui-activate "Component library") (etaf-ui-gui-text "Signals & status")))
+         (cons "selection-controls" (lambda () (etaf-ui-gui-reveal "Airy") (etaf-ui-gui-activate "Airy") (etaf-ui-gui-activate "Product") (etaf-ui-gui-activate "Live notifications")))
+         (cons "numeric-input" (lambda () (etaf-ui-gui-reveal "Preview zoom") (etaf-ui-gui-input "90" nil "Preview zoom") (etaf-ui-gui-text "90")))
+         (cons "steps-select" (lambda () (etaf-ui-gui-reveal "Build") (etaf-ui-gui-activate "Build") (etaf-ui-gui-text "2  Build")))
+         (cons "tag-dismiss" (lambda () (etaf-ui-gui-reveal "Remove Draft") (etaf-ui-gui-activate "Remove Draft") (etaf-ui-gui-visible "Remove Draft" nil)))
+         (cons "list-select" (lambda () (etaf-ui-gui-reveal "Patterns") (etaf-ui-gui-activate "Patterns")))
+         (cons "data-pagination" (lambda () (etaf-ui-gui-reveal "Next page") (etaf-ui-gui-activate "Next page") (etaf-ui-gui-text "Mosaic notes") (etaf-ui-gui-text "Studio icons")))
+         (cons "preferences-open" (lambda () (etaf-ui-gui-top) (etaf-ui-gui-activate "Preferences") (etaf-ui-gui-text "Studio preferences") (etaf-ui-gui-text "90")))
+         (cons "preferences-input" (lambda () (etaf-ui-gui-input "Atelier Lab" nil "Studio name") (etaf-ui-gui-text "Atelier Lab")))
+         (cons "preferences-save" (lambda () (etaf-ui-gui-activate "Save preferences") (etaf-ui-gui-text "Preferences saved.") (etaf-ui-gui-key "<escape>")))
+         (cons "workspace-return" (lambda () (etaf-ui-gui-top) (etaf-ui-gui-activate "Workspace") (etaf-ui-gui-text "Release checklist")))
+         (cons "mouse-drawer-open" (lambda () (etaf-ui-gui-mouse "More") (etaf-ui-gui-mouse "Open inspector") (etaf-ui-gui-text "Workspace inspector")))
+         (cons "mouse-drawer-close" (lambda () (etaf-ui-gui-mouse "Close inspector") (etaf-ui-gui-focused "More")))))
+  (switch-to-buffer (get-buffer-create etaf-ui-gui-buffer))
   (run-at-time 0.1 nil #'etaf-ui-gui-next-step)
   'scheduled)

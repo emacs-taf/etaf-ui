@@ -40,6 +40,10 @@
     :ui-table-selected-bg "#35304D" :ui-pagination-muted-fg "#A6B5CE")
   "Atelier's semantic palette, scoped to this application by ETAF Context.")
 
+(defconst etaf-ui-gallery-stages
+  '((:key shape :label "Shape") (:key build :label "Build") (:key share :label "Share"))
+  "Release stages shared by the workspace and component library.")
+
 (etaf-define-component etaf-ui-gallery-project (&key name category status accent on-open)
   "Compose an independently reusable project card from the public catalog."
   :view
@@ -55,6 +59,8 @@
   :bindings ((page (etaf-ref 'workspace))
              (help (etaf-ref nil)) (profile (etaf-ref nil))
              (notice (etaf-ref nil)) (dialog (etaf-ref nil))
+             (drawer (etaf-ref nil))
+             (draft-tag (etaf-ref t)) (phase (etaf-ref 'shape))
              (alert-visible (etaf-ref t))
              (workspace (etaf-ref "Atelier Studio"))
              (project-name (etaf-ref "Untitled project"))
@@ -63,6 +69,15 @@
              (density (etaf-ref 'cozy)) (zoom (etaf-ref 80))
              (reviewed (etaf-ref nil))
              (open-sections (etaf-ref '(brief)))
+             (assets
+              (etaf-data-controller
+               (etaf-data-memory-source
+                '((:id 1 :name "Orbit identity" :kind "Brand")
+                  (:id 2 :name "Relay launch" :kind "Product")
+                  (:id 3 :name "Mosaic notes" :kind "Writing")
+                  (:id 4 :name "Studio icons" :kind "System")
+                  (:id 5 :name "Motion studies" :kind "Motion")) :id-key :id)
+               :page-size 2 :auto-load t))
              (activity (etaf-ref "Your workspace is up to date.")))
   :setup (etaf-theme-provide etaf-ui-gallery-palette)
   :view
@@ -102,31 +117,45 @@
           (etaf-button :ref 'gallery-notify :id "gallery-notify" :label "Activity"
                        :variant 'ghost :on-press (lambda () (setf (etaf-value notice) t)))
           (etaf-button :ref 'gallery-new :label "+ New project"
-                       :on-press (lambda () (setf (etaf-value dialog) t)))))
+                       :on-press (lambda () (setf (etaf-value dialog) t)))
+          (etaf-context-menu
+           :label "More"
+           :items '((:key inspect :label "Open inspector")
+                    (:key duplicate :label "Duplicate project")
+                    (:key remove :label "Remove project" :disabled t))
+           :on-select (lambda (key)
+                        (pcase key
+                          ('inspect (setf (etaf-value drawer) t))
+                          ('duplicate (setf (etaf-value project-name) "Orbit copy"
+                                            (etaf-value dialog) t)))))))
       (expr
        (pcase (etaf-value page)
          ('workspace
           (etaf-view
            (column :item-gap '(lh 1)
-             (grid :grid-template-columns '((fr 2) (fr 1))
-                   :gap '((lh 1) (ch 2))
+             (flex :flex-wrap 'wrap :align-items 'flex-start
+                   :row-gap '(lh 1) :column-gap '(ch 2)
                (column :background-color "#26223B" :padding '((lh 1) (ch 2))
+                       :flex-grow 2 :flex-basis '(ch 60) :min-width '(px 0)
                        :item-gap '(lh 1)
                  (box :font-weight 'bold :color "#BBA9FF" "FEATURED COLLECTION / SPRING 026")
                  (box :font-weight 'bold :color "#F5F0FF" "Make space for the unexpected.")
-                 (box :height '(lh 4) :overflow 'hidden
+                 (box :height '(lh 7) :overflow 'hidden
                    (box :position 'absolute :left '(ch 0) :top '(lh 1)
                         :width '(ch 15) :height '(lh 3) :text-align 'center
                         :background-color "#7561AC" :color "#F5F0FF" "\nFORM / 01")
                    (box :position 'absolute :left '(ch 12) :top '(lh 0)
                         :width '(ch 15) :height '(lh 3) :z-index 1 :text-align 'center
                         :background-color "#BBA9FF" :color "#241B40" "\nSPACE / 02")
-                   (box :position 'absolute :left '(ch 24) :top '(lh 1)
+                   (box :position 'absolute :left '(ch 24) :top '(lh 2)
                         :width '(ch 15) :height '(lh 3) :z-index 2 :text-align 'center
                         :background-color "#D8EAAB" :color "#303D22" "\nPLAY / 03"))
                  (etaf-label :text "Small ideas, connected into something bigger."
-                             :color "#D6CDEF"))
-               (etaf-panel :title "Release checklist"
+                             :color "#D6CDEF")
+                 (etaf-steps :current phase :items etaf-ui-gallery-stages
+                             :on-change (lambda (key) (setf (etaf-value phase) key))))
+               (etaf-panel :title "Release checklist" :flex-grow 1
+                           :flex-basis '(ch 30) :min-width '(px 0)
                  (etaf-label :text "ORBIT / DESIGN SYSTEM" :variant 'muted)
                  (etaf-label :text "✓  Tokens & typography" :variant 'success)
                  (etaf-label :text "✓  Layout & components" :variant 'success)
@@ -134,23 +163,26 @@
                  (etaf-progress :value (if (etaf-value reviewed) 3 2) :max 3
                                 :label "Ready to share")
                  (etaf-label :text "One shared state, from input to feedback." :variant 'muted)))
-             (grid :grid-template-columns '((fr 1) (fr 1) (fr 1))
-                   :gap '((lh 1) (ch 2))
+             (flex :flex-wrap 'wrap :row-gap '(lh 1) :column-gap '(ch 2)
                (etaf-ui-gallery-project :name "Orbit" :category "01 / BRAND SYSTEM"
+                 :flex-grow 1 :flex-basis '(ch 30) :min-width '(px 0)
                  :status "In review" :accent "#BBA9FF"
                  :on-open (lambda () (setf (etaf-value project-name) "Orbit"
                                           (etaf-value dialog) t)))
                (etaf-ui-gallery-project :name "Relay" :category "02 / PRODUCT LAUNCH"
+                 :flex-grow 1 :flex-basis '(ch 30) :min-width '(px 0)
                  :status "In progress" :accent "#8DE1E4"
                  :on-open (lambda () (setf (etaf-value project-name) "Relay"
                                           (etaf-value dialog) t)))
                (etaf-ui-gallery-project :name "Mosaic" :category "03 / STUDIO NOTES"
+                 :flex-grow 1 :flex-basis '(ch 30) :min-width '(px 0)
                  :status "Exploring" :accent "#F6C879"
                  :on-open (lambda () (setf (etaf-value project-name) "Mosaic"
                                           (etaf-value dialog) t))))
-             (grid :grid-template-columns '((fr 2) (fr 1))
-                   :gap '((lh 1) (ch 2))
-               (etaf-panel :title "Recent work"
+             (flex :flex-wrap 'wrap :align-items 'flex-start
+                   :row-gap '(lh 1) :column-gap '(ch 2)
+               (etaf-panel :title "Recent work" :flex-grow 2
+                           :flex-basis '(ch 60) :min-width '(px 0)
                  (etaf-table
                   :columns '((:key :name :label "Deliverable" :width (fr 2))
                              (:key :owner :label "Owner" :width (fr 1))
@@ -159,7 +191,8 @@
                           (:id 2 :name "Launch page" :owner "Theo" :status "Draft")
                           (:id 3 :name "Motion studies" :owner "Aya" :status "Ready"))
                   :row-key (lambda (row) (plist-get row :id))))
-               (etaf-panel :title "Project notes"
+               (etaf-panel :title "Project notes" :flex-grow 1
+                           :flex-basis '(ch 30) :min-width '(px 0)
                  (etaf-accordion
                   :items '((:key brief :label "Creative brief"
                              :content "Keep it clear. Leave room to play.")
@@ -180,7 +213,10 @@
                              :message "These are the same components used throughout this workspace."
                              :dismissible t :on-dismiss
                              (lambda () (setf (etaf-value alert-visible) nil))))))
-             (grid :grid-template-columns '((fr 1) (fr 1)) :gap '((lh 1) (ch 2))
+             (flex :flex-wrap 'wrap :align-items 'flex-start
+                   :column-gap '(ch 2) :row-gap '(lh 1)
+              (column :item-gap '(lh 1) :flex-grow 1 :flex-basis '(ch 50)
+                      :min-width '(px 0)
                (etaf-panel :title "Signals & status"
                  (row :item-gap '(ch 1)
                    (etaf-badge :text "Ready" :variant 'success)
@@ -189,12 +225,6 @@
                  (etaf-divider :label "Collection")
                  (etaf-statistic :label "Reusable patterns" :value "12" :trend "+3 this week")
                  (etaf-progress :value 8 :max 12 :label "Published"))
-               (etaf-panel :title "Empty & loading states"
-                 (etaf-empty :title "A fresh canvas" :description "Your next collection starts here."
-                             :action-label "Create collection"
-                             :on-action (lambda () (setf (etaf-value dialog) t)))
-                 (etaf-skeleton :height '(lh 1))
-                 (etaf-skeleton :width '(% 65) :height '(lh 1)))
                (etaf-panel :title "Selection controls"
                  (etaf-radio :bind density :label "Density"
                              :options '((compact . "Compact") (cozy . "Cozy") (airy . "Airy")))
@@ -202,19 +232,59 @@
                                  :options '((brand . "Brand") (product . "Product") (notes . "Notes")))
                  (etaf-switch :bind notifications :label "Live notifications")
                  (etaf-slider :bind zoom :label "Preview zoom" :min 40 :max 120 :step 10))
-               (etaf-panel :title "Composition patterns"
-                 (etaf-card :title "A reusable card" :description "Surfaces compose ordinary content.")
+               (etaf-panel :title "Navigation & context"
+                 (etaf-steps
+                  :current phase
+                  :items etaf-ui-gallery-stages
+                  :on-change (lambda (key)
+                               (setf (etaf-value phase) key
+                                     (etaf-value activity) (format "Release phase: %s." key))))
                  (row :item-gap '(ch 1)
-                   (etaf-avatar :name "Mina" :variant 'info)
-                   (etaf-avatar :name "Theo" :variant 'success)
-                   (etaf-avatar :name "Aya" :variant 'warning))
+                   (etaf-tag :text "Stable" :variant 'success)
+                   (expr (when (etaf-value draft-tag)
+                           (etaf-view
+                            (etaf-tag :text "Draft" :variant 'warning :closable t
+                                      :on-close (lambda () (setf (etaf-value draft-tag) nil))))))
+                   (etaf-kbd :keys '("⌘" "K")))
+                 (etaf-list
+                  :items '((:key overview :title "Overview" :description "A calm starting point")
+                           (:key patterns :title "Patterns" :description "Compose and reuse")
+                           (:key shortcuts :title "Shortcuts" :description "Keep hands on the keyboard"))
+                  :on-select (lambda (key)
+                               (setf (etaf-value activity)
+                                     (format "Selected %s." (symbol-name key)))))))
+              (column :item-gap '(lh 1) :flex-grow 1 :flex-basis '(ch 50)
+                      :min-width '(px 0)
+               (etaf-panel :title "Empty & loading states"
+                 (etaf-empty :title "A fresh canvas" :description "Your next collection starts here."
+                             :action-label "Create collection"
+                             :on-action (lambda () (setf (etaf-value dialog) t)))
+                 (etaf-skeleton :height '(lh 1))
+                 (etaf-skeleton :width '(% 65) :height '(lh 1)))
+               (etaf-panel :title "Composition patterns"
+                 (etaf-card :title "The Orbit team" :description "A shared direction, different perspectives."
+                   (row :item-gap '(ch 1)
+                     (etaf-avatar :name "Mina" :variant 'info)
+                     (etaf-avatar :name "Theo" :variant 'success)
+                     (etaf-avatar :name "Aya" :variant 'warning)))
                  (etaf-timeline
                   :items '((:key one :title "Brief shaped" :content "A clear direction." :status "Now")
-                           (:key two :title "System connected" :content "Reusable pieces align." :status "Next"))))))))
+                           (:key two :title "System connected" :content "Reusable pieces align." :status "Next"))))
+               (etaf-panel :title "Collection browser"
+                 (etaf-data-grid :controller assets
+                  :columns '((:key :name :label "Collection" :width (fr 2))
+                             (:key :kind :label "Discipline" :width (fr 1)))
+                  :row-key (lambda (row) (plist-get row :id))
+                  :on-row-press (lambda (row)
+                                  (setf (etaf-value activity)
+                                        (format "Opened %s." (plist-get row :name)))))
+                 (etaf-pagination :controller assets)))))))
          ('settings
           (etaf-view
-           (grid :grid-template-columns '((fr 2) (fr 1)) :gap '((lh 1) (ch 2))
-             (etaf-panel :title "Studio preferences"
+           (flex :flex-wrap 'wrap :align-items 'flex-start
+                 :row-gap '(lh 1) :column-gap '(ch 2)
+             (etaf-panel :title "Studio preferences" :flex-grow 2
+                         :flex-basis '(ch 60) :min-width '(px 0)
                (etaf-label :text "Make this space yours." :variant 'muted)
                (etaf-input :type 'text :bind workspace :label "Studio name")
                (etaf-input :type 'number :bind capacity :label "Project capacity" :min 1 :max 24)
@@ -225,7 +295,8 @@
                (etaf-button :label "Save preferences" :on-press
                             (lambda () (setf (etaf-value activity) "Preferences saved."
                                              (etaf-value notice) t))))
-             (etaf-panel :title "Your workspace"
+             (etaf-panel :title "Your workspace" :flex-grow 1
+                         :flex-basis '(ch 30) :min-width '(px 0)
                (etaf-label :text workspace :variant 'heading)
                (etaf-label :text "Local by design. Ready to compose." :variant 'muted)
                (etaf-badge :text "Personal studio" :variant 'info)))))))
@@ -254,7 +325,18 @@
                      (lambda () (setf (etaf-value dialog) nil
                                       (etaf-value activity)
                                       (format "Created %s." (etaf-value project-name))
-                                      (etaf-value notice) t)))))))
+                                      (etaf-value notice) t))))
+      (etaf-drawer :open drawer :title "Workspace inspector" :placement 'right
+                   :width '(ch 42) :modal nil
+                   :on-close (lambda () (setf (etaf-value drawer) nil))
+        (etaf-card :title "Live composition"
+                   :description "This panel is another public Component composition.")
+        (etaf-statistic :label "Active page" :value page :trend "Caller-owned state")
+        (etaf-timeline
+         :items '((:key one :title "Layout" :content "Grid and flow are shared." :status "Ready")
+                  (:key two :title "Interaction" :content "Focus and dismissal stay in Ebox." :status "Ready")))
+        (etaf-button :label "Close inspector" :variant 'ghost
+                     :on-press (lambda () (setf (etaf-value drawer) nil)))))))
 
 ;;;###autoload
 (defun etaf-ui-gallery-open ()

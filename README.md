@@ -45,6 +45,8 @@ for the [menu and preferences example](examples/etaf-ui-surfaces.el).
 Placement and occlusion come from Ebox; panel navigation uses its shared focus.
 Run `make gui-check` against the existing graphical Emacs server for the
 maintained keyboard/mouse interaction workflow.
+Use `make gui-check GUI_EXAMPLE=gallery` for the integrated Gallery workflow,
+including drawer handoff, Chinese input, controlled selection and pagination.
 
 ## Development
 

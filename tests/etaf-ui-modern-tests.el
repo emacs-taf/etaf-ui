@@ -4,6 +4,30 @@
 (require 'ert)
 (require 'etaf-ui)
 
+(defun etaf-ui-modern-test-activate (runtime label)
+  "Activate the visible LABEL through RUNTIME's public target interface."
+  (let ((target
+         (car (cl-find-if
+               (lambda (entry)
+                 (and (equal label (plist-get (cdr entry) :aria-label))
+                      (etaf-host-ref-position runtime (car entry))))
+               (etaf-runtime-host-props-entries runtime)))))
+    (should target)
+    (etaf-focus runtime target)
+    (etaf-activate runtime)))
+
+(defun etaf-ui-modern-test-find-text (text)
+  "Scroll the mounted example until TEXT is painted."
+  (let ((attempts 0))
+    (while (and (< attempts 12)
+                (not (string-match-p (regexp-quote text) (buffer-substring-no-properties
+                                                         (point-min) (point-max)))))
+      (cl-incf attempts)
+      (goto-char (point-min))
+      (call-interactively (key-binding (kbd "C-v"))))
+    (should (string-match-p (regexp-quote text) (buffer-substring-no-properties
+                                              (point-min) (point-max))))))
+
 (ert-deftest etaf-ui-gallery-mounts-composed-catalog-and-opens-tooltip ()
   "The Gallery mounts all catalog categories and toggles a controlled tooltip."
   (let ((buffer (etaf-ui-gallery-open)))
@@ -17,6 +41,20 @@
             (etaf-activate runtime)
             (should (string-match-p "Tab to explore" (buffer-string)))
             (should (etaf-host-ref-position runtime 'gallery-profile))
+            (let ((find-control
+                   (lambda (label)
+                     (cl-find-if
+                      (lambda (entry)
+                        (equal label (plist-get (cdr entry) :aria-label)))
+                      (etaf-runtime-host-props-entries runtime)))))
+              (etaf-focus runtime (car (funcall find-control "More")))
+              (etaf-activate runtime)
+              (etaf-focus runtime (car (funcall find-control "Open inspector")))
+              (etaf-activate runtime)
+              (should (string-match-p "Workspace inspector" (buffer-string)))
+              (should (string-match-p "Live composition" (buffer-string)))
+              (etaf-focus runtime (car (funcall find-control "Close inspector")))
+              (etaf-activate runtime))
             (let ((library (cl-find-if
                             (lambda (entry)
                               (equal "Component library"
@@ -24,9 +62,12 @@
                             (etaf-runtime-host-props-entries runtime))))
               (etaf-focus runtime (car library))
               (etaf-activate runtime)
-              (should (string-match-p "Selection controls" (buffer-string)))
-              (should (string-match-p "Composition patterns" (buffer-string)))
-              (should (string-match-p "Preview zoom" (buffer-string))))))
+              (etaf-ui-modern-test-find-text "Selection controls")
+              (etaf-ui-modern-test-find-text "Preview zoom")
+              (etaf-ui-modern-test-find-text "Navigation & context")
+              (etaf-ui-modern-test-activate runtime "Build")
+              (etaf-ui-modern-test-find-text "Composition patterns")
+              (etaf-ui-modern-test-find-text "Collection browser"))))
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
           (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
@@ -48,17 +89,29 @@
                 (etaf-alert :title "Notice" :message "Ready" :variant 'info)
                 (etaf-tabs :items '((:key one :label "One") (:key two :label "Two"))
                            :active active
-                           :on-change (lambda (key) (setf selected key active key)))
+                           :on-change (lambda (key) (setf selected key (etaf-value active) key)))
                 (etaf-accordion
                  :items '((:key details :label "Details" :content "More"))
                  :open open :multiple nil
                  :on-toggle (lambda (keys) (setf (etaf-value open) keys)))
                 (etaf-badge :text "Ready" :variant 'success)
+                (etaf-breadcrumb :items '("Home" "Collection" "Item")
+                                 :on-select (lambda (index) (setq selected index)))
                 (etaf-progress :value 3 :max 4 :label "Progress"))))
             (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
               (should (string-match-p "Notice" (buffer-string)))
               (should (etaf-runtime-mounted-p runtime))
-              (should (string-match-p "Progress" (buffer-string)))))
+              (should (string-match-p "Progress" (buffer-string)))
+              (etaf-ui-modern-test-activate runtime "Two")
+              (should (eq selected 'two))
+              (should (eq (etaf-value active) 'two))
+              (etaf-ui-modern-test-activate runtime "▸ Details")
+              (should (equal (etaf-value open) '(details)))
+              (should (string-match-p "More" (buffer-string)))
+              (etaf-ui-modern-test-activate runtime "Home")
+              (should (equal selected 0))
+              (etaf-ui-modern-test-activate runtime "Collection")
+              (should (equal selected 1))))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
@@ -93,5 +146,58 @@
               (should (string-match-p "Launch date" (buffer-string)))))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
+
+(ert-deftest etaf-ui-composition-components-render-public-contracts ()
+  "Tag, Kbd, Steps and List compose with caller-owned selection callbacks."
+  (with-temp-buffer
+    (let ((current (etaf-ref 'one)) (selected nil) (closed nil))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 25)
+                (etaf-tag :text "Ready" :variant 'success :closable t
+                          :on-close (lambda () (setq closed t)))
+                (etaf-kbd :keys '("Ctrl" "K"))
+                (row :item-gap '(ch 1)
+                  (etaf-avatar :name "Mina")
+                  (etaf-avatar :name ""))
+                (etaf-steps
+                 :current current
+                 :items '((:key one :label "Plan") (:key two :label "Build"))
+                 :on-change (lambda (key) (setf (etaf-value current) key)))
+                (etaf-list
+                 :items '((:key one :title "Overview" :description "Start here")
+                          (:key two :title "Details" :description "Keep composing"))
+                 :on-select (lambda (key) (setf selected key))))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (should (etaf-runtime-mounted-p runtime))
+              (should (string-match-p "Ready" (buffer-string)))
+              (should (string-match-p "Ctrl" (buffer-string)))
+              (should (string-match-p "MI" (buffer-string)))
+              (should (string-match-p (regexp-quote "?") (buffer-string)))
+              (should (string-match-p "Build" (buffer-string)))
+              (should (string-match-p "1  Plan" (buffer-string)))
+              (should (string-match-p "2  Build" (buffer-string)))
+              (should (string-match-p "Keep composing" (buffer-string)))
+              (etaf-ui-modern-test-activate runtime "Build")
+              (should (eq (etaf-value current) 'two))
+              (etaf-ui-modern-test-activate runtime "Details")
+              (should (eq selected 'two))
+              (etaf-ui-modern-test-activate runtime "Remove Ready")
+              (should closed)))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
+(ert-deftest etaf-ui-composition-components-reject-invalid-props ()
+  "Invalid shortcut keys, duplicate list identities and absent steps are rejected."
+  (dolist (view '((etaf-kbd :keys ("Ctrl" 2))
+                  (etaf-list :items ((:key same :title "First")
+                                     (:key same :title "Second")))
+                  (etaf-steps :items ((:key one :label "Plan")) :current missing)))
+    (with-temp-buffer
+      (should-error (etaf-mount (current-buffer) (etaf-node (car view) (cdr view) nil))
+                    :type 'etaf-view-error))))
 
 ;;; etaf-ui-modern-tests.el ends here

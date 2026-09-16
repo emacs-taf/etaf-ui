@@ -61,7 +61,7 @@ Target selection and navigation stay with the public Runtime."
             (kill-local-variable tag)))))))
 
 (etaf-define-component etaf-ui--open-surface
-    (&key anchor (placement 'bottom-start) (width '(ch 32)) title on-close modal)
+    (&key anchor (placement 'bottom-start) side (width '(ch 32)) title on-close modal)
   "Render one open floating surface and own its keyboard attachment."
   :bindings
   ((panel (etaf-local-ref 'panel))
@@ -104,9 +104,17 @@ Target selection and navigation stay with the public Runtime."
                  :aria-label title :keymap nil :on-dismiss on-close
                  :position 'absolute :layer 'root :z-index 1001
                  :anchor anchor :placement placement
-                 :left (if anchor '(px 0) (list 'calc (list '- '(% 50) (list '* 0.5 width))))
-                 :top (if anchor '(lh 0) '(lh 2)) :width width
-                 :item-gap (if modal '(lh 1) '(lh 0))
+                 :left (cond (anchor '(px 0))
+                             ((eq side 'left) '(px 0))
+                             ((eq side 'right)
+                              (list 'calc (list '- '(% 100) width)))
+                             (t (list 'calc (list '- '(% 50) (list '* 0.5 width)))))
+                 :top (cond (anchor '(lh 0))
+                            ((memq side '(left right)) '(lh 0))
+                            (t '(lh 2)))
+                 :height (when (memq side '(left right)) '(% 100))
+                 :width width
+                 :item-gap (if (or modal side) '(lh 1) '(lh 0))
                  :padding '((lh 1) (ch 2))
                  :color (plist-get theme :ui-panel-fg)
                  :background-color (plist-get theme :ui-panel-bg)
@@ -241,6 +249,41 @@ the message's semantic color. Anchored placement follows Popover."
                                           (funcall on-select key)))
                         nil)))
          items)))))))
+
+(etaf-define-component etaf-context-menu
+    (&key (label "More") items on-select disabled (width '(ch 30)))
+  "Render a compact context action surface from ITEMS.
+The trigger is an ordinary Ebox Button so keyboard, mouse and focus behavior
+remain shared with DropdownMenu; applications may place it beside any target."
+  :render
+  (etaf-node 'etaf-dropdown-menu
+             (list :label label :items items :on-select on-select
+                   :disabled disabled :width width)
+             nil))
+
+(etaf-define-component etaf-drawer
+    (&key open (title "Drawer") (placement 'right) (width '(ch 42))
+          (modal t) on-close)
+  "Show a controlled side DRAWER with default content.
+PLACEMENT is `left' or `right'.  ON-CLOSE is required; OPEN and form data
+remain caller-owned."
+  :validate
+  (progn
+    (etaf-check-prop :placement placement (memq placement '(left right))
+                     "left or right" 'etaf-drawer)
+    (etaf-check-prop :modal modal (booleanp modal) "a boolean" 'etaf-drawer)
+    (etaf-check-prop :title title (or (null title) (stringp title))
+                     "a string or nil" 'etaf-drawer)
+    (etaf-check-prop :on-close on-close (functionp on-close)
+                     "a function" 'etaf-drawer))
+  :render
+  (when (etaf-ui--reactive-value open)
+    (etaf-node 'etaf-ui--open-surface
+               (list :modal modal :placement 'top-start :side placement
+                     :width (list 'min width '(% 100))
+                     :title title :on-close on-close)
+               (etaf-current-slot 'default)
+               (list (cons 'footer (etaf-current-slot 'footer))))))
 
 (provide 'etaf-ui-surface)
 ;;; etaf-ui-surface.el ends here

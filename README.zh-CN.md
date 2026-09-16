@@ -40,6 +40,7 @@
 浮层界面可用 `etaf-popover`、`etaf-dropdown-menu` 和 `etaf-dialog` 组合普通控件
 与 slot。运行 `M-x etaf-ui-surfaces-open` 打开[菜单与偏好设置示例](examples/etaf-ui-surfaces.el)。
 运行 `make gui-check`，通过已有图形 Emacs 的 emacsclient 重复执行键盘和鼠标交互验收。
+用 `make gui-check GUI_EXAMPLE=gallery` 验收集成 Gallery，覆盖抽屉切换、中文输入、受控选择和分页。
 定位和遮挡由 Ebox 负责，区域内键盘导航复用 Ebox 的共享焦点。
 
 ## 开发

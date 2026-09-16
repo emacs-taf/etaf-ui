@@ -4,6 +4,14 @@
 
 ### Added
 
+- Add Drawer and ContextMenu compositions using the existing floating surface,
+  with bounded side placement, modal blocking, keyboard dismissal and focus return.
+- Add Tag, Kbd, Steps and List. Button accepts non-interactive default-slot
+  content, so rich list rows share the standard focus and activation contract.
+- Atelier Gallery includes responsive catalog columns, a paginated collection
+  browser, dismissible tags, steps and an inspector drawer. Run
+  `make gui-check GUI_EXAMPLE=gallery` for its native Emacs interaction workflow.
+
 - `etaf-popover`, `etaf-dropdown-menu` and `etaf-dialog` provide in-buffer
   floating content, disabled action items and modal composition. They share
   Ebox positioning, occlusion and scoped focus through ETAF; closing and
@@ -25,6 +33,12 @@
   Update ETAF together with UI for the asynchronous Data status contract.
 
 ### Fixed
+
+- Avatar derives visible initials from its name when initials are omitted.
+  Steps retain each label and number, and Breadcrumb callbacks report the
+  selected index instead of the final loop index.
+- Panel content has consistent vertical spacing; Gallery columns follow their
+  own content height instead of stretching small sections to match neighbours.
 
 - NumberInput rejects malformed labels, bounds and current values with component
   and property context. UI input checks share ETAF's `etaf-check-prop`; update

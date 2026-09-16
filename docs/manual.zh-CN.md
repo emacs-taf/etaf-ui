@@ -11,16 +11,26 @@ ETAF View、props、slot、生命周期和 Ebox 宿主交互契约，因此可�
 
 | 类别 | 组件 | 所依赖的基础能力 |
 | --- | --- | --- |
-| 布局与容器 | `etaf-panel`、`etaf-table`、`etaf-data-grid`、`etaf-tabs`、`etaf-accordion`、`etaf-divider` | Ebox flow/flex/grid 几何；ETAF 决定显示哪个分支 |
-| 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton`、`etaf-card`、`etaf-avatar`、`etaf-timeline` | Ebox 文本和盒子绘制；调用方持有状态值 |
-| 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-toast`、`etaf-dialog` | Ebox 锚点、分层、遮挡和共享面板焦点 |
+| 布局与容器 | `etaf-panel`、`etaf-card`、`etaf-divider` | Ebox flow/flex/grid 几何；ETAF 决定显示哪个分支 |
+| 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-tag`、`etaf-kbd`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton` | Ebox 文本和盒子绘制；调用方持有状态值 |
+| 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-context-menu`、`etaf-toast`、`etaf-dialog`、`etaf-drawer` | Ebox 锚点、分层、遮挡和共享面板焦点 |
 | 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-input`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
-| 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination` | ETAF Data Controller 和 Ebox 保留行 |
+| 导航与集合 | `etaf-tabs`、`etaf-accordion`、`etaf-breadcrumb`、`etaf-steps` | Ebox flow 和焦点；ETAF 发布调用方持有的选择回调 |
+| 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination`、`etaf-list`、`etaf-avatar`、`etaf-timeline` | ETAF Data Controller 和 Ebox 保留行 |
 
 维护中的 Atelier Gallery 将每个类别组合在一个紧凑工作台中。运行
 `M-x etaf-ui-gallery-open` 查看它，源码在
 [`examples/etaf-ui-gallery.el`](../examples/etaf-ui-gallery.el)。Gallery 是组合验收，
 不是另一个控件框架；组件必须可以独立使用，也不能复制 Ebox 的命中、焦点或布局状态。
+
+Library 的两列根据可用宽度换行，各列按自己的内容高度排列。`etaf-list` 用 Button
+的默认 slot 组合标题和说明，整个条目只有一个焦点与激活目标；内容不应嵌套其他
+可交互控件。`etaf-steps` 的当前步骤和 Tag 的移除状态均由调用方持有。
+Gallery 的 Collection browser 将 DataGrid 与 Pagination 连接到同一个 Data Controller。
+
+运行 `make gui-check GUI_EXAMPLE=gallery`，通过当前 emacsclient 重复执行菜单、抽屉、
+中文输入、选择、步骤、标签删除、列表和分页。该命令执行 Emacs 本地键盘和鼠标事件；
+仍需查看实际截图，不代表操作系统输入法或延迟达标。
 
 ## 选择 `:view` 还是 `:render`
 

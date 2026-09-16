@@ -288,5 +288,45 @@ callbacks even with equal contents; its stable key preserves cell state."
       :row-ref row-ref :on-row-press on-row-press
       :row-selected-p row-selected-p))))
 
+(etaf-define-component etaf-list (&key items on-select)
+  "Render a list of item plists with :title and optional :description."
+  :validate
+  (progn
+    (etaf-check-prop :items items (proper-list-p items)
+                     "a list of item plists" 'etaf-list)
+    (let (keys)
+      (dolist (item items)
+        (etaf-check-prop :items item
+                         (and (proper-list-p item) (zerop (% (length item) 2))
+                              (plist-get item :key)
+                              (not (member (plist-get item :key) keys))
+                              (stringp (plist-get item :title))
+                              (not (string-empty-p (plist-get item :title)))
+                              (or (null (plist-get item :description))
+                                  (stringp (plist-get item :description))))
+                         "items with unique :key, string :title and optional string :description"
+                         'etaf-list)
+        (push (plist-get item :key) keys)))
+    (etaf-check-prop :on-select on-select (or (null on-select) (functionp on-select))
+                     "a function or nil" 'etaf-list))
+  :render
+  (etaf-view
+   (column :class "etaf-list" :width 'stretch :item-gap '(lh 1)
+     (expr
+      (mapcar
+       (lambda (item)
+         (etaf-view
+          (etaf-button
+           :key (plist-get item :key) :label (plist-get item :title)
+           :variant 'ghost :width 'stretch
+           :on-press (and on-select
+                          (lambda () (funcall on-select (plist-get item :key))))
+           (etaf-label :text (plist-get item :title) :variant 'strong)
+           (expr (when (plist-get item :description)
+                   (etaf-view
+                    (etaf-label :text (plist-get item :description)
+                                :variant 'muted :wrap-mode 'word)))))))
+       items)))))
+
 (provide 'etaf-ui-table)
 ;;; etaf-ui-table.el ends here

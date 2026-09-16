@@ -115,7 +115,8 @@ number inputs.  Date values use ISO `YYYY-MM-DD' strings."
     (etaf-view
      (etaf-button
       :label (format "%s %s ✎" label display)
-      :aria-label label :disabled disabled :variant 'ghost
+      :aria-label label :disabled disabled :variant 'secondary
+      :width 'stretch :padding '((lh 0) (ch 1))
       :on-press
       (and (not disabled)
            (lambda ()
@@ -138,7 +139,11 @@ number inputs.  Date values use ISO `YYYY-MM-DD' strings."
                               (or (null max) (<= next max))
                               (or (null step) (zerop (% (- next (or min 0)) step))))
                    (user-error "%s is outside its numeric constraints" label)))
-               (when callback (funcall callback next)))))))))
+               (when callback (funcall callback next)))))
+      (flex :column-gap '(ch 2) :flex-wrap 'wrap
+        (etaf-label :text label :variant 'muted :width '(ch 20))
+        (etaf-label :text (concat display " ✎") :variant 'strong
+                    :flex-grow 1 :min-width '(px 0) :wrap-mode 'word))))))
 
 (etaf-define-component etaf-text-input
     (&key (value etaf-ui--unsupplied) (label "Text") (placeholder "—")

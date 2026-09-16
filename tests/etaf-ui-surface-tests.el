@@ -22,6 +22,44 @@
     (should (commandp command))
     (call-interactively command)))
 
+(ert-deftest etaf-ui-drawer-composes-both-sides-and-restores-focus ()
+  "Both modal drawer edges retain controlled values and restore their opener."
+  (dolist (side '(left right))
+    (with-temp-buffer
+      (let ((open (etaf-ref nil)) (checked (etaf-ref nil)))
+        (unwind-protect
+            (progn
+              (etaf-mount
+               (current-buffer)
+               (etaf-view
+                (column :width '(ch 80) :height '(lh 25)
+                  (etaf-button :ref 'open :label "Inspect"
+                               :on-press (lambda () (setf (etaf-value open) t)))
+                  (etaf-drawer :open open :placement side :title "Inspector"
+                               :on-close (lambda () (setf (etaf-value open) nil))
+                    (etaf-checkbox :bind checked :label "Reviewed")
+                    (slot :name 'footer
+                      (etaf-button :label "Done"
+                                   :on-press (lambda () (setf (etaf-value open) nil))))))))
+              (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+                (etaf-focus runtime 'open)
+                (etaf-activate runtime)
+                (should-not (etaf-host-ref-position runtime 'open))
+                (should (string-match-p "Inspector" (buffer-string)))
+                (etaf-activate runtime)
+                (should (etaf-value checked))
+                (etaf-ui-surface-test--key "<escape>")
+                (should-not (etaf-value open))
+                (should (eq 'open (etaf-focused-host-ref runtime)))
+                (etaf-activate runtime)
+                (should (etaf-value checked))
+                (etaf-focus runtime (etaf-ui-surface-test--control runtime "Done"))
+                (etaf-activate runtime)
+                (should-not (etaf-value open))
+                (should (eq 'open (etaf-focused-host-ref runtime)))))
+          (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+            (etaf-unmount runtime)))))))
+
 (ert-deftest etaf-ui-dropdown-opens-navigates-selects-and-restores-focus ()
   "A dropdown renders its items, skips disabled ones and invokes selection once."
   (with-temp-buffer

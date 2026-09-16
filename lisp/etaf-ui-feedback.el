@@ -142,12 +142,15 @@
   "Render a compact initials AVATAR with caller-provided NAME tooltip text."
   :render
   (let* ((name (etaf-ui--text-value name))
-         (initials (or (etaf-ui--text-value initials)
+         (initials (etaf-ui--text-value initials))
+         (initials (if (string-empty-p initials)
                        (if (string-empty-p name) "?"
-                         (upcase (substring name 0 (min 2 (length name)))))))
+                         (upcase (substring name 0 (min 2 (length name)))))
+                     initials))
          (theme (etaf-ui--feedback-theme variant)))
     (etaf-view
      (box :class "etaf-avatar" :role 'img :aria-label name :width size :height '(lh 3)
+          :box-sizing 'border-box :padding-top '(lh 1)
           :text-align 'center :font-weight 'bold :color (nth 0 theme)
           :background-color (nth 1 theme) :border (nth 2 theme)
        (text (expr initials))))))
@@ -170,6 +173,43 @@
               (etaf-label :text (plist-get item :title) :variant 'strong)
               (etaf-label :text (plist-get item :content) :variant 'muted)))))
        items)))))
+
+(etaf-define-component etaf-tag
+    (&key text (variant 'neutral) closable on-close)
+  "Render a compact TAG with optional caller-owned close action."
+  :validate
+  (etaf-check-prop :on-close on-close (or (not closable) (functionp on-close))
+                   "a function when closable" 'etaf-tag)
+  :render
+  (let ((theme (etaf-ui--feedback-theme variant)))
+    (etaf-view
+     (row :class "etaf-tag" :item-gap '(ch 1) :width 'max-content
+          :padding-inline '(ch 1) :background-color (nth 1 theme)
+       (etaf-label :text text :color (nth 0 theme))
+       (expr (when closable
+               (etaf-view
+                (etaf-button :label "×"
+                             :aria-label (format "Remove %s" (etaf-ui--text-value text))
+                             :variant 'ghost :color (nth 0 theme) :bgcolor (nth 1 theme)
+                             :border (nth 1 theme)
+                             :on-press on-close))))))))
+
+(etaf-define-component etaf-kbd (&key keys)
+  "Render keyboard KEYS as a compact accessible keycap group."
+  :validate
+  (etaf-check-prop :keys keys
+                   (and (proper-list-p keys) keys
+                        (cl-every (lambda (key) (and (stringp key)
+                                                    (not (string-empty-p key)))) keys))
+                   "a nonempty list of strings" 'etaf-kbd)
+  :view
+  (row :class "etaf-kbd" :item-gap '(ch 1) :width 'max-content
+    (expr (mapcar (lambda (key)
+                    (etaf-view
+                     (box :padding '((lh 0) (ch 1)) :border
+                          (etaf-ui--style-border (etaf-theme-token :ui-border "#687386"))
+                       (text (expr key)))))
+                  keys))))
 
 (provide 'etaf-ui-feedback)
 ;;; etaf-ui-feedback.el ends here

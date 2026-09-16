@@ -111,7 +111,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
                      (or (null current) (assoc current options))
                      "nil or a value in :options" 'etaf-segmented)
     (etaf-view
-     (row :class "etaf-segmented" :role 'tablist :item-gap '(ch 1)
+     (row :class "etaf-segmented" :role 'tablist :item-gap '(ch 2)
        (expr
         (mapcar
          (lambda (option)

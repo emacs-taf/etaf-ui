@@ -12,11 +12,12 @@ View, props, slots, lifecycle and Ebox host interaction contracts.
 
 | Category | Components | Foundation owned by |
 | --- | --- | --- |
-| Layout and containers | `etaf-panel`, `etaf-table`, `etaf-data-grid`, `etaf-tabs`, `etaf-accordion`, `etaf-divider` | Ebox flow/flex/grid geometry; ETAF controls which branch is visible |
-| Feedback and status | `etaf-label`, `etaf-badge`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton`, `etaf-card`, `etaf-avatar`, `etaf-timeline` | Ebox text and box paint; caller owns the status value |
-| Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-toast`, `etaf-dialog` | Ebox anchor/layer/occlusion plus shared panel focus |
+| Layout and containers | `etaf-panel`, `etaf-card`, `etaf-divider` | Ebox flow/flex/grid geometry; ETAF controls which branch is visible |
+| Feedback and status | `etaf-label`, `etaf-badge`, `etaf-tag`, `etaf-kbd`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton` | Ebox text and box paint; caller owns the status value |
+| Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-context-menu`, `etaf-toast`, `etaf-dialog`, `etaf-drawer` | Ebox anchor/layer/occlusion plus shared panel focus |
 | Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-input`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
-| Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination` | ETAF Data Controller and Ebox retained rows |
+| Navigation and collections | `etaf-tabs`, `etaf-accordion`, `etaf-breadcrumb`, `etaf-steps` | Ebox flow and focus; ETAF publishes caller-owned selection callbacks |
+| Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination`, `etaf-list`, `etaf-avatar`, `etaf-timeline` | ETAF Data Controller and Ebox retained rows |
 
 The maintained Atelier Gallery exercises every category in one compact workspace.
 Run `M-x etaf-ui-gallery-open` to inspect it; the source is
@@ -24,6 +25,17 @@ Run `M-x etaf-ui-gallery-open` to inspect it; the source is
 It is a composition check, not a separate widget framework: components must
 remain useful independently and must not copy Ebox hit testing, focus or
 layout state.
+
+Library columns wrap with the available width and follow their own content heights.
+`etaf-list` composes title and description through Button’s default slot, giving
+each rich row one focus and activation target; do not nest interactive controls
+inside that slot. Steps selection and tag removal remain caller-owned. The
+Collection browser connects DataGrid and Pagination to one Data Controller.
+
+Run `make gui-check GUI_EXAMPLE=gallery` through the existing emacsclient for
+menu, drawer, Chinese input, selection, steps, tag removal, list and pagination
+workflows. It exercises Emacs-local keyboard and mouse events; inspect the actual
+render separately. It does not certify OS input-method behavior or latency.
 
 ## Choosing `:view` or `:render`
 
