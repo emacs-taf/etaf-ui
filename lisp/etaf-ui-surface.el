@@ -88,11 +88,13 @@ Target selection and navigation stay with the public Runtime."
        (let ((runtime (etaf-runtime-for-buffer buffer)))
          ;; A surface closed before its mount hook settles leaves PANEL
          ;; unresolved; an unknown position is simply nothing to focus.
-         (when (and runtime
-                    (ignore-errors (etaf-host-ref-position runtime panel)))
-           (condition-case nil
-               (etaf-focus-within runtime panel)
-             (user-error (etaf-focus runtime panel)))))))
+           (when (and runtime
+                      (ignore-errors (etaf-host-ref-position runtime panel)))
+           ;; A surface without a focusable child does not need a second
+           ;; publication just to focus its -1 panel root.  Keymap-based
+           ;; dismissal remains buffer-local; interactive surfaces still
+           ;; focus their first eligible child through Ebox.
+           (ignore-errors (etaf-focus-within runtime panel))))))
     (etaf-on-unmounted
      (lambda ()
        (when cleanup (funcall cleanup))
