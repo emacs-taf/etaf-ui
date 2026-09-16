@@ -218,7 +218,6 @@
                (etaf-label :text "Make this space yours." :variant 'muted)
                (etaf-input :type 'text :bind workspace :label "Studio name")
                (etaf-input :type 'number :bind capacity :label "Project capacity" :min 1 :max 24)
-               (etaf-checkbox :bind notifications :label "Notify me about project updates")
                (etaf-switch :bind notifications :label "Live notifications")
                (etaf-segmented :bind density
                                :options '((compact . "Compact") (cozy . "Cozy") (airy . "Airy")))
