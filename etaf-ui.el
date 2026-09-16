@@ -18,12 +18,14 @@
 ;; This Commentary is the authoritative export list; implementations and precise
 ;; docstrings remain beside their definitions. The manual contains workflows.
 ;;
-;; Component: etaf-button (&key label on-press disabled ref class color bgcolor border padding font-weight tab-index aria-label use variant)
+;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-weight tab-index aria-label use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
 ;; DISABLED removes the callback and default focus tab index.  Presentation props
 ;; remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
 ;; so a failed render keeps the previous callback and its captured values.
+;; ID reaches the rendered Host so anchor-based surfaces can reference the
+;; Button by identity.
 ;; Native root attributes :pointer, :help-echo and :hover-style request Ebox
 ;; interaction feedback; explicit nil blocks inherited capabilities.
 ;; Use inside (etaf-view (etaf-button ...)); keyword arguments are component props.

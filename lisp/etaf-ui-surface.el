@@ -43,7 +43,14 @@ Target selection and navigation stay with the public Runtime."
                    `(menu-item "" ,binding
                                :filter ,(lambda (command)
                                           (when-let* ((runtime (etaf-runtime-for-buffer buffer))
-                                                      ((etaf-host-ref-position runtime panel)))
+                                                      ;; An unmounted or not yet
+                                                      ;; committed panel has no
+                                                      ;; address; treat it as
+                                                      ;; unavailable rather than
+                                                      ;; failing the key lookup.
+                                                      ((ignore-errors
+                                                         (etaf-host-ref-position
+                                                          runtime panel))))
                                             command)))))
      map)
     (let ((entry (cons tag map)) (route (cons tag return-targets)))
@@ -79,7 +86,10 @@ Target selection and navigation stay with the public Runtime."
      (lambda ()
        (setq cleanup (etaf-ui--surface-keys buffer panel tag return-focus))
        (let ((runtime (etaf-runtime-for-buffer buffer)))
-         (when (etaf-host-ref-position runtime panel)
+         ;; A surface closed before its mount hook settles leaves PANEL
+         ;; unresolved; an unknown position is simply nothing to focus.
+         (when (and runtime
+                    (ignore-errors (etaf-host-ref-position runtime panel)))
            (condition-case nil
                (etaf-focus-within runtime panel)
              (user-error (etaf-focus runtime panel)))))))

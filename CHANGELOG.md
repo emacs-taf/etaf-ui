@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- `etaf-button` forwards `:id` to the rendered Host, so anchor-based surfaces
+  that reference a Button by identity resolve it instead of depending on a
+  focus reference.
+- Floating surfaces treat an unmounted or not-yet-committed panel as
+  unavailable during key lookup and mount settling instead of failing the
+  activation that is already mid-flight.
+
 ### Added
 
 - Add Drawer and ContextMenu compositions using the existing floating surface,

@@ -148,7 +148,7 @@ need no named Action. Components receive props and slots through the same API
 as application-defined Components.
 
 Button and Checkbox are controlled Components. `etaf-button` accepts `:label`,
-`:on-press`, `:disabled`, `:ref`, and the small presentation set
+`:on-press`, `:disabled`, `:ref`, `:id`, and the small presentation set
 `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`,
 and `:aria-label`, plus `:use` for a public Behavior list. An enabled button
 defaults to role `button` and tab index `0`; a disabled button keeps its label
@@ -324,7 +324,7 @@ separate from forwarded Host attributes:
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`, `:variant` |
-| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`, `:aria-label`, `:use`, `:variant` |
+| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`, `:aria-label`, `:use`, `:variant` |
 | `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
 | `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |

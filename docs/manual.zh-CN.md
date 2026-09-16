@@ -273,7 +273,7 @@ surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`、`:variant` |
-| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-weight`、`:tab-index`、`:aria-label`、`:use`、`:variant` |
+| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:id`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-weight`、`:tab-index`、`:aria-label`、`:use`、`:variant` |
 | `etaf-checkbox` | `:checked`、`:label`、`:on-change`、`:disabled`、`:bind` |
 | `etaf-panel` | `:title`、`:variant` |
 | `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max`、`:bind` |

@@ -110,13 +110,15 @@ ref directly; it owns no state or subscription of its own."
           :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 
 (etaf-define-component etaf-button
-    (&key label on-press disabled ref class color bgcolor border padding
+    (&key label on-press disabled id ref class color bgcolor border padding
           font-weight tab-index aria-label use variant)
   "Render a standard pressable Button with a committed callback.
 
 DISABLED removes the callback and default focus tab index.  Presentation props
-remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
-so a failed render keeps the previous callback and its captured values."
+remain caller-overridable.  ID reaches the rendered Host so anchor-based
+surfaces can reference the Button by identity.  Runtime publishes ON-PRESS with
+the visible Button, so a failed render keeps the previous callback and its
+captured values."
   :render
   (let* ((label (etaf-ui--text-value label))
          (variant-values
@@ -124,21 +126,23 @@ so a failed render keeps the previous callback and its captured values."
            (and (not disabled) variant) disabled)))
     (etaf-node
      'box
-     (list
-      :class (etaf-ui--class-value
-              "etaf-button"
-              (if disabled "disabled" "enabled")
-              class)
-      :ref ref :role 'button :disabled disabled
-      :tab-index (unless disabled (or tab-index 0))
-      :aria-label (or aria-label label)
-      :color (or color (plist-get variant-values :color))
-      :background-color (or bgcolor (plist-get variant-values :bgcolor))
-      :border (or border (plist-get variant-values :border))
-      :padding padding
-      :font-weight (or font-weight (plist-get variant-values :font-weight))
-      :use use
-      :on-press (and (not disabled) on-press))
+     (append
+      (list
+       :class (etaf-ui--class-value
+               "etaf-button"
+               (if disabled "disabled" "enabled")
+               class)
+       :ref ref :role 'button :disabled disabled
+       :tab-index (unless disabled (or tab-index 0))
+       :aria-label (or aria-label label)
+       :color (or color (plist-get variant-values :color))
+       :background-color (or bgcolor (plist-get variant-values :bgcolor))
+       :border (or border (plist-get variant-values :border))
+       :padding padding
+       :font-weight (or font-weight (plist-get variant-values :font-weight))
+       :use use
+       :on-press (and (not disabled) on-press))
+      (when id (list :id id)))
      (or (etaf-current-slot 'default)
          (list (etaf-node 'text nil (list label))))))
   :styles
