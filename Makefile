@@ -5,7 +5,8 @@ LOAD_PATH = -L . -L lisp -L ../etaf -L ../ebox -L ../ecss -L ../tp
 SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-input.el lisp/etaf-ui-selection.el lisp/etaf-ui-feedback.el lisp/etaf-ui-navigation.el lisp/etaf-ui-surface.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el lisp/etaf-ui-advanced.el etaf-ui.el
 
 TEST_FILES := $(wildcard tests/*-tests.el)
-SOURCES += $(wildcard examples/*.el) scripts/etaf-ui-gui.el
+SOURCES += $(wildcard examples/*.el) scripts/etaf-ui-gui.el \
+	scripts/etaf-ui-gallery-latency.el
 
 .PHONY: all compile check checkdoc load clean
 

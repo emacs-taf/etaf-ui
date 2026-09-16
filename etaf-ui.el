@@ -316,10 +316,11 @@
 ;; return its buffer. Interactive calls display it. Reopening resets its
 ;; application state; unmount the Runtime or close the buffer to dispose it.
 
-;; Function: etaf-ui-gallery-open ()
+;; Function: etaf-ui-gallery-open (&optional buffer-or-name)
 ;;;###autoload (autoload 'etaf-ui-gallery-open "etaf-ui" nil t)
 ;; Mount the integrated catalog Gallery and return its buffer. It exercises
-;; layout, feedback, navigation, input, data and floating Components.
+;; layout, feedback, navigation, input, data and floating Components.  An
+;; explicit name allows independent mounts; interactive calls display it.
 ;;
 ;;; Code:
 

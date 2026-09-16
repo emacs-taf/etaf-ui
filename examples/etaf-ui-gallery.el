@@ -372,10 +372,13 @@
                      :on-press (lambda () (setf (etaf-value drawer) nil)))))))
 
 ;;;###autoload
-(defun etaf-ui-gallery-open ()
-  "Mount the integrated catalog Gallery; interactive calls display its buffer."
+(defun etaf-ui-gallery-open (&optional buffer-or-name)
+  "Mount the integrated catalog Gallery; interactive calls display its buffer.
+BUFFER-OR-NAME names the target buffer so callers can mount several
+independent Galleries in one Emacs; it defaults to the standard name."
   (interactive)
-  (let ((buffer (etaf-mount "*ETAF UI Gallery*" (etaf-view (etaf-ui-gallery-example)))))
+  (let ((buffer (etaf-mount (or buffer-or-name "*ETAF UI Gallery*")
+                            (etaf-view (etaf-ui-gallery-example)))))
     (when (called-interactively-p 'interactive) (switch-to-buffer buffer))
     buffer))
 
