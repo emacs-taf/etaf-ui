@@ -48,13 +48,14 @@ maintained keyboard/mouse interaction workflow.
 Use `make gui-check GUI_EXAMPLE=gallery` for the integrated Gallery workflow,
 including drawer handoff, Chinese input, controlled selection and pagination.
 
-Run `make perf-check` with this checkout loaded in the existing graphical Emacs.
-Keep its window in front: the command compares callback, keyboard and mouse
-paths on three fresh Gallery mounts per action and reports every slow sample.
-Evidence stays outside Git. This screening uses 50 ms for the checkbox, 100 ms
-for floating UI and a separate 500 ms hard limit; functional completion is not
-a performance pass. Use `PERF_ARGS=--trace` for a separate provider diagnostic
-pass. Hardware input and OS compositor latency remain unmeasured.
+Run `make perf-check PERF_ARGS='--diagnose'` from the development
+workspace to measure the existing graphical Emacs. The shared runner uses the
+registered Gallery callback, keyboard and mouse scenarios, with three sets of
+ten samples and separate phase, CPU and allocation passes. Budgets remain
+50 ms for the checkbox, 100 ms for floating UI and a separate 500 ms hard limit.
+`PERF_TOOL=/path/to/workspace/scripts/performance.py` selects the same tool for
+a separate checkout. The workspace's `docs/manual.md` documents baseline
+comparison, source freshness and evidence boundaries.
 
 ## Development
 

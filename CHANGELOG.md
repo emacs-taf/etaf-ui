@@ -33,10 +33,12 @@
 
 ### Changed
 
-- Replace the callback-only Gallery latency script with `make perf-check`.
-  The new input-path screening tool mounts into the selected graphical window,
-  compares callback/keyboard/mouse routes, keeps all samples and waits for
-  foreground focus. Provider tracing is a separate pass.
+- Gallery performance checks use the shared workspace runner and registered
+  scenarios. Use `--diagnose` for separate phase, CPU and allocation passes and
+  `--baseline` to compare saved evidence. `PERF_TOOL` selects the workspace tool
+  when the package is checked out separately. Replace `--trace` with `--diagnose`
+  and `--output FILE` with `--output-dir DIRECTORY`; previous Gallery JSON files
+  are not compatible with the shared runner's baseline schema.
 
 - DataGrid composes the same row Components as Table, including row layout,
   selection paint and custom cell state. ETAF owns automatic row references and

@@ -42,11 +42,11 @@
 运行 `make gui-check`，通过已有图形 Emacs 的 emacsclient 重复执行键盘和鼠标交互验收。
 用 `make gui-check GUI_EXAMPLE=gallery` 验收集成 Gallery，覆盖抽屉切换、中文输入、受控选择和分页。
 
-当前 checkout 加载到已有图形 Emacs 后，运行 `make perf-check`。保持 Emacs
-在前台，工具会对比回调、键盘和鼠标入口，每项独立挂载三次，完整保留慢样本，
-证据写在 Git 之外。快速门槛为复选框 50 ms、浮层 100 ms，500 ms 单列为硬底线；
-功能流程完成不代表性能通过。`PERF_ARGS=--trace` 另做提供方诊断采样。
-计时覆盖命令至强制 redisplay 返回，不包含硬件输入和系统合成器延迟。
+在开发工作区运行 `make perf-check PERF_ARGS='--diagnose'`，通过已有
+原生 Emacs 测量注册的 Gallery 回调、键盘和鼠标场景。默认三组、每组十次，阶段、
+CPU、分配诊断另行采集。复选框预算仍为 50 ms、浮层 100 ms，500 ms 是独立硬底线。
+单独 checkout 可用 `PERF_TOOL=/path/to/workspace/scripts/performance.py` 指向同一工具。
+基线比较、代码新鲜度与证据边界见工作区的 `docs/manual.zh-CN.md`。
 定位和遮挡由 Ebox 负责，区域内键盘导航复用 Ebox 的共享焦点。
 
 ## 开发

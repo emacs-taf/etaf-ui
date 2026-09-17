@@ -25,7 +25,7 @@ load: compile
 checkdoc:
 	$(EMACS) -Q --batch --eval '(progn (require (quote checkdoc)) (dolist (file (append (directory-files "lisp" t "\\.el$$") (directory-files-recursively "tests" "\\.el$$") (directory-files-recursively "scripts" "\\.el$$"))) (checkdoc-file file)))'
 
-check: structure-check compile acceptance api-check performance-tool-check
+check: structure-check compile acceptance api-check
 
 clean:
 	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc benchmarks/*.elc scripts/*.elc
@@ -41,11 +41,10 @@ gui-check:
 	scripts/run-gui-check.sh $(GUI_EXAMPLE)
 
 PERF_ARGS ?=
-.PHONY: perf-check performance-tool-check
+PERF_TOOL ?= ../scripts/performance.py
+.PHONY: perf-check
 perf-check:
-	python3 scripts/run-gallery-performance.py $(PERF_ARGS)
-performance-tool-check:
-	python3 -m unittest discover -s tests/tools -p 'test_gallery_performance.py'
+	python3 "$(PERF_TOOL)" run --root . --scenario-file benchmarks/performance-scenarios.el --mode gui --scenario 'gallery.*' $(PERF_ARGS)
 
 .PHONY: acceptance
 acceptance:
