@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Gallery diagnostic traces include the complete input operation, including
+  Ebox pressed-state and focus publications outside the application callback.
+  Latency and profiler passes continue measuring the unobserved input route.
+
 - `etaf-button` forwards `:id` to the rendered Host, so anchor-based surfaces
   that reference a Button by identity resolve it instead of depending on a
   focus reference.

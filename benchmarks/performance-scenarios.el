@@ -40,7 +40,7 @@
 
 (defun etaf-ui-benchmark--gallery (label expected route mode)
   "Build a fresh Gallery and prepare LABEL through ROUTE in MODE."
-  (let ((buffer (generate-new-buffer " *TAF Gallery*")) runtime target position)
+  (let ((buffer (generate-new-buffer " *TAF Gallery*")) runtime target position observing)
     (etaf-ui-gallery-open buffer)
     (setq runtime (etaf-runtime-for-buffer buffer))
     (list
@@ -60,17 +60,31 @@
            (setq position (posn-at-point point (selected-window))))))
      :invoke
      (lambda (_sample)
-       (pcase route
-         ('callback (etaf-dispatch-event runtime target 'press))
-         ('keyboard (etaf-focus runtime target) (execute-kbd-macro (kbd "RET")))
-         ('mouse (execute-kbd-macro (vector (list 'down-mouse-1 position)
-                                           (list 'mouse-1 position))))))
+       (let ((action
+              (lambda ()
+                (pcase route
+                  ('callback (etaf-dispatch-event runtime target 'press))
+                  ('keyboard (etaf-focus runtime target) (execute-kbd-macro (kbd "RET")))
+                  ('mouse (execute-kbd-macro (vector (list 'down-mouse-1 position)
+                                                   (list 'mouse-1 position))))))))
+         ;; Pressed-state publication precedes ETAF's application callback;
+         ;; release/focus publication can follow it. Observe the complete input
+         ;; operation so those provider commits are not reported as outside Ebox.
+         ;; Latency and profiler passes retain the unobserved native route.
+         (if observing
+             (etaf-performance-call-operation runtime 'input label action)
+           (funcall action))))
      :verify (lambda ()
                (with-current-buffer buffer
                  (and (etaf-runtime-for-buffer buffer)
                       (not (null (string-match-p (regexp-quote expected)
                                                 (buffer-substring-no-properties (point-min) (point-max))))))))
-     :observe (lambda (sink) (etaf-ui-benchmark--observe runtime buffer sink))
+     :observe (lambda (sink)
+                (let ((finish (etaf-ui-benchmark--observe runtime buffer sink)))
+                  (setq observing t)
+                  (lambda ()
+                    (setq observing nil)
+                    (funcall finish))))
      :cleanup (lambda ()
                 (when (buffer-live-p buffer)
                   (when (etaf-runtime-for-buffer buffer) (etaf-unmount runtime))
