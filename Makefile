@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := check
 .NOTPARALLEL:
 EMACS ?= emacs
-LOAD_PATH = -L . -L lisp -L ../etaf -L ../ebox -L ../ecss -L ../tp
+LOAD_PATH = -L . -L lisp -L ../etaf -L ../ebox -L ../ecss
 SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-input.el lisp/etaf-ui-selection.el lisp/etaf-ui-feedback.el lisp/etaf-ui-navigation.el lisp/etaf-ui-surface.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el lisp/etaf-ui-advanced.el etaf-ui.el
 
 TEST_FILES := $(wildcard tests/*-tests.el)
@@ -53,7 +53,7 @@ acceptance:
 .PHONY: api-check
 api-check:
 	$(EMACS) -Q --batch -L . $(API_PROVIDER_PATH) --eval '(setq load-prefer-newer t)' -l scripts/check-api.el
-API_PROVIDER_PATH = -L ../ecss -L ../tp -L ../ekp -L ../ebox -L ../etaf -L ../etaf-db -L ../ebox-playground -L ../etaf-playground
+API_PROVIDER_PATH = -L ../ecss -L ../ekp -L ../ebox -L ../etaf -L ../etaf-db -L ../ebox-playground -L ../etaf-playground
 
 .PHONY: test
 test: acceptance

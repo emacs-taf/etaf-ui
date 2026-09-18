@@ -222,9 +222,9 @@ Task Workbench 演示草稿隔离、字段错误、保存／取消，以及切�
 `:ui-checkbox-*`、`:ui-table-*`、`:ui-data-grid-error-fg`、
 `:ui-pagination-muted-fg` 和 `:ui-panel-*`。应用通过 ETAF 的
 `etaf-theme-provide` 提供这些 token；旧的 `:ui-button-color` 一类 alias
-仍兼容。`etaf-ui` 不依赖 TP，也不直接依赖 renderer-specific palette
-registry；如果应用想使用 TP 的亮/暗 palette 数据，应先通过可选的
-`etaf-theme-tp` adapter 转成同一份 ETAF Theme plist，再交给 UI 目录。
+仍兼容。应用需要亮/暗配色时，把语义 token 保存在自己持有的 plist 中，
+使用 `etaf-theme-resolve-palette` 并显式传入 `light` 或 `dark` 模式。
+解析结果遵循同一份 Theme contract，UI 目录不依赖渲染器的 palette registry。
 
 Component 的 `:styles` 声明负责默认外观。调用者提供的非 nil presentation
 属性覆盖普通默认值，importance 仍遵循 ECSS；省略或传 nil 时，继承的 Theme/默认样式仍可生效。Button

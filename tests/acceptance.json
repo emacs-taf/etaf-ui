@@ -9,8 +9,7 @@
     "../ekp",
     "../etaf",
     "../etaf-db",
-    "../etaf-playground",
-    "../tp"
+    "../etaf-playground"
   ],
   "support": [],
   "cases": [

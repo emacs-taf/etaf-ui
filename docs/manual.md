@@ -260,10 +260,10 @@ tokens are `:ui-fg`, `:ui-bg`, `:ui-border`, `:ui-muted-fg`,
 `:ui-data-grid-error-fg`, `:ui-pagination-muted-fg`, and `:ui-panel-*`.
 Applications provide these through ETAF's
 `etaf-theme-provide`; legacy `:ui-button-color`-style aliases remain accepted
-for compatibility. `etaf-ui` does not depend on TP or on a renderer-specific
-palette registry. If an application wants TP's light/dark palette data, the
-optional `etaf-theme-tp` adapter converts it into the same ETAF Theme plist
-before the UI catalog sees it.
+for compatibility. For light/dark colors, keep the semantic tokens in an
+application-owned plist and pass it to `etaf-theme-resolve-palette` with an
+explicit `light` or `dark` mode. The result uses the same Theme contract;
+the UI catalog does not depend on a renderer-specific palette registry.
 
 Component `:styles` declarations own default appearance. A non-nil
 presentation prop supplied by the caller overrides normal defaults; ECSS

@@ -64,7 +64,7 @@
                           nil (current-buffer) nil "-Q" "--batch"
                           (append
                            (cl-loop for directory in '("." "../etaf" "../ebox"
-                                                       "../tp" "../ecss")
+                                                       "../ecss")
                                     append (list "-L" (expand-file-name
                                                        directory
                                                        etaf-ui-docs-test--root)))
