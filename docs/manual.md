@@ -53,6 +53,17 @@ checked and unchecked progress values after every click. The original
 click on fresh mounts. Inspect per-sample results to distinguish directional
 fallbacks from costs that accumulate over successive updates.
 
+`gallery.actions.steady.*` and `gallery.more.steady.*` alternate open and closed
+menus. `gallery.toolbar.sequence.mouse` interleaves both menus with Review on
+one page, exposing updates that become expensive after another component runs.
+To inspect the currently selected Gallery without resetting its state, select
+`gallery.current.toolbar.mouse`. If the page came from the last benchmark,
+first call `(taf-benchmark-detach-fixture)` through emacsclient; otherwise the
+runner still owns that fixture's cleanup. The current-page adapter borrows it
+and leaves it mounted. Its sequence is Actions twice, Review twice, More twice,
+Review twice. Use these mixed operations for diagnosis; the separate Review and
+menu workloads keep their respective 50 ms and 100 ms acceptance budgets.
+
 ## Choosing `:view` or `:render`
 
 Both forms return the same typed ETAF View. Use `:view` as the normal authoring

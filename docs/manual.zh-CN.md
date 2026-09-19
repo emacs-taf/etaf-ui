@@ -44,6 +44,14 @@ steady 场景在每组中保留同一个 Gallery，每次点击后验证勾选�
 按顺序检查样本，可区分某个切换方向的回退与连续更新过程中不断积累的开销。
 包的 `make perf-check` 已包含所有 Gallery 场景。
 
+`gallery.actions.steady.*` 和 `gallery.more.steady.*` 反复打开、关闭菜单。
+`gallery.toolbar.sequence.mouse` 在同一页面交替操作两种菜单与 Review，检查其他
+组件运行后更新路径是否退化。`gallery.current.toolbar.mouse` 则直接使用当前选中的
+Gallery，不重置状态。如果页面来自上一次测量，先通过 emacsclient 调用
+`(taf-benchmark-detach-fixture)`，移交该页面的清理责任；当前页面适配器会保持它挂载。
+操作顺序为 Actions 两次、Review 两次、More 两次、Review 两次。混合流程用于诊断，
+Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
+
 ## 选择 `:view` 还是 `:render`
 
 两种写法都会返回同一种带类型的 ETAF View。通常应优先使用 `:view`：它用

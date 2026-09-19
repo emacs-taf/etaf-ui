@@ -38,53 +38,75 @@
           :render_gc_threshold ebox-render-gc-cons-threshold
           :render_gc_percentage ebox-render-gc-cons-percentage)))
 
-(defun etaf-ui-benchmark--gallery (label expected route mode &optional repeat-review)
-  "Build a Gallery and prepare LABEL through ROUTE in MODE.
-REPEAT-REVIEW checks alternating checkbox and progress values on one mount."
-  (let ((buffer (generate-new-buffer " *TAF Gallery*"))
-        (invocations 0) runtime target position observing)
-    (etaf-ui-gallery-open buffer)
+(defun etaf-ui-benchmark--gallery (label expected route mode &optional steps existing-buffer)
+  "Prepare Gallery LABEL through ROUTE in MODE and verify EXPECTED text.
+STEPS cycles through public activations and visible expectations on one mount.
+EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
+  (let ((buffer (or existing-buffer (generate-new-buffer " *TAF Gallery*")))
+        (invocations 0) runtime target position observing step expected-text expected-visible)
+    (unless existing-buffer (etaf-ui-gallery-open buffer))
     (setq runtime (etaf-runtime-for-buffer buffer))
+    (unless runtime (error "The selected buffer has no mounted ETAF application"))
     (list
      :buffer buffer :environment #'etaf-ui-benchmark--environment
      :prepare
      (lambda ()
-       (setq target
+       (setq step (if steps (nth (% invocations (length steps)) steps)
+                    (list :label label :text expected :visible t)))
+       (let* ((text (with-current-buffer buffer
+                      (buffer-substring-no-properties (point-min) (point-max))))
+              (alternatives (plist-get step :alternate)))
+         (setq expected-text (plist-get step :text)
+               expected-visible (plist-get step :visible))
+         (when alternatives
+           (setq expected-text
+                 (cond ((string-match-p (regexp-quote (car alternatives)) text) (cadr alternatives))
+                       ((string-match-p (regexp-quote (cadr alternatives)) text) (car alternatives))
+                       (t (error "The current Gallery does not show either expected value")))
+                 expected-visible t))
+         (when (plist-get step :toggle)
+           (setq expected-visible
+                 (not (string-match-p (regexp-quote expected-text) text)))))
+       (unless (plist-get step :keys)
+         (setq target
              (or (car (cl-find-if
-                       (lambda (entry) (equal label (plist-get (cdr entry) :aria-label)))
+                       (lambda (entry) (equal (plist-get step :label)
+                                              (plist-get (cdr entry) :aria-label)))
                        (etaf-runtime-host-props-entries runtime)))
-                 (error "Gallery target is absent: %s" label)))
+                 (error "Gallery target is absent: %s" (plist-get step :label))))
        (when (eq route 'mouse)
          (unless (eq mode 'gui) (error "Mouse requires GUI mode"))
          (let ((point (etaf-host-ref-position runtime target)))
            (unless (and point (pos-visible-in-window-p point (selected-window)))
              (error "Gallery mouse target is not visible: %s" label))
-           (setq position (posn-at-point point (selected-window))))))
+           (setq position (posn-at-point point (selected-window)))))))
      :invoke
      (lambda (_sample)
        (let ((action
               (lambda ()
-                (pcase route
+                (if-let* ((keys (plist-get step :keys)))
+                    (execute-kbd-macro (kbd keys))
+                  (pcase route
                   ('callback (etaf-dispatch-event runtime target 'press))
                   ('keyboard (etaf-focus runtime target) (execute-kbd-macro (kbd "RET")))
                   ('mouse (execute-kbd-macro (vector (list 'down-mouse-1 position)
-                                                   (list 'mouse-1 position))))))))
+                                                   (list 'mouse-1 position)))))))))
          ;; Pressed-state publication precedes ETAF's application callback;
          ;; release/focus publication can follow it. Observe the complete input
          ;; operation so those provider commits are not reported as outside Ebox.
          ;; Latency and profiler passes retain the unobserved native route.
          (if observing
-             (etaf-performance-call-operation runtime 'input label action)
+             (etaf-performance-call-operation
+              runtime 'input (or (plist-get step :label) (plist-get step :keys)) action)
            (funcall action)))
        (cl-incf invocations))
      :verify (lambda ()
                (with-current-buffer buffer
                  (and (etaf-runtime-for-buffer buffer)
-                      (not (null (string-match-p (regexp-quote
-                                                 (if repeat-review
-                                                     (if (cl-oddp invocations) "100%" "67%")
-                                                   expected))
-                                                (buffer-substring-no-properties (point-min) (point-max))))))))
+                      (eq (not (null (string-match-p
+                                     (regexp-quote expected-text)
+                                     (buffer-substring-no-properties (point-min) (point-max)))))
+                          (not (null expected-visible))))))
      :observe (lambda (sink)
                 (let ((finish (etaf-ui-benchmark--observe runtime buffer sink)))
                   (setq observing t)
@@ -92,7 +114,7 @@ REPEAT-REVIEW checks alternating checkbox and progress values on one mount."
                     (setq observing nil)
                     (funcall finish))))
      :cleanup (lambda ()
-                (when (buffer-live-p buffer)
+                (when (and (not existing-buffer) (buffer-live-p buffer))
                   (when (etaf-runtime-for-buffer buffer) (etaf-unmount runtime))
                   (kill-buffer buffer))))))
 
@@ -120,7 +142,48 @@ REPEAT-REVIEW checks alternating checkbox and progress values on one mount."
      :budget-ms 50 :impact 'local
      :description (format "Repeated Review toggles on one mounted Gallery via %s" route)
      :setup (lambda (mode)
-              (etaf-ui-benchmark--gallery "Review interactions" "100%" method mode t)))))
+              (etaf-ui-benchmark--gallery
+               "Review interactions" "100%" method mode
+               '((:label "Review interactions" :alternate ("67%" "100%"))))))))
+
+(dolist (case '(("actions" "Actions" "Refresh workspace")
+                ("more" "More" "Open inspector")))
+  (dolist (route '(callback mouse))
+    (let ((name (car case)) (label (cadr case)) (marker (nth 2 case)) (method route))
+      (taf-benchmark-register
+       (format "gallery.%s.steady.%s" name route)
+       :version 1 :modes (if (eq route 'callback) '(batch gui) '(gui))
+       :isolation 'series :required-providers '(ebox)
+       :budget-ms 100 :impact 'overlay
+       :description (format "Repeated %s open/close on one mounted Gallery via %s" label route)
+       :setup (lambda (mode)
+                (etaf-ui-benchmark--gallery
+                 label marker method mode
+                 (list (list :label label :text marker :toggle t))))))))
+
+(defconst etaf-ui-benchmark--toolbar-steps
+  '((:label "Actions" :text "Refresh workspace" :toggle t)
+    (:label "Actions" :text "Refresh workspace" :toggle t)
+    (:label "Review interactions" :alternate ("67%" "100%"))
+    (:label "Review interactions" :alternate ("67%" "100%"))
+    (:label "More" :text "Open inspector" :toggle t)
+    (:label "More" :text "Open inspector" :toggle t)
+    (:label "Review interactions" :alternate ("67%" "100%"))
+    (:label "Review interactions" :alternate ("67%" "100%")))
+  "Public overlay and content operations exercised on one retained page.")
+
+(dolist (existing '(nil t))
+  (let ((borrow existing))
+    (taf-benchmark-register
+     (if borrow "gallery.current.toolbar.mouse" "gallery.toolbar.sequence.mouse")
+     :version 1 :modes '(gui) :isolation 'series :required-providers '(ebox)
+     :budget-ms 100 :impact 'mixed
+     :description (if borrow "Actions, Review and More on the existing selected Gallery"
+                    "Actions, Review and More alternated on one mounted Gallery")
+     :setup (lambda (mode)
+              (etaf-ui-benchmark--gallery
+               nil nil 'mouse mode etaf-ui-benchmark--toolbar-steps
+               (and borrow (window-buffer (selected-window))))))))
 
 (taf-benchmark-register
  "etaf.counter" :version 1 :modes '(batch gui) :isolation 'series
