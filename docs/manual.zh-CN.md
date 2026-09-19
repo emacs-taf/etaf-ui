@@ -33,6 +33,17 @@ Gallery 的 Collection browser 将 DataGrid 与 Pagination 连接到同一个 Da
 中文输入、选择、步骤、标签删除、列表和分页。该命令执行 Emacs 本地键盘和鼠标事件；
 仍需查看实际截图，不代表操作系统输入法或延迟达标。
 
+在工作区中可用通用工具单独检查同一页面上的连续交互：
+
+```sh
+python3 scripts/performance.py run --mode gui --scenario 'gallery.review.steady.*'
+```
+
+steady 场景在每组中保留同一个 Gallery，每次点击后验证勾选或取消勾选对应的进度。
+原有 `gallery.review.callback` 和 `gallery.review.mouse` 测量重新挂载后的首次点击。
+按顺序检查样本，可区分某个切换方向的回退与连续更新过程中不断积累的开销。
+包的 `make perf-check` 已包含所有 Gallery 场景。
+
 ## 选择 `:view` 还是 `:render`
 
 两种写法都会返回同一种带类型的 ETAF View。通常应优先使用 `:view`：它用

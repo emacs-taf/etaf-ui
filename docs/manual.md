@@ -40,6 +40,19 @@ menu, drawer, Chinese input, selection, steps, tag removal, list and pagination
 workflows. It exercises Emacs-local keyboard and mouse events; inspect the actual
 render separately. It does not certify OS input-method behavior or latency.
 
+The package's `make perf-check` includes all Gallery workloads. From the
+workspace, a focused continuous interaction check is:
+
+```sh
+python3 scripts/performance.py run --mode gui --scenario 'gallery.review.steady.*'
+```
+
+The steady scenarios retain one mounted Gallery within each set and verify both
+checked and unchecked progress values after every click. The original
+`gallery.review.callback` and `gallery.review.mouse` scenarios measure the first
+click on fresh mounts. Inspect per-sample results to distinguish directional
+fallbacks from costs that accumulate over successive updates.
+
 ## Choosing `:view` or `:render`
 
 Both forms return the same typed ETAF View. Use `:view` as the normal authoring

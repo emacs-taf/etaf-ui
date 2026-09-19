@@ -38,9 +38,11 @@
           :render_gc_threshold ebox-render-gc-cons-threshold
           :render_gc_percentage ebox-render-gc-cons-percentage)))
 
-(defun etaf-ui-benchmark--gallery (label expected route mode)
-  "Build a fresh Gallery and prepare LABEL through ROUTE in MODE."
-  (let ((buffer (generate-new-buffer " *TAF Gallery*")) runtime target position observing)
+(defun etaf-ui-benchmark--gallery (label expected route mode &optional repeat-review)
+  "Build a Gallery and prepare LABEL through ROUTE in MODE.
+REPEAT-REVIEW checks alternating checkbox and progress values on one mount."
+  (let ((buffer (generate-new-buffer " *TAF Gallery*"))
+        (invocations 0) runtime target position observing)
     (etaf-ui-gallery-open buffer)
     (setq runtime (etaf-runtime-for-buffer buffer))
     (list
@@ -73,11 +75,15 @@
          ;; Latency and profiler passes retain the unobserved native route.
          (if observing
              (etaf-performance-call-operation runtime 'input label action)
-           (funcall action))))
+           (funcall action)))
+       (cl-incf invocations))
      :verify (lambda ()
                (with-current-buffer buffer
                  (and (etaf-runtime-for-buffer buffer)
-                      (not (null (string-match-p (regexp-quote expected)
+                      (not (null (string-match-p (regexp-quote
+                                                 (if repeat-review
+                                                     (if (cl-oddp invocations) "100%" "67%")
+                                                   expected))
                                                 (buffer-substring-no-properties (point-min) (point-max))))))))
      :observe (lambda (sink)
                 (let ((finish (etaf-ui-benchmark--observe runtime buffer sink)))
@@ -104,6 +110,17 @@
        :description (format "%s via %s%s" label route
                             (if (eq route 'keyboard) " (focus then RET)" ""))
        :setup (lambda (mode) (etaf-ui-benchmark--gallery label expected method mode))))))
+
+(dolist (route '(callback keyboard mouse))
+  (let ((method route))
+    (taf-benchmark-register
+     (format "gallery.review.steady.%s" route)
+     :version 1 :modes (if (eq route 'callback) '(batch gui) '(gui))
+     :isolation 'series :required-providers '(ebox)
+     :budget-ms 50 :impact 'local
+     :description (format "Repeated Review toggles on one mounted Gallery via %s" route)
+     :setup (lambda (mode)
+              (etaf-ui-benchmark--gallery "Review interactions" "100%" method mode t)))))
 
 (taf-benchmark-register
  "etaf.counter" :version 1 :modes '(batch gui) :isolation 'series

@@ -17,6 +17,9 @@
 
 ### Added
 
+- Gallery Review has continuous callback, keyboard and mouse performance
+  scenarios that reuse one page and verify both directions of the toggle.
+  First-click scenarios remain available separately.
 - Add Drawer and ContextMenu compositions using the existing floating surface,
   with bounded side placement, modal blocking, keyboard dismissal and focus return.
 - Add Tag, Kbd, Steps and List. Button accepts non-interactive default-slot

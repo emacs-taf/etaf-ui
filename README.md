@@ -57,6 +57,12 @@ ten samples and separate phase, CPU and allocation passes. Budgets remain
 a separate checkout. The workspace's `docs/manual.md` documents baseline
 comparison, source freshness and evidence boundaries.
 
+Gallery Review has separate first-click and repeated-toggle workloads.
+`gallery.review.callback` and `gallery.review.mouse` mount a fresh page for each
+sample; `gallery.review.steady.callback` and `gallery.review.steady.mouse` retain
+one page within each set and alternate checked/unchecked values. Use both when
+checking updates: a fast first click does not establish steady interaction cost.
+
 ## Development
 
 After cloning, run `make setup-hooks`. Before submitting a change, run `make check`; `make structure-check` is the fast organization gate.

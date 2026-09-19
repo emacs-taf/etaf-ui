@@ -47,6 +47,10 @@
 CPU、分配诊断另行采集。复选框预算仍为 50 ms、浮层 100 ms，500 ms 是独立硬底线。
 单独 checkout 可用 `PERF_TOOL=/path/to/workspace/scripts/performance.py` 指向同一工具。
 基线比较、代码新鲜度与证据边界见工作区的 `docs/manual.zh-CN.md`。
+
+Review 分为首次点击和连续切换两类场景。`gallery.review.callback`、
+`gallery.review.mouse` 每次重新挂载；带 `.steady.` 的对应场景在每组中保留同一页面，
+交替勾选和取消。两类都需要检查，首次响应快并不能保证持续交互的耗时。
 定位和遮挡由 Ebox 负责，区域内键盘导航复用 Ebox 的共享焦点。
 
 ## 开发
