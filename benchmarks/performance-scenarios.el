@@ -124,7 +124,10 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
                                       (plist-get report :owner-ids)) t :false)
                :reconciled (plist-get report :reconciled-objects)
                :text_operations (plist-get report :publication-text-operations)
-               :property_operations (plist-get report :publication-property-operations))))
+               :property_operations (plist-get report :publication-property-operations)
+               :layer_recompose (if (plist-get report :layer-recompose-p) t :false)
+               :publication_full_root (if (plist-get report :publication-full-root) t :false)
+               :publication_scope (format "%s" (plist-get report :publication-scope)))))
      :verify (lambda ()
                (with-current-buffer buffer
                  (and (etaf-runtime-for-buffer buffer)
