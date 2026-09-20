@@ -155,18 +155,11 @@
 
 (defun etaf-ui-gui-reveal (label)
   "Use the mounted buffer's scrolling keys to reveal LABEL."
-  (let* ((runtime (etaf-ui-gui-runtime))
-         (frame-position (ignore-errors
-                           (etaf-host-ref-position runtime "gallery-page-frame")))
-         (attempts 0))
+  (let ((attempts 0))
     (while (and (< attempts 12) (not (etaf-ui-gui-control label)))
       (cl-incf attempts)
-      (if frame-position
-          (progn
-            (goto-char frame-position)
-            (ebox-scroll-page-down))
-        (goto-char (point-min))
-        (call-interactively (key-binding (kbd "C-v"))))))
+      (goto-char (point-min))
+      (call-interactively (key-binding (kbd "C-v")))))
   (etaf-ui-gui-visible label t))
 
 (defun etaf-ui-gui-top ()

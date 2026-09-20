@@ -55,15 +55,86 @@
       (etaf-badge :text status :variant 'info)
       (etaf-button :label "Open project →" :variant 'ghost :on-press on-open))))
 
-(etaf-define-component etaf-ui-gallery-page
-    (&key page help profile notice dialog drawer draft-tag phase tree-expanded
-          picked-date palette-open alert-visible workspace project-name
-          project-type notifications capacity density zoom reviewed open-sections
-          assets activity)
-  "Render one retained Gallery page from caller-owned state refs."
+(etaf-define-component etaf-ui-gallery-example ()
+  :bindings ((page (etaf-ref 'workspace))
+             (help (etaf-ref nil)) (profile (etaf-ref nil))
+             (notice (etaf-ref nil)) (dialog (etaf-ref nil))
+             (drawer (etaf-ref nil))
+             (draft-tag (etaf-ref t)) (phase (etaf-ref 'shape))
+             (tree-expanded (etaf-ref '(root)))
+             (picked-date (etaf-ref "2026-09-16"))
+             (palette-open (etaf-ref nil))
+             (alert-visible (etaf-ref t))
+             (workspace (etaf-ref "Atelier Studio"))
+             (project-name (etaf-ref "Untitled project"))
+             (project-type (etaf-ref 'brand))
+             (notifications (etaf-ref t)) (capacity (etaf-ref 6))
+             (density (etaf-ref 'cozy)) (zoom (etaf-ref 80))
+             (reviewed (etaf-ref nil))
+             (open-sections (etaf-ref '(brief)))
+             (assets
+              (etaf-data-controller
+               (etaf-data-memory-source
+                '((:id 1 :name "Orbit identity" :kind "Brand")
+                  (:id 2 :name "Relay launch" :kind "Product")
+                  (:id 3 :name "Mosaic notes" :kind "Writing")
+                  (:id 4 :name "Studio icons" :kind "System")
+                  (:id 5 :name "Motion studies" :kind "Motion")) :id-key :id)
+               :page-size 2 :auto-load t))
+             (activity (etaf-ref "Your workspace is up to date.")))
+  :setup (etaf-theme-provide etaf-ui-gallery-palette)
   :view
-  (expr
-   (pcase (etaf-value page)
+  (column :id "gallery-root" :width '(vw 100) :height '(vh 100)
+          :overflow 'scroll :cross-align 'center :background-color "#0B1020"
+          :color "#E8EDF8"
+    (column :width '(min (ch 132) (% 100)) :box-sizing 'border-box
+            :padding '((lh 1) (ch 3)) :item-gap '(lh 1)
+      (flex :justify-content 'space-between :align-items 'center
+            :column-gap '(ch 2) :flex-wrap 'wrap
+        (column
+          (box :font-weight 'bold :color "#BBA9FF" "A T E L I E R   /   0 1")
+          (etaf-label :text "A workspace for things worth making." :variant 'muted))
+        (row :item-gap '(ch 1)
+          (etaf-button :ref 'gallery-help :id "gallery-help" :label "Quick help"
+                       :variant 'ghost :on-press (lambda () (setf (etaf-value help) t)))
+          (etaf-button :ref 'gallery-profile :id "gallery-profile" :label "GK · Studio"
+                       :variant 'secondary :on-press (lambda () (setf (etaf-value profile) t)))))
+      (flex :justify-content 'space-between :align-items 'center
+            :flex-wrap 'wrap :gap '((lh 1) (ch 2))
+        (etaf-tabs :width 'max-content
+                   :items '((:key workspace :label "Workspace")
+                            (:key library :label "Component library")
+                            (:key settings :label "Preferences"))
+                   :active page :on-change (lambda (key) (setf (etaf-value page) key)))
+        (row :item-gap '(ch 1)
+          (etaf-dropdown-menu
+           :label "Actions"
+           :items '((:key create :label "New project")
+                    (:key refresh :label "Refresh workspace")
+                    (:key archive :label "Archive studio" :disabled t))
+           :on-select (lambda (key)
+                        (pcase key
+                          ('create (setf (etaf-value dialog) t))
+                          ('refresh (setf (etaf-value activity) "Workspace refreshed."
+                                          (etaf-value notice) t)))))
+          (etaf-button :ref 'gallery-notify :id "gallery-notify" :label "Activity"
+                       :variant 'ghost :on-press (lambda () (setf (etaf-value notice) t)))
+          (etaf-button :ref 'gallery-new :label "+ New project"
+                       :on-press (lambda () (setf (etaf-value dialog) t)))
+          (etaf-button :label "⌘ K" :variant 'ghost
+                       :on-press (lambda () (setf (etaf-value palette-open) t)))
+          (etaf-context-menu
+           :label "More"
+           :items '((:key inspect :label "Open inspector")
+                    (:key duplicate :label "Duplicate project")
+                    (:key remove :label "Remove project" :disabled t))
+           :on-select (lambda (key)
+                        (pcase key
+                          ('inspect (setf (etaf-value drawer) t))
+                          ('duplicate (setf (etaf-value project-name) "Orbit copy"
+                                            (etaf-value dialog) t)))))))
+      (expr
+       (pcase (etaf-value page)
          ('workspace
           (etaf-view
            (column :item-gap '(lh 1)
@@ -252,113 +323,7 @@
                          :flex-basis '(ch 30) :min-width '(px 0)
                (etaf-label :text workspace :variant 'heading)
                (etaf-label :text "Local by design. Ready to compose." :variant 'muted)
-               (etaf-badge :text "Personal studio" :variant 'info))))))))
-
-(etaf-define-component etaf-ui-gallery-example ()
-  :bindings ((page (etaf-ref 'workspace))
-             (help (etaf-ref nil)) (profile (etaf-ref nil))
-             (notice (etaf-ref nil)) (dialog (etaf-ref nil))
-             (drawer (etaf-ref nil))
-             (draft-tag (etaf-ref t)) (phase (etaf-ref 'shape))
-             (tree-expanded (etaf-ref '(root)))
-             (picked-date (etaf-ref "2026-09-16"))
-             (palette-open (etaf-ref nil))
-             (alert-visible (etaf-ref t))
-             (workspace (etaf-ref "Atelier Studio"))
-             (project-name (etaf-ref "Untitled project"))
-             (project-type (etaf-ref 'brand))
-             (notifications (etaf-ref t)) (capacity (etaf-ref 6))
-             (density (etaf-ref 'cozy)) (zoom (etaf-ref 80))
-             (reviewed (etaf-ref nil))
-             (open-sections (etaf-ref '(brief)))
-             (assets
-              (etaf-data-controller
-               (etaf-data-memory-source
-                '((:id 1 :name "Orbit identity" :kind "Brand")
-                  (:id 2 :name "Relay launch" :kind "Product")
-                  (:id 3 :name "Mosaic notes" :kind "Writing")
-                  (:id 4 :name "Studio icons" :kind "System")
-                  (:id 5 :name "Motion studies" :kind "Motion")) :id-key :id)
-               :page-size 2 :auto-load t))
-             (activity (etaf-ref "Your workspace is up to date.")))
-  :setup (etaf-theme-provide etaf-ui-gallery-palette)
-  :view
-  (column :id "gallery-root" :width '(vw 100) :height '(vh 100)
-          :overflow 'scroll :cross-align 'center :background-color "#0B1020"
-          :color "#E8EDF8"
-    (column :width '(min (ch 132) (% 100)) :box-sizing 'border-box
-            :padding '((lh 1) (ch 3)) :item-gap '(lh 1)
-      (flex :justify-content 'space-between :align-items 'center
-            :column-gap '(ch 2) :flex-wrap 'wrap
-        (column
-          (box :font-weight 'bold :color "#BBA9FF" "A T E L I E R   /   0 1")
-          (etaf-label :text "A workspace for things worth making." :variant 'muted))
-        (row :item-gap '(ch 1)
-          (etaf-button :ref 'gallery-help :id "gallery-help" :label "Quick help"
-                       :variant 'ghost :on-press (lambda () (setf (etaf-value help) t)))
-          (etaf-button :ref 'gallery-profile :id "gallery-profile" :label "GK · Studio"
-                       :variant 'secondary :on-press (lambda () (setf (etaf-value profile) t)))))
-      (flex :justify-content 'space-between :align-items 'center
-            :flex-wrap 'wrap :gap '((lh 1) (ch 2))
-        (etaf-tabs :width 'max-content
-                   :items '((:key workspace :label "Workspace")
-                            (:key library :label "Component library")
-                            (:key settings :label "Preferences"))
-                   :active page :on-change (lambda (key) (setf (etaf-value page) key)))
-        (row :item-gap '(ch 1)
-          (etaf-dropdown-menu
-           :label "Actions"
-           :items '((:key create :label "New project")
-                    (:key refresh :label "Refresh workspace")
-                    (:key archive :label "Archive studio" :disabled t))
-           :on-select (lambda (key)
-                        (pcase key
-                          ('create (setf (etaf-value dialog) t))
-                          ('refresh (setf (etaf-value activity) "Workspace refreshed."
-                                          (etaf-value notice) t)))))
-          (etaf-button :ref 'gallery-notify :id "gallery-notify" :label "Activity"
-                       :variant 'ghost :on-press (lambda () (setf (etaf-value notice) t)))
-          (etaf-button :ref 'gallery-new :label "+ New project"
-                       :on-press (lambda () (setf (etaf-value dialog) t)))
-          (etaf-button :label "⌘ K" :variant 'ghost
-                       :on-press (lambda () (setf (etaf-value palette-open) t)))
-          (etaf-context-menu
-           :label "More"
-           :items '((:key inspect :label "Open inspector")
-                    (:key duplicate :label "Duplicate project")
-                    (:key remove :label "Remove project" :disabled t))
-           :on-select (lambda (key)
-                        (pcase key
-                          ('inspect (setf (etaf-value drawer) t))
-                          ('duplicate (setf (etaf-value project-name) "Orbit copy"
-                                            (etaf-value dialog) t)))))))
-      (box :id "gallery-page-frame" :aria-label "Gallery page"
-           :width 'stretch :height '(vh 70)
-           :overflow 'scroll
-        (etaf-ui-gallery-page
-         :page page
-         :help help
-         :profile profile
-         :notice notice
-         :dialog dialog
-         :drawer drawer
-         :draft-tag draft-tag
-         :phase phase
-         :tree-expanded tree-expanded
-         :picked-date picked-date
-         :palette-open palette-open
-         :alert-visible alert-visible
-         :workspace workspace
-         :project-name project-name
-         :project-type project-type
-         :notifications notifications
-         :capacity capacity
-         :density density
-         :zoom zoom
-         :reviewed reviewed
-         :open-sections open-sections
-         :assets assets
-         :activity activity))
+               (etaf-badge :text "Personal studio" :variant 'info)))))))
       (flex :justify-content 'space-between :flex-wrap 'wrap :column-gap '(ch 2)
         (etaf-label :text activity :variant 'muted)
         (etaf-label :text "ETAF UI  /  Interactive demo workspace" :variant 'muted))
