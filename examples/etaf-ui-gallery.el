@@ -332,7 +332,8 @@
                           ('inspect (setf (etaf-value drawer) t))
                           ('duplicate (setf (etaf-value project-name) "Orbit copy"
                                             (etaf-value dialog) t)))))))
-      (box :id "gallery-page-frame" :width 'stretch :height '(vh 70)
+      (box :id "gallery-page-frame" :aria-label "Gallery page"
+           :width 'stretch :height '(vh 70)
            :overflow 'scroll
         (etaf-ui-gallery-page
          :page page
