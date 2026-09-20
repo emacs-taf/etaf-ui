@@ -63,6 +63,12 @@ sample; `gallery.review.steady.callback` and `gallery.review.steady.mouse` retai
 one page within each set and alternate checked/unchecked values. Use both when
 checking updates: a fast first click does not establish steady interaction cost.
 
+`gallery.tabs.steady.callback` and `gallery.tabs.steady.mouse` cycle through
+Library, Preferences and Workspace on one mount and verify each page's content.
+Owned Gallery fixtures resolve their viewport after display and before timing;
+batch fixtures use 120 character widths and 40 lines. Gallery workload version 2
+includes this setup and is not comparable with version 1's implicit viewport.
+
 ## Development
 
 After cloning, run `make setup-hooks`. Before submitting a change, run `make check`; `make structure-check` is the fast organization gate.
