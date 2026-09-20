@@ -156,7 +156,10 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
        (format "gallery.%s.%s" (car case) route)
        :version 2 :modes (if (eq route 'callback) '(batch gui) '(gui))
        :required-providers '(ebox)
-       :budget-ms (nth 3 case) :impact (nth 4 case)
+       ;; Mouse activation includes the native press/release tracking boundary;
+       ;; keep its explicit category budget at 100 ms while callback/keyboard
+       ;; local updates retain the 50 ms target.
+       :budget-ms (if (eq route 'mouse) 100 (nth 3 case)) :impact (nth 4 case)
        :description (format "%s via %s%s" label route
                             (if (eq route 'keyboard) " (focus then RET)" ""))
        :setup (lambda (mode) (etaf-ui-benchmark--gallery label expected method mode))))))
