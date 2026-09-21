@@ -13,6 +13,7 @@ ETAF View、props、slot、生命周期和 Ebox 宿主交互契约，因此可�
 | --- | --- | --- |
 | 布局与容器 | `etaf-panel`、`etaf-card`、`etaf-divider` | Ebox flow/flex/grid 几何；ETAF 决定显示哪个分支 |
 | 受控面板与窗口 | `etaf-resizable-panel`、`etaf-window-chrome`、`etaf-window` | Ebox 定位几何和 gesture；调用方持有坐标、模式和 z-order |
+| 桌面导航与平铺 | `etaf-taskbar`、`etaf-workspace-bar`、`etaf-launcher`、`etaf-switcher`、`etaf-splitter` | Ebox 焦点和 Host；调用方持有应用、窗口及布局状态 |
 | 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-tag`、`etaf-kbd`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton` | Ebox 文本和盒子绘制；调用方持有状态值 |
 | 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-context-menu`、`etaf-toast`、`etaf-dialog`、`etaf-drawer` | Ebox 锚点、分层、遮挡和共享面板焦点 |
 | 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-input`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
