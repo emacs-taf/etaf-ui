@@ -175,6 +175,15 @@ z-order or interaction state is retained by this Component."
                                           (functionp (cdr entry)))))
                                resize-refs)))
                      "an edge-to-reference alist" 'etaf-resizable-panel)
+    (etaf-check-prop :resize-use resize-use
+                     (or (null resize-use)
+                         (and (proper-list-p resize-use)
+                              (cl-every
+                               (lambda (entry)
+                                 (and (consp entry)
+                                      (memq (car entry) etaf-ui--window-resize-edges)))
+                               resize-use)))
+                     "an edge-to-Behavior alist" 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-resize on-resize 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-move on-move 'etaf-resizable-panel))
   :render
