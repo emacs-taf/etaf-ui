@@ -102,4 +102,35 @@
             (should (string-match-p "Preview" (with-current-buffer buffer (buffer-string))))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
+(ert-deftest etaf-ui-window-chrome-uses-macos-traffic-lights ()
+  "Window chrome puts red/yellow/green controls on the left of the title."
+  (let ((buffer (generate-new-buffer "*etaf-ui-macos-chrome*")))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window-chrome
+             :title "Demo"
+             :on-close (lambda ())
+             :on-minimize (lambda ())
+             :on-maximize (lambda ()))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (controls
+                  (cl-remove-if-not
+                   (lambda (entry)
+                     (member (plist-get (cdr entry) :aria-label)
+                             '("Close" "Minimize" "Maximize" "Restore")))
+                   (etaf-runtime-host-props-entries runtime)))
+                 (labels (mapcar (lambda (entry)
+                                  (plist-get (cdr entry) :aria-label)) controls))
+                 (colors (mapcar (lambda (entry)
+                                  (plist-get (cdr entry) :color)) controls)))
+            (should (equal '("Close" "Minimize" "Maximize") labels))
+            (should (equal '("#FF5F57" "#FEBC2E" "#28C840") colors))
+            (with-current-buffer buffer
+              (should (< (string-match-p "Demo" (buffer-string))
+                         (length (buffer-string)))))))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
 ;;; etaf-ui-desktop-tests.el ends here

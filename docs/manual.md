@@ -228,7 +228,10 @@ split, and `:ratio` remains caller-owned. `on-change` receives divider
 gestures; pass an ETAF Behavior through `:use` when the application needs
 pointer and keyboard ratio updates. The Component never stores layout-tree
 state, window identity or persistence data, so the same controls work for a
-desktop's floating and tiled managers.
+desktop's floating and tiled managers. When `:overlay` is non-nil, it renders
+only the divider over panes that the caller already owns. This is useful when
+an application has positioned windows and wants the reusable splitter
+interaction without an additional opaque pane.
 
 ## Basic controls
 

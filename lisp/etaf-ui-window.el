@@ -26,11 +26,15 @@
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defun etaf-ui--window-action (label aria-label callback)
-  "Return a small window action Button node for CALLBACK."
+(defun etaf-ui--window-action (label aria-label callback color)
+  "Return a macOS traffic-light action Button node for CALLBACK.
+COLOR is the explicit traffic-light foreground used for LABEL."
   (etaf-node 'etaf-button
              (list :label label :aria-label aria-label
-                   :variant 'ghost :disabled (null callback)
+                   :variant 'ghost :class "etaf-window-control"
+                   :color color :bgcolor "transparent"
+                   :padding '((lh 0) (ch 0.35))
+                   :font-weight 'normal :disabled (null callback)
                    :on-press callback)
              nil))
 
@@ -110,15 +114,17 @@ default slots are projected after the built-in controls."
   :render
   (let* ((mode (etaf-ui--window-mode mode))
          (actions
+          ;; Keep the controls in the same left-to-right order as macOS:
+          ;; close (red), minimize (yellow), maximize/restore (green).
           (append
+           (when show-close
+             (list (etaf-ui--window-action "●" "Close" on-close "#FF5F57")))
            (when show-minimize
-             (list (etaf-ui--window-action "—" "Minimize" on-minimize)))
+             (list (etaf-ui--window-action "●" "Minimize" on-minimize "#FEBC2E")))
            (when show-maximize
              (list (if (eq mode 'maximized)
-                       (etaf-ui--window-action "❐" "Restore" on-restore)
-                     (etaf-ui--window-action "□" "Maximize" on-maximize))))
-           (when show-close
-             (list (etaf-ui--window-action "×" "Close" on-close)))
+                       (etaf-ui--window-action "●" "Restore" on-restore "#28C840")
+                     (etaf-ui--window-action "●" "Maximize" on-maximize "#28C840"))))
            (etaf-current-slot 'actions)
            (etaf-current-slot 'default))))
     (etaf-node 'flex
@@ -126,10 +132,13 @@ default slots are projected after the built-in controls."
            (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
                       :role 'heading :ref ref :width 'stretch :z-index 30
                       :pointer 'hand
-                      :align-items 'center :column-gap '(ch 1)
+                      :align-items 'center :column-gap '(ch 0.5)
+                      :padding '((lh 0) (ch 1))
+                      :background-color "#E5E5E5" :color "#2B2B2B"
                       :on-drag on-move :use use)
                 nil)
                (append
+                actions
                 (list (etaf-node 'etaf-label
                                  (list :text title :variant 'strong)
                                  nil))
@@ -137,7 +146,7 @@ default slots are projected after the built-in controls."
                                  (list :flex-grow 1 :flex-basis '(px 0)
                                        :min-width '(px 0))
                                  nil))
-                actions))))
+                nil))))
 
 (etaf-define-component etaf-resizable-panel
     (&key (x '(px 0)) (y '(lh 0)) width height (position 'absolute)

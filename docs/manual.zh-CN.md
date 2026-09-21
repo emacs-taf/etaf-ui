@@ -190,7 +190,8 @@ Escape 和关闭按钮调用 `on-close`，继续使用 ETAF 的焦点返回和�
 键盘聚焦的分隔条。`:orientation` 选择左右或上下分割，`:ratio` 由调用方控制。
 `on-change` 接收分隔条 gesture；需要用指针或键盘修改比例时，可以通过 `:use`
 传入 ETAF Behavior。组件不保存布局树、窗口身份或持久化状态，因此浮动管理器和
-平铺管理器可以复用同一套控件。
+平铺管理器可以复用同一套控件。传入非 nil 的 `:overlay` 时只渲染分隔线，底层面板
+仍由调用方拥有，适合窗口已经通过桌面布局定位、只需要复用分隔交互的场景。
 
 ## 基础控件
 
@@ -464,3 +465,5 @@ cell 函数使用 row 参数与普通词法捕获，Context 来自消费它的 T
 行不会进入 tab 顺序。
 
 在该目录运行 `make check EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs`。
+传入非 nil 的 `:overlay` 时只渲染分隔线，底层面板仍由调用方拥有，适合窗口已经
+通过桌面布局定位、只需要复用分隔交互的场景。

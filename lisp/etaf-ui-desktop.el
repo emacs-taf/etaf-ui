@@ -55,7 +55,7 @@ TITLE-KEY is the plist key used for the visible caption, defaulting to
     (concat marker label)))
 
 (etaf-define-component etaf-taskbar
-    (&key items active on-select on-launch (launcher-label "Apps") class)
+    (&key items active on-select on-launch (launcher-label "Applications") class)
   "Render a controlled TASKBAR for desktop windows.
 
 ITEMS are plists with scalar :key and nonempty string :label.  Optional
@@ -297,7 +297,7 @@ whether the switcher closes, changes focus or changes workspace."
 
 (etaf-define-component etaf-splitter
     (&key (orientation 'horizontal) (ratio 0.5) (min-ratio 0.1)
-          (max-ratio 0.9) on-change use class)
+          (max-ratio 0.9) on-change use class overlay)
   "Render a controlled split layout with a keyboard-focusable divider.
 
 HORIZONTAL splits left/right; VERTICAL splits top/bottom.  RATIO is the first
@@ -319,7 +319,9 @@ Component never stores a ratio or window/layout policy."
                                                (<= min-ratio max-ratio))
                      "a fraction no smaller than min-ratio" 'etaf-splitter)
     (etaf-check-prop :on-change on-change (or (null on-change) (functionp on-change))
-                     "a function or nil" 'etaf-splitter))
+                     "a function or nil" 'etaf-splitter)
+    (etaf-check-prop :overlay overlay (booleanp overlay)
+                     "a boolean" 'etaf-splitter))
   :render
   (let* ((ratio (float (etaf-ui--reactive-value ratio)))
          (first-width (list '% (round (* 100 ratio))))
@@ -333,13 +335,31 @@ Component never stores a ratio or window/layout policy."
                 :use use :on-drag on-change
                 :background-color (etaf-theme-token :ui-border "#687386")))
          (divider
-          (if (eq orientation 'horizontal)
-              (etaf-node 'box (append divider-props (list :width '(px 3) :height 'stretch)) nil)
-            (etaf-node 'box (append divider-props (list :width 'stretch :height '(lh 1))) nil)))
+          (if overlay
+              (etaf-node
+               'box
+               (append divider-props
+                       (if (eq orientation 'horizontal)
+                           (list :position 'absolute
+                                 :left (list '% (round (* 100 ratio)))
+                                 :top '(lh 0) :width '(px 3) :height 'stretch)
+                         (list :position 'absolute :left '(px 0)
+                               :top (list '% (round (* 100 ratio)))
+                               :width 'stretch :height '(lh 1))))
+               nil)
+            (if (eq orientation 'horizontal)
+                (etaf-node 'box
+                           (append divider-props
+                                   (list :width '(px 3) :height 'stretch)) nil)
+              (etaf-node 'box
+                         (append divider-props
+                                 (list :width 'stretch :height '(lh 1))) nil))))
          (props (list :class (etaf-ui--class-value "etaf-splitter" nil class)
                       :width 'stretch :height 'stretch
                       :overflow 'hidden)))
-    (if (eq orientation 'horizontal)
+    (if overlay
+        divider
+      (if (eq orientation 'horizontal)
         (etaf-node 'flex (append props (list :flex-direction 'row))
                    (list
                     (etaf-node 'box (list :width first-width :height 'stretch
@@ -355,7 +375,7 @@ Component never stores a ratio or window/layout policy."
                   divider
                   (etaf-node 'box (list :flex-grow 1 :min-height '(lh 0)
                                         :width 'stretch :overflow 'hidden)
-                             second))))))
+                             second)))))))
 
 (provide 'etaf-ui-desktop)
 ;;; etaf-ui-desktop.el ends here

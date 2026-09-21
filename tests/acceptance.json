@@ -13,6 +13,11 @@
   ],
   "support": [],
   "cases": [
+    {
+      "name": "etaf-ui-window-chrome-uses-macos-traffic-lights",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Window chrome exposes left-positioned red, yellow and green controlled actions."
+    },
     {"name": "etaf-ui-taskbar-and-workspace-bar-publish-controlled-actions", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Desktop navigation bars expose accessible controls whose selection remains caller-owned."},
     {"name": "etaf-ui-launcher-and-switcher-remain-controlled", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Launcher and switcher visibility, selection and dismissal remain controlled by the caller."},
     {"name": "etaf-ui-splitter-projects-named-panes-and-divider", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Splitter renders named panes and a keyboard-focusable divider that forwards gestures."},
