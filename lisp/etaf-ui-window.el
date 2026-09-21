@@ -232,7 +232,8 @@ The shell owns only presentation.  The caller owns MODE, X/Y, WIDTH/HEIGHT,
 Z-INDEX and visibility and changes them through refs or ordinary props.  The
 title bar forwards ON-MOVE gestures; resize handles forward EDGE and gesture
 to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
-`header' (extra title-bar content), `default' (window body) and `footer'."
+`header' (extra title-bar content), `actions' (extra title-bar actions),
+`default' (window body) and `footer'."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -247,6 +248,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
   (let* ((mode (etaf-ui--window-mode mode))
          (body (etaf-current-slot 'default))
          (header (etaf-current-slot 'header))
+         (actions (etaf-current-slot 'actions))
          (footer (etaf-current-slot 'footer))
          (content
           (etaf-node 'column
@@ -265,7 +267,8 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                            :on-minimize on-minimize :on-maximize on-maximize
                            :on-restore on-restore :on-close on-close
                            :on-move on-move :ref chrome-ref :use move-use)
-                     header)))
+                     header
+                     (list (cons 'actions actions)))))
     (etaf-node 'etaf-resizable-panel
                (list :x x :y y :width width :height height :position 'absolute
                      :z-index z-index :visible visible :min-width min-width

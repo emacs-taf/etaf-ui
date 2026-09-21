@@ -179,7 +179,8 @@ available for one-off adapters.
 `etaf-window-chrome` is a title bar with controlled minimize,
 maximize/restore, and close buttons.  The title bar forwards `on-move`
 gestures.  Its action callbacks only request a state transition.  `etaf-window`
-composes both Components and provides `header`, `default`, and `footer` slots:
+composes both Components and provides `header`, `actions`, `default`, and
+`footer` slots:
 
 ```elisp
 (etaf-define-component inspector-window ()

@@ -150,7 +150,7 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 
 `etaf-window-chrome` 提供受控标题栏以及最小化、最大化／恢复和关闭按钮，标题栏
 把拖拽 gesture 交给 `on-move`。`etaf-window` 组合这两个组件，并提供 `header`、
-`default`、`footer` 三个 slot：
+`actions`、`default`、`footer` 四个 slot：
 
 ```elisp
 (etaf-define-component inspector-window ()
