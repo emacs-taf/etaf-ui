@@ -259,7 +259,7 @@ z-order or interaction state is retained by this Component."
           (min-width '(px 160)) max-width (min-height '(lh 2)) max-height
           (resizable t) (resize-edges etaf-ui--window-resize-edges)
           resize-refs resize-use move-use
-          on-move on-resize on-minimize on-maximize on-restore on-close
+          on-move on-resize on-focus on-minimize on-maximize on-restore on-close
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
   "Render a controlled window shell from `etaf-resizable-panel'.
@@ -277,6 +277,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                          (memq mode '(normal minimized maximized)))
                      "normal, minimized or maximized" 'etaf-window)
     (dolist (entry `((:on-move . ,on-move) (:on-resize . ,on-resize)
+                     (:on-focus . ,on-focus)
                      (:on-minimize . ,on-minimize) (:on-maximize . ,on-maximize)
                      (:on-restore . ,on-restore) (:on-close . ,on-close)))
       (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window)))
@@ -288,11 +289,13 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
          (footer (etaf-current-slot 'footer))
          (content
           (etaf-node 'column
-                     (list :class "etaf-window-content" :width 'stretch
-                           :height (if (eq mode 'minimized) '(lh 0) 'stretch)
-                           :visibility (if (eq mode 'minimized) 'hidden 'visible)
-                           :overflow 'hidden
-                           :padding '((lh 1) (ch 1)))
+                     (append
+                      (list :class "etaf-window-content" :width 'stretch
+                            :height (if (eq mode 'minimized) '(lh 0) 'stretch)
+                            :visibility (if (eq mode 'minimized) 'hidden 'visible)
+                            :overflow 'hidden
+                            :padding '((lh 1) (ch 1)))
+                      (when on-focus (list :on-press on-focus)))
                      (append body
                              (when footer
                                (list (etaf-node 'row
