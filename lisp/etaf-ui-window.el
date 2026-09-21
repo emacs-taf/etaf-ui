@@ -273,7 +273,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                (list :x x :y y :width width :height height :position 'absolute
                      :z-index z-index :visible visible :min-width min-width
                      :max-width max-width :min-height min-height :max-height max-height
-                     :resizable resizable
+                     :resizable (and resizable (not (eq mode 'minimized)))
                      :resize-edges resize-edges :resize-refs resize-refs
                      :resize-use resize-use
                      :on-resize on-resize :on-move nil
