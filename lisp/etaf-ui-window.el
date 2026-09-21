@@ -138,22 +138,31 @@ default slots are projected after the built-in controls."
            nil))
          (extra-actions (append (etaf-current-slot 'actions)
                                 (etaf-current-slot 'default)))
+         (left-actions
+          (etaf-node 'flex
+                     (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
+                           :align-items 'center :justify-content 'start)
+                     actions))
          (title-node
           (etaf-node 'box
-                     ;; Absolute full-width title layer keeps the title at the
-                     ;; geometric center of the chrome, independent of the
-                     ;; traffic-light group width or trailing actions.
-                     (list :position 'absolute :left '(px 0) :top '(lh 0)
-                           :width 'stretch :height '(lh 1) :z-index 31
-                           :text-align 'center :font-size 13
+                     ;; Equal fixed side columns keep the title at the
+                     ;; geometric center without a positioned child.  This
+                     ;; also preserves Ebox's host line-height invariant.
+                     (list :width 'stretch :height '(lh 1)
+                           :flex-grow 1 :flex-basis '(px 0)
+                           :min-width '(px 0) :text-align 'center
                            :font-weight 'bold :color "#334155")
-                     (list (etaf-node 'text nil (list title)))))
+                     (list (etaf-node 'text (list :font-size 13) (list title)))))
+         (right-actions
+          (etaf-node 'flex
+                     (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
+                           :align-items 'center :justify-content 'end)
+                     extra-actions))
          )
     (etaf-node 'flex
                (append
                 (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
                       :role 'heading :ref ref :width 'stretch :height '(lh 1) :z-index 30
-                      :position 'relative
                       :pointer 'hand
                       :align-items 'center :justify-content 'center
                       :padding '((lh 0) (ch 1))
@@ -161,14 +170,7 @@ default slots are projected after the built-in controls."
                       :border-bottom '((px 1) solid "#CBD5E1"))
                 (when on-move (list :on-drag on-move))
                 (when use (list :use use)))
-               (append actions
-                       (list title-node
-                             (etaf-node 'box
-                                        (list :flex-grow 1 :flex-basis '(px 0)
-                                              :min-width '(px 0))
-                                        (list (etaf-node 'text nil
-                                                         (list (make-string 256 ?\s)))))
-                       extra-actions)))))
+               (list left-actions title-node right-actions))))
 
 (etaf-define-component etaf-resizable-panel
     (&key (x '(px 0)) (y '(lh 0)) width height (position 'absolute)
