@@ -31,6 +31,7 @@ TITLE-KEY is the plist key used for the visible caption, defaulting to
       (etaf-check-prop
        :items item
        (and (proper-list-p item)
+            (zerop (% (length item) 2))
             (plist-member item :key)
             (etaf-ui--desktop-scalar-key-p (plist-get item :key))
             (stringp (plist-get item title-key))
@@ -65,6 +66,13 @@ when supplied, opens the caller's launcher."
   :validate
   (progn
     (etaf-ui--desktop-items items 'etaf-taskbar)
+    (dolist (item items)
+      (etaf-check-prop :disabled (plist-get item :disabled)
+                       (booleanp (plist-get item :disabled)) "a boolean"
+                       'etaf-taskbar)
+      (etaf-check-prop :state (plist-get item :state)
+                       (memq (plist-get item :state) '(nil active minimized error))
+                       "nil, active, minimized or error" 'etaf-taskbar))
     (etaf-check-prop :active active
                      (or (null active) (etaf-ui--reactive-value active)
                          (cl-some (lambda (item)
@@ -132,7 +140,11 @@ No workspace is created, removed or persisted by this Component."
                      'etaf-workspace-bar)
     (dolist (workspace workspaces)
       (when (listp workspace)
-        (etaf-ui--desktop-items (list workspace) 'etaf-workspace-bar)))
+        (etaf-ui--desktop-items (list workspace) 'etaf-workspace-bar))
+      (when (not (listp workspace))
+        (etaf-check-prop :workspace workspace
+                         (etaf-ui--desktop-scalar-key-p workspace)
+                         "a scalar key or item plist" 'etaf-workspace-bar)))
     (etaf-check-prop :on-select on-select
                      (or (null on-select) (functionp on-select))
                      "a function or nil" 'etaf-workspace-bar)
@@ -189,8 +201,12 @@ No workspace is created, removed or persisted by this Component."
   "Validate launcher ITEMS and return them unchanged."
   (etaf-ui--desktop-items items component)
   (dolist (item items)
-    (etaf-check-prop :disabled (plist-get item :disabled) t "a boolean"
-                     component))
+    (etaf-check-prop :disabled (plist-get item :disabled)
+                     (booleanp (plist-get item :disabled)) "a boolean"
+                     component)
+    (etaf-check-prop :state (plist-get item :state)
+                     (memq (plist-get item :state) '(nil active minimized error))
+                     "nil, active, minimized or error" component))
   items)
 
 (defun etaf-ui--desktop-picker-body (items on-select selected class)
