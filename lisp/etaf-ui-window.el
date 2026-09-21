@@ -37,7 +37,7 @@ COLOR is the explicit traffic-light foreground used for LABEL."
                    :color color :bgcolor "#F3F4F6"
                    :border '((px 0) solid "#F3F4F6")
                    :padding '((lh 0) (ch 0.25))
-                   :font-size 16
+                   :font-size 18
                    :font-weight 'bold
                    :hover-content hover-label
                    :disabled (null callback)
@@ -68,7 +68,6 @@ The text backend's vertical hit regions are whole rows.  Reserving them in
 flow keeps the title, buttons and body visible and independently interactive."
   (let* ((left (cl-intersection edges '(left top-left bottom-left)))
          (right (cl-intersection edges '(right top-right bottom-right)))
-         (top (cl-intersection edges '(top top-left top-right)))
          (bottom (cl-intersection edges '(bottom bottom-left bottom-right)))
          (cells '(top-left top top-right left content right
                   bottom-left bottom bottom-right)))
@@ -79,7 +78,7 @@ flow keeps the title, buttons and body visible and independently interactive."
            (list (if left '(px 6) '(px 0)) '(minmax (px 0) (fr 1))
                  (if right '(px 6) '(px 0)))
            :grid-template-rows
-           (list (if top '(lh 1) '(lh 0)) '(minmax (lh 0) (fr 1))
+                   (list '(lh 0) '(minmax (lh 0) (fr 1))
                  (if bottom '(lh 1) '(lh 0)))
            :gap '((lh 0) (px 0)))
      (mapcar
@@ -167,7 +166,9 @@ default slots are projected after the built-in controls."
                       :role 'heading :ref ref :width 'stretch :height '(lh 1) :z-index 30
                       :pointer 'hand
                       :align-items 'center :justify-content 'center
-                      :padding '((lh 0) (ch 1))
+                      ;; Child columns own their horizontal breathing room so
+                      ;; the bottom rule spans the complete chrome box.
+                      :padding '((lh 0) (ch 0))
                       :background-color "#F8FAFC" :color "#1F2937"
                       :border-bottom '((px 1) solid "#CBD5E1"))
                 (when on-move (list :on-drag on-move))
