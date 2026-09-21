@@ -172,6 +172,25 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 策略或工作区归属。最小化只隐藏正文并保留它在 Component 树中，因此调用方拥有的
 子状态仍然保持挂载。这些规则应在应用层（例如 `etaf-desktop`）中实现。
 
+### 桌面导航与平铺控件
+
+`etaf-taskbar` 和 `etaf-workspace-bar` 是受控的窗口栏和工作区栏。每个项目
+plist 至少包含标量 `:key` 和字符串 `:label`；任务栏项目还可以声明
+`:state`（`active`、`minimized` 或 `error`）以及 `:disabled`。`on-select`、
+`on-add` 和 `on-close` 只请求调用方改变策略；`on-launch` 可以打开调用方拥有的
+应用启动器。
+
+`etaf-launcher` 和 `etaf-switcher` 提供受控的模态选择器。项目可以包含
+`:description`、`:state` 和 `:disabled`；应用注册表、`open` ref 及应用／窗口
+生命周期仍由调用方持有。`etaf-switcher` 用 `selected` 标记当前焦点项目。
+Escape 和关闭按钮调用 `on-close`，继续使用 ETAF 的焦点返回和快捷键清理规则。
+
+`etaf-splitter` 用命名的 `first` 和 `second` slot 呈现两个面板，并提供可通过
+键盘聚焦的分隔条。`:orientation` 选择左右或上下分割，`:ratio` 由调用方控制。
+`on-change` 接收分隔条 gesture；需要用指针或键盘修改比例时，可以通过 `:use`
+传入 ETAF Behavior。组件不保存布局树、窗口身份或持久化状态，因此浮动管理器和
+平铺管理器可以复用同一套控件。
+
 ## 基础控件
 
 

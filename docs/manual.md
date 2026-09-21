@@ -206,6 +206,29 @@ Component tree, so caller-owned child state remains mounted.  Build those
 rules in the application layer (for example, an `etaf-desktop` package), while
 using these Components as its reusable visual shell.
 
+### Desktop navigation and tiling controls
+
+`etaf-taskbar` and `etaf-workspace-bar` are controlled bars for window and
+workspace keys. Their item plists contain a scalar `:key` and string `:label`;
+taskbar items may also declare `:state` (`active`, `minimized`, or `error`) and
+`:disabled`. `on-select`, `on-add`, and `on-close` only request caller-owned
+policy changes. `on-launch` can open an application launcher beside the task
+buttons.
+
+`etaf-launcher` and `etaf-switcher` render controlled modal pickers. Items may
+include `:description`, `:state`, and `:disabled`; the caller owns the registry,
+the `open` ref and application/window lifecycle. `etaf-switcher` accepts a
+`selected` key to mark the focused item. Escape and the dialog close button
+call `on-close`, preserving ETAF's normal focus-return and shortcut cleanup.
+
+`etaf-splitter` presents two named `first` and `second` slots with a
+keyboard-focusable divider. `:orientation` selects a left/right or top/bottom
+split, and `:ratio` remains caller-owned. `on-change` receives divider
+gestures; pass an ETAF Behavior through `:use` when the application needs
+pointer and keyboard ratio updates. The Component never stores layout-tree
+state, window identity or persistence data, so the same controls work for a
+desktop's floating and tiled managers.
+
 ## Basic controls
 
 

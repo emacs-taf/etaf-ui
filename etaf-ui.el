@@ -182,6 +182,30 @@
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
 ;; minimizing never changes geometry or global focus/z-order policy.
 ;;
+;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
+;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
+;; string :label, with optional :state (`active', `minimized' or `error') and
+;; :disabled.  Callers own window state; ON-SELECT receives a key and
+;; ON-LAUNCH opens a caller-owned application launcher.
+;;
+;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label class)
+;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item
+;; plists with :key/:label.  Callbacks request caller-owned workspace changes;
+;; this Component creates no workspace state.
+;;
+;; Component: etaf-launcher (&key open title items on-select on-close close-label)
+;; Render a controlled modal application launcher from item plists.  The
+;; caller owns the registry and OPEN state; ON-SELECT receives a selected key.
+;;
+;; Component: etaf-switcher (&key open title items selected on-select on-close close-label)
+;; Render a controlled modal application/window switcher.  SELECTED marks the
+;; caller-owned active item and ON-SELECT receives a key.
+;;
+;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class)
+;; Render a controlled horizontal or vertical split with named `first' and
+;; `second' slots.  RATIO remains caller-owned; ON-CHANGE receives divider
+;; gestures and USE can install an ETAF Behavior for keyboard/pointer updates.
+;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)
 ;; Render ordinary ROWS as a presentational Table.
 ;;
@@ -362,6 +386,7 @@
 (require 'etaf-ui-data)
 (require 'etaf-ui-advanced)
 (require 'etaf-ui-window)
+(require 'etaf-ui-desktop)
 
 (autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
 (autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)
