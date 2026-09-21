@@ -137,6 +137,39 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 卸载后重开。脚本保留示例可见；截图质量、操作系统输入法和前台输入延迟仍需单独验收。
 重新打开重置示例状态，关闭 buffer 或调用 `etaf-unmount` 释放 Runtime。
 
+## 受控面板与窗口
+
+`etaf-resizable-panel` 是定位面板的底层目录组件。`x`、`y`、`width`、
+`height`、`z-index`、`visible` 以及最小／最大约束会直接交给 Ebox，值可以
+是普通值、ref 或 computed。启用 `resizable` 和 `resize-edges` 后会生成边缘及
+角落的 Host。面板拖拽时 `on-move` 收到 Ebox gesture plist，调整大小时
+`on-resize` 收到 `(edge gesture)`。回调由调用方通过 ETAF 响应式 API 更新几何；
+组件不保存坐标、不决定图层。标题栏可通过 `move-use`、各边缘可通过
+`resize-use` 接收调用方提供的 ETAF Behavior；一次性场景仍可直接使用回调。
+
+`etaf-window-chrome` 提供受控标题栏以及最小化、最大化／恢复和关闭按钮，标题栏
+把拖拽 gesture 交给 `on-move`。`etaf-window` 组合这两个组件，并提供 `header`、
+`default`、`footer` 三个 slot：
+
+```elisp
+(etaf-define-component inspector-window ()
+  :bindings ((x (etaf-ref '(ch 6))) (y (etaf-ref '(lh 2)))
+             (width (etaf-ref '(ch 42))) (height (etaf-ref '(lh 14)))
+             (mode (etaf-ref 'normal)))
+  :view
+  (etaf-window :title "Inspector" :x x :y y :width width :height height
+               :mode mode
+               :on-move (lambda (_gesture) (ignore x y))
+               :on-resize (lambda (_edge _gesture) (ignore x y width height))
+               :on-maximize (lambda () (setf (etaf-value mode) 'maximized))
+               :on-restore (lambda () (setf (etaf-value mode) 'normal))
+    (etaf-label :text "Caller-owned content")))
+```
+
+真实应用的回调应把 gesture 转换为几何写入，也可以由 ETAF Behavior 提供；目录
+组件只提供交互目标和视觉组合。最大化、最小化不会自动修改几何、z-order、焦点
+策略或工作区归属。这些规则应在应用层（例如 `etaf-desktop`）中实现。
+
 ## 基础控件
 
 

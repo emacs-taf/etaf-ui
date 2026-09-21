@@ -14,6 +14,21 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-window-keeps-geometry-and-mode-controlled",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "Window geometry remains caller-owned while controlled mode changes only the projected content."
+    },
+    {
+      "name": "etaf-ui-window-forwards-chrome-and-resize-gestures",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "Title-bar and resize-handle gestures reach caller callbacks with their edge and phase payloads."
+    },
+    {
+      "name": "etaf-ui-resizable-panel-rejects-unknown-edge",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "Resizable panels reject unsupported edge names at the public Component boundary."
+    },
+    {
       "name": "etaf-ui-label-supports-box-geometry-and-text-presentation",
       "file": "tests/etaf-ui-label-tests.el",
       "purpose": "Label width, padding, border, wrapping and inherited text presentation match direct Ebox composition."

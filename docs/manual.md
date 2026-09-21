@@ -162,6 +162,47 @@ mouse activation, disabled items, native Chinese input and cancellation, nested
 focus return, modal closing, and unmount/remount cleanup. It leaves the example
 visible; it does not certify screenshot quality or foreground input latency.
 
+## Controlled panels and windows
+
+`etaf-resizable-panel` is the low-level catalog shell for a positioned panel.
+`x`, `y`, `width`, `height`, `z-index`, `visible`, and the min/max constraints
+are passed to Ebox and may be ordinary values, refs, or computed values.  Set
+`resizable` and `resize-edges` to expose edge/corner Hosts.  `on-move` receives
+Ebox's drag gesture from the panel root; `on-resize` receives `(edge gesture)`
+from a handle.  Callbacks update caller-owned geometry, for example through
+`setf` on refs.  The Component does not retain coordinates or choose a layer.
+`move-use` and `resize-use` accept caller-provided ETAF Behavior specs for the
+title bar and individual edge handles; the corresponding callback props remain
+available for one-off adapters.
+
+`etaf-window-chrome` is a title bar with controlled minimize,
+maximize/restore, and close buttons.  The title bar forwards `on-move`
+gestures.  Its action callbacks only request a state transition.  `etaf-window`
+composes both Components and provides `header`, `default`, and `footer` slots:
+
+```elisp
+(etaf-define-component inspector-window ()
+  :bindings ((x (etaf-ref '(ch 6))) (y (etaf-ref '(lh 2)))
+             (width (etaf-ref '(ch 42))) (height (etaf-ref '(lh 14)))
+             (mode (etaf-ref 'normal)))
+  :view
+  (etaf-window :title "Inspector" :x x :y y :width width :height height
+               :mode mode
+               :on-move (lambda (_gesture) (ignore x y))
+               :on-resize (lambda (_edge _gesture) (ignore x y width height))
+               :on-maximize (lambda () (setf (etaf-value mode) 'maximized))
+               :on-restore (lambda () (setf (etaf-value mode) 'normal))
+    (etaf-label :text "Caller-owned content")))
+```
+
+The callbacks in a real application convert the gesture into geometry writes,
+or can be supplied by an ETAF Behavior.  The catalog only supplies the gesture
+targets and visual composition.  A
+maximized or minimized mode does not change geometry, z-order, focus policy,
+or workspace membership.  Build those rules in the application layer (for
+example, an `etaf-desktop` package), while using these Components as its
+reusable visual shell.
+
 ## Basic controls
 
 

@@ -162,6 +162,25 @@
 ;; Component: etaf-panel (&key title variant)
 ;; Render a titled Panel with named header and default slots.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
+
+;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move ref id class role use overflow)
+;; Render a controlled positioned panel and optional edge/corner resize handles.
+;; Geometry props are passed to Ebox and may be values, refs or computed values.
+;; ON-MOVE receives a gesture plist; ON-RESIZE receives EDGE and that gesture.
+;; Callers own geometry updates and constraints.  This component stores no
+;; state, does not assign z-order and does not implement a window manager.
+
+;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close on-minimize on-maximize on-restore on-close on-move ref class use)
+;; Render a controlled title bar with minimize, maximize/restore and close
+;; action buttons.  The title bar forwards drag gestures to ON-MOVE.  Actions
+;; only request caller-owned state transitions; `actions' and default slots
+;; append custom controls/content.
+
+;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Compose a controlled Window shell from `etaf-resizable-panel' and
+;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
+;; caller-owned.  Slots are `header', `default' and `footer'.  Maximizing or
+;; minimizing never changes geometry or global focus/z-order policy.
 ;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)
 ;; Render ordinary ROWS as a presentational Table.
@@ -342,6 +361,7 @@
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
 (require 'etaf-ui-advanced)
+(require 'etaf-ui-window)
 
 (autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
 (autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)
