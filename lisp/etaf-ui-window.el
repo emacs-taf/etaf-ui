@@ -42,7 +42,8 @@ REF and USE are the caller-owned Host reference and Behavior for this handle."
           (append
            (list :class (format "etaf-window-resize-handle %s" edge)
                  :position 'absolute :z-index 20 :role 'separator
-                 :aria-label label :use use
+                 :aria-label label :tab-index (when (or on-resize use) 0)
+                 :use use
                  :on-drag (when on-resize
                             (lambda (gesture)
                               (funcall on-resize edge gesture))))
