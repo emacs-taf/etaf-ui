@@ -18,7 +18,7 @@
 ;; This Commentary is the authoritative export list; implementations and precise
 ;; docstrings remain beside their definitions. The manual contains workflows.
 ;;
-;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content pointer use variant)
+;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content hover-group pointer use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
 ;; DISABLED removes the callback and default focus tab index.  Presentation props
@@ -171,17 +171,25 @@
 ;; Callers own geometry updates and constraints.  This component stores no
 ;; state, does not assign z-order and does not implement a window manager.
 
-;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close on-minimize on-maximize on-restore on-close on-move ref class use)
+;; Component: etaf-window-controls (&key mode show-minimize show-maximize show-close on-minimize on-maximize on-restore on-close group class)
+;; Render reusable macOS-style traffic-light controls.  GROUP is forwarded to
+;; Ebox hover grouping so all controls update in one incremental batch.
+;;
+;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close on-minimize on-maximize on-restore on-close on-move drag-lock-modifier group ref class use)
 ;; Render a controlled title bar with minimize, maximize/restore and close
-;; action buttons.  The title bar forwards drag gestures to ON-MOVE.  Actions
+;; action buttons.  The title bar forwards drag gestures to ON-MOVE; its
+;; `drag-lock-modifier' defaults to `shift' for a release-independent drag.
+;; Actions
 ;; only request caller-owned state transitions; `actions' and default slots
 ;; append custom controls/content.
 
-;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier controls-group on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
-;; minimizing never changes geometry or global focus/z-order policy.
+;; minimizing never changes geometry or global focus/z-order policy.  ON-FOCUS
+;; runs for body activation and through ETAF's explicit ancestor capture hook
+;; when a nested body control is pressed.
 ;;
 ;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and

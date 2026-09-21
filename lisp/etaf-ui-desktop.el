@@ -115,6 +115,7 @@ when supplied, opens the caller's launcher."
           (let* ((key (plist-get item :key))
                  (selected (equal key active))
                  (disabled (plist-get item :disabled))
+                 (state (plist-get item :state))
                  (caption (etaf-ui--desktop-item-caption item :label)))
             (etaf-node
              'etaf-button
@@ -122,12 +123,21 @@ when supplied, opens the caller's launcher."
                    :ref (plist-get item :ref)
                    :aria-label (plist-get item :label)
                    :class (if selected "etaf-taskbar-item active"
-                            "etaf-taskbar-item")
-                   :color (if selected "#334155" "#64748B")
-                   :bgcolor (if selected "#C5D4E2" "#DCE6F0")
-                   :border (if selected
-                               '((px 1) solid "#8FA6BB")
-                             '((px 1) solid "#DCE6F0"))
+                            (if (eq state 'minimized)
+                                "etaf-taskbar-item minimized"
+                              "etaf-taskbar-item"))
+                   :color (cond (selected "#334155")
+                                ((eq state 'minimized) "#94A3B8")
+                                (t "#64748B"))
+                   :bgcolor (cond (selected "#C5D4E2")
+                                  ((eq state 'minimized) "#E7EDF3")
+                                  (t "#DCE6F0"))
+                   :border (cond
+                            (selected '((px 1) solid "#68809A"))
+                            ((eq state 'minimized)
+                             '((px 1) solid "#B8C4CF"))
+                            (t '((px 1) solid "#DCE6F0")))
+                   :font-weight (if selected 'bold 'normal)
                    :padding '((lh 0) (ch 0.75))
                    :disabled disabled
                    :variant 'ghost

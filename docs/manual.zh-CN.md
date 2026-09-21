@@ -149,8 +149,11 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 组件不保存坐标、不决定图层。标题栏可通过 `move-use`、各边缘可通过
 `resize-use` 接收调用方提供的 ETAF Behavior；一次性场景仍可直接使用回调。
 
-`etaf-window-chrome` 提供受控标题栏以及最小化、最大化／恢复和关闭按钮，标题栏
-把拖拽 gesture 交给 `on-move`。`etaf-window` 组合这两个组件，并提供 `header`、
+`etaf-window-controls` 是可复用的 macOS 风格三色窗口按钮组件；相同的 `group`
+会让 Ebox 在一次增量发布中同时更新三个 hover 符号。`etaf-window-chrome` 组合它
+并提供受控标题栏以及最小化、最大化／恢复和关闭按钮，标题栏
+把拖拽 gesture 交给 `on-move`；初次按住 Shift 点击标题栏会启用 Ebox 锁定拖拽，
+释放后仍可移动，下一次点击结束，ESC 取消。`etaf-window` 组合这两个组件，并提供 `header`、
 `actions`、`default`、`footer` 四个 slot：
 
 ```elisp
@@ -348,7 +351,7 @@ surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`、`:variant` |
-| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:id`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-size`、`:font-weight`、`:tab-index`、`:aria-label`、`:help-echo`、`:hover-content`、`:pointer`、`:use`、`:variant` |
+| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:id`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-size`、`:font-weight`、`:tab-index`、`:aria-label`、`:help-echo`、`:hover-content`、`:hover-group`、`:pointer`、`:use`、`:variant` |
 | `etaf-checkbox` | `:checked`、`:label`、`:on-change`、`:disabled`、`:bind` |
 | `etaf-panel` | `:title`、`:variant` |
 | `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max`、`:bind` |

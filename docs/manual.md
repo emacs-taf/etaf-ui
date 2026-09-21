@@ -177,9 +177,14 @@ from a handle.  Callbacks update caller-owned geometry, for example through
 title bar and individual edge handles; the corresponding callback props remain
 available for one-off adapters.
 
-`etaf-window-chrome` is a title bar with controlled minimize,
+`etaf-window-controls` is the reusable macOS-style traffic-light component.
+Pass the same `group` to related instances to make Ebox update every hover
+glyph in one incremental batch. `etaf-window-chrome` composes that component
+with a centered title and controlled minimize,
 maximize/restore, and close buttons.  The title bar forwards `on-move`
-gestures.  Its action callbacks only request a state transition.  `etaf-window`
+gestures; holding Shift for the initial title press enables Ebox's optional
+locked-drag mode, where the first release keeps moving until the next click
+or Escape.  Its action callbacks only request a state transition.  `etaf-window`
 composes both Components and provides `header`, `actions`, `default`, and
 `footer` slots:
 
@@ -427,7 +432,7 @@ separate from forwarded Host attributes:
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`, `:variant` |
-| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:hover-content`, `:pointer`, `:use`, `:variant` |
+| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:hover-content`, `:hover-group`, `:pointer`, `:use`, `:variant` |
 | `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
 | `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |

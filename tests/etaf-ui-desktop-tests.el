@@ -38,6 +38,16 @@
               :active 'main
               :on-select (lambda (key) (setq workspace key))))))
           (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (let ((active-props
+                   (etaf-runtime-host-props-for
+                    runtime (etaf-ui-desktop-test--ref runtime "Notes")))
+                  (minimized-props
+                   (etaf-runtime-host-props-for
+                    runtime (etaf-ui-desktop-test--ref runtime "Files"))))
+              (should (equal "#C5D4E2" (plist-get active-props :background-color)))
+              (should (equal "#E7EDF3" (plist-get minimized-props :background-color)))
+              (should (equal '((px 1) solid "#B8C4CF")
+                             (plist-get minimized-props :border))))
             (etaf-dispatch-event runtime
                                  (etaf-ui-desktop-test--ref runtime "Files") 'press)
             (etaf-dispatch-event runtime
@@ -127,7 +137,8 @@
                   (colors (mapcar (lambda (entry)
                                     (plist-get (cdr entry) :color)) controls))
                   (hover-labels (mapcar (lambda (entry)
-                                          (plist-get (cdr entry) :hover-content))
+                                          (substring-no-properties
+                                           (plist-get (cdr entry) :hover-content)))
                                         controls)))
             (should (equal '("Close" "Minimize" "Maximize") labels))
             (should (equal '("#FF5F57" "#FEBC2E" "#28C840") colors))
@@ -140,6 +151,34 @@
                                (plist-get props :border)))))
             (with-current-buffer buffer
                 (should (string-match-p "D" (buffer-string)))))))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
+(ert-deftest etaf-ui-window-controls-is-reusable-and-grouped ()
+  "Traffic-light controls are a standalone reusable Component with grouping."
+  (let ((buffer (generate-new-buffer "*etaf-ui-window-controls*")))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window-controls
+             :group 'probe-controls
+             :on-close (lambda ())
+             :on-minimize (lambda ())
+             :on-maximize (lambda ()))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (controls
+                  (cl-remove-if-not
+                   (lambda (entry)
+                     (member (plist-get (cdr entry) :aria-label)
+                             '("Close" "Minimize" "Maximize")))
+                   (etaf-runtime-host-props-entries runtime))))
+            (should (= 3 (length controls)))
+            (should (equal '("probe-controls" "probe-controls" "probe-controls")
+                           (mapcar (lambda (entry)
+                                     (format "%s" (plist-get (cdr entry)
+                                                               :hover-group)))
+                                   controls)))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
 ;;; etaf-ui-desktop-tests.el ends here

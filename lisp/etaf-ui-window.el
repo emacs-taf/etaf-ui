@@ -13,6 +13,43 @@
 (require 'cl-lib)
 (require 'etaf-ui-basic)
 
+(defvar etaf-ui--window-icon-cache (make-hash-table :test #'equal)
+  "Cached text-property SVG glyphs used by traffic-light hover labels.")
+
+(defun etaf-ui--window-icon-size ()
+  "Return a traffic-light glyph size that fits the current frame line."
+  (let ((line-height (if (display-graphic-p) (frame-char-height) 16)))
+    (max 10 (min 16 (- line-height 4)))))
+
+(defun etaf-ui--window-hover-icon (symbol color)
+  "Return SYMBOL as a stable hover Text value in traffic-light COLOR.
+On graphical displays the returned string carries an SVG `display' text
+property: the circle and black operation glyph are one text cell, with no
+overlay.  Batch and terminal displays retain the Unicode fallback SYMBOL."
+  (let ((text (copy-sequence symbol)))
+    (when (and (display-graphic-p)
+               (fboundp 'image-type-available-p)
+               (image-type-available-p 'svg))
+      (let* ((size (etaf-ui--window-icon-size))
+             (path
+              (pcase symbol
+                ("⊗" "M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5")
+                ("⊖" "M3.5 7H10.5")
+                ("⊕" "M3.5 7H10.5M7 3.5V10.5")
+                (_ "")))
+             (image
+              (or (gethash (list symbol color size) etaf-ui--window-icon-cache)
+                  (puthash
+                   (list symbol color size)
+                   (create-image
+                    (format
+                     "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 14 14'><circle cx='7' cy='7' r='6.5' fill='%s'/><path d='%s' fill='none' stroke='#111111' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
+                     size size color path)
+                    'svg t :ascent 'center)
+                   etaf-ui--window-icon-cache))))
+        (put-text-property 0 (length text) 'display image text)))
+    text))
+
 (defun etaf-ui--window-callback (property value component)
   "Validate optional callback VALUE for COMPONENT PROPERTY."
   (etaf-check-prop property value (or (null value) (functionp value))
@@ -26,7 +63,7 @@
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defun etaf-ui--window-action (label aria-label callback color hover-label)
+(defun etaf-ui--window-action (label aria-label callback color hover-label group)
   "Return a macOS traffic-light action Button node for CALLBACK.
 COLOR is the explicit traffic-light foreground used for LABEL."
   (etaf-node 'etaf-button
@@ -36,10 +73,11 @@ COLOR is the explicit traffic-light foreground used for LABEL."
                    :pointer 'arrow
                    :color color :bgcolor "#F3F4F6"
                    :border '((px 0) solid "#F3F4F6")
-                   :padding '((lh 0) (ch 0.25))
-                   :font-size 18
+                   :padding '((lh 0) (ch 0.30))
+                   :font-size 14
                    :font-weight 'bold
-                   :hover-content hover-label
+                   :hover-group group
+                   :hover-content (etaf-ui--window-hover-icon hover-label color)
                    :disabled (null callback)
                    :on-press callback)
              nil))
@@ -78,7 +116,7 @@ flow keeps the title, buttons and body visible and independently interactive."
            (list (if left '(px 6) '(px 0)) '(minmax (px 0) (fr 1))
                  (if right '(px 6) '(px 0)))
            :grid-template-rows
-                   (list '(lh 0) '(minmax (lh 0) (fr 1))
+           (list '(lh 0) '(minmax (lh 0) (fr 1))
                  (if bottom '(lh 1) '(lh 0)))
            :gap '((lh 0) (px 0)))
      (mapcar
@@ -100,10 +138,63 @@ flow keeps the title, buttons and body visible and independently interactive."
   '(top right bottom left top-left top-right bottom-right bottom-left)
   "Supported edge and corner names for resize handles.")
 
+(etaf-define-component etaf-window-controls
+    (&key (mode 'normal) (show-minimize t) (show-maximize t) (show-close t)
+          on-minimize on-maximize on-restore on-close
+          (group 'etaf-window-controls) class)
+  "Render reusable macOS-style traffic-light controls.
+GROUP is shared by the three buttons so Ebox updates all hover glyphs in one
+incremental batch.  The component owns no window policy; callbacks request
+caller-owned transitions."
+  :validate
+  (progn
+    (etaf-check-prop :mode mode
+                     (or (etaf-ref-p mode) (etaf-computed-p mode)
+                         (memq mode '(normal minimized maximized)))
+                     "normal, minimized or maximized" 'etaf-window-controls)
+    (etaf-check-prop :group group
+                     (or (symbolp group) (stringp group) (numberp group))
+                     "a scalar hover group key" 'etaf-window-controls)
+    (dolist (entry `((:on-minimize . ,on-minimize)
+                     (:on-maximize . ,on-maximize)
+                     (:on-restore . ,on-restore)
+                     (:on-close . ,on-close)))
+      (etaf-ui--window-callback (car entry) (cdr entry)
+                                'etaf-window-controls)))
+  :render
+  (let* ((mode (etaf-ui--window-mode mode))
+         (actions
+          (append
+           (when show-close
+             (list (etaf-ui--window-action
+                    (etaf-ui--window-hover-icon "⬤" "#FF5F57")
+                    "Close" on-close "#FF5F57" "⊗" group)))
+           (when show-minimize
+             (list (etaf-ui--window-action
+                    (etaf-ui--window-hover-icon "⬤" "#FEBC2E")
+                    "Minimize" on-minimize "#FEBC2E" "⊖" group)))
+           (when show-maximize
+             (list
+              (if (eq mode 'maximized)
+                  (etaf-ui--window-action
+                   (etaf-ui--window-hover-icon "⬤" "#28C840")
+                   "Restore" on-restore "#28C840" "⊕" group)
+                (etaf-ui--window-action
+                 (etaf-ui--window-hover-icon "⬤" "#28C840")
+                 "Maximize" on-maximize "#28C840" "⊕" group)))))))
+    (etaf-node 'flex
+               (list :class (etaf-ui--class-value
+                             "etaf-window-controls" nil class)
+                     :role 'toolbar :aria-label "Window controls"
+                     :width 'max-content :height '(lh 1)
+                     :align-items 'center :column-gap '(ch 0.15))
+               actions)))
+
 (etaf-define-component etaf-window-chrome
     (&key title (mode 'normal) (show-minimize t) (show-maximize t)
           (show-close t) on-minimize on-maximize on-restore on-close
-          on-move ref class use)
+          on-move (drag-lock-modifier 'shift)
+          group ref class use)
   "Render a controlled window title bar and caller-owned action callbacks.
 
 ON-MOVE receives Ebox's gesture plist from the title bar.  The component does
@@ -121,29 +212,28 @@ default slots are projected after the built-in controls."
                      (:on-restore . ,on-restore)
                      (:on-close . ,on-close)
                      (:on-move . ,on-move)))
-      (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window-chrome)))
+      (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window-chrome))
+    (etaf-check-prop :drag-lock-modifier drag-lock-modifier
+                     (or (null drag-lock-modifier)
+                         (memq drag-lock-modifier
+                               '(shift control meta super hyper)))
+                     "nil or a supported modifier" 'etaf-window-chrome)
+    (etaf-check-prop :group group
+                     (or (symbolp group) (stringp group) (numberp group))
+                     "a scalar hover group key" 'etaf-window-chrome))
   :render
   (let* ((mode (etaf-ui--window-mode mode))
-         (actions
-          ;; Keep the controls in the same left-to-right order as macOS:
-          ;; close (red), minimize (yellow), maximize/restore (green).
-          (append
-           (when show-close
-             (list (etaf-ui--window-action "●" "Close" on-close "#FF5F57" "⊗")))
-           (when show-minimize
-             (list (etaf-ui--window-action "●" "Minimize" on-minimize "#FEBC2E" "⊖")))
-           (when show-maximize
-             (list (if (eq mode 'maximized)
-                       (etaf-ui--window-action "●" "Restore" on-restore "#28C840" "⊕")
-                     (etaf-ui--window-action "●" "Maximize" on-maximize "#28C840" "⊕"))))
-           nil))
+         (group (or group ref 'etaf-window-controls))
          (extra-actions (append (etaf-current-slot 'actions)
                                 (etaf-current-slot 'default)))
          (left-actions
-          (etaf-node 'flex
-                     (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
-                           :align-items 'center :justify-content 'start)
-                     actions))
+          (etaf-node 'etaf-window-controls
+                     (list :mode mode :show-minimize show-minimize
+                           :show-maximize show-maximize :show-close show-close
+                           :on-minimize on-minimize :on-maximize on-maximize
+                           :on-restore on-restore :on-close on-close
+                           :group group)
+                     nil))
          (title-node
           (etaf-node 'box
                      ;; Equal fixed side columns keep the title at the
@@ -153,7 +243,7 @@ default slots are projected after the built-in controls."
                            :flex-grow 1 :flex-basis '(px 0)
                            :min-width '(px 0) :text-align 'center
                            :font-weight 'bold :color "#334155")
-                     (list (etaf-node 'text (list :font-size 13) (list title)))))
+                     (list (etaf-node 'text (list :font-size 14) (list title)))))
          (right-actions
           (etaf-node 'flex
                      (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
@@ -163,8 +253,11 @@ default slots are projected after the built-in controls."
     (etaf-node 'flex
                (append
                 (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
-                      :role 'heading :ref ref :width 'stretch :height '(lh 1) :z-index 30
-                      :pointer 'hand
+                      :role 'heading :ref ref :position 'relative
+                      :left '(px -6)
+                      :width '(calc (+ (% 100) (px 12)))
+                      :height '(lh 1) :z-index 30
+                      :pointer 'hand :drag-lock-modifier drag-lock-modifier
                       :align-items 'center :justify-content 'center
                       ;; Child columns own their horizontal breathing room so
                       ;; the bottom rule spans the complete chrome box.
@@ -260,6 +353,8 @@ z-order or interaction state is retained by this Component."
           (resizable t) (resize-edges etaf-ui--window-resize-edges)
           resize-refs resize-use move-use
           on-move on-resize on-focus on-minimize on-maximize on-restore on-close
+          (drag-lock-modifier 'shift)
+          controls-group
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
   "Render a controlled window shell from `etaf-resizable-panel'.
@@ -280,7 +375,12 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      (:on-focus . ,on-focus)
                      (:on-minimize . ,on-minimize) (:on-maximize . ,on-maximize)
                      (:on-restore . ,on-restore) (:on-close . ,on-close)))
-      (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window)))
+      (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window))
+    (etaf-check-prop :drag-lock-modifier drag-lock-modifier
+                     (or (null drag-lock-modifier)
+                         (memq drag-lock-modifier
+                               '(shift control meta super hyper)))
+                     "nil or a supported modifier" 'etaf-window))
   :render
   (let* ((mode (etaf-ui--window-mode mode))
          (body (etaf-current-slot 'default))
@@ -295,7 +395,9 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                             :visibility (if (eq mode 'minimized) 'hidden 'visible)
                             :overflow 'hidden
                             :padding '((lh 1) (ch 1)))
-                      (when on-focus (list :on-press on-focus)))
+                      (when on-focus
+                        (list :on-press on-focus
+                              :on-press-capture on-focus)))
                      (append body
                              (when footer
                                (list (etaf-node 'row
@@ -308,6 +410,8 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                            :show-maximize show-maximize :show-close show-close
                            :on-minimize on-minimize :on-maximize on-maximize
                            :on-restore on-restore :on-close on-close
+                           :drag-lock-modifier drag-lock-modifier
+                           :group controls-group
                            :ref chrome-ref)
                              (when on-move (list :on-move on-move))
                              (when move-use (list :use move-use)))

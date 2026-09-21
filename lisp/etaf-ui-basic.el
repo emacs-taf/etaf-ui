@@ -112,7 +112,7 @@ ref directly; it owns no state or subscription of its own."
 (etaf-define-component etaf-button
     (&key label on-press disabled id ref class color bgcolor border padding
           font-size font-weight tab-index aria-label help-echo hover-content
-          pointer use variant)
+          pointer hover-group use variant)
   "Render a standard pressable Button with a committed callback.
 
 DISABLED removes the callback and default focus tab index.  Presentation props
@@ -148,7 +148,8 @@ captured values."
        :on-press (and (not disabled) on-press))
       (append
        (when id (list :id id))
-       (when hover-content (list :hover-content hover-content))))
+       (when hover-content (list :hover-content hover-content))
+       (when hover-group (list :hover-group hover-group))))
      (or (etaf-current-slot 'default)
          (list (etaf-node 'text nil (list label))))))
   :styles
