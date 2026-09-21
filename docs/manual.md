@@ -210,7 +210,9 @@ using these Components as its reusable visual shell.
 ### Desktop navigation and tiling controls
 
 `etaf-taskbar` and `etaf-workspace-bar` are controlled bars for window and
-workspace keys. Their item plists contain a scalar `:key` and string `:label`;
+workspace keys. Their item plists contain a scalar `:key` and string `:label`.
+The workspace bar may also show caller-owned `:brand` and `:status` text for a
+desktop menu/status strip.
 taskbar items may also declare `:state` (`active`, `minimized`, or `error`) and
 `:disabled`. `on-select`, `on-add`, and `on-close` only request caller-owned
 policy changes. `on-launch` can open an application launcher beside the task

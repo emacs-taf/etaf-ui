@@ -179,7 +179,7 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 plist 至少包含标量 `:key` 和字符串 `:label`；任务栏项目还可以声明
 `:state`（`active`、`minimized` 或 `error`）以及 `:disabled`。`on-select`、
 `on-add` 和 `on-close` 只请求调用方改变策略；`on-launch` 可以打开调用方拥有的
-应用启动器。
+应用启动器。工作区栏还可以显示调用方提供的 `:brand` 和 `:status` 文本，用于桌面的菜单／状态带。
 
 `etaf-launcher` 和 `etaf-switcher` 提供受控的模态选择器。项目可以包含
 `:description`、`:state` 和 `:disabled`；应用注册表、`open` ref 及应用／窗口

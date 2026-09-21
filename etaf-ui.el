@@ -188,7 +188,7 @@
 ;; :disabled.  Callers own window state; ON-SELECT receives a key and
 ;; ON-LAUNCH opens a caller-owned application launcher.
 ;;
-;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label class)
+;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status class)
 ;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item
 ;; plists with :key/:label.  Callbacks request caller-owned workspace changes;
 ;; this Component creates no workspace state.
