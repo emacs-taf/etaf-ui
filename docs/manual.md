@@ -244,7 +244,7 @@ as application-defined Components.
 
 Button and Checkbox are controlled Components. `etaf-button` accepts `:label`,
 `:on-press`, `:disabled`, `:ref`, `:id`, and the small presentation set
-`:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`,
+`:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:help-echo`,
 and `:aria-label`, plus `:use` for a public Behavior list. An enabled button
 defaults to role `button` and tab index `0`; a disabled button keeps its label
 and disabled styling but has no press handler, Behavior, or tab stop.
@@ -419,7 +419,7 @@ separate from forwarded Host attributes:
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`, `:variant` |
-| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-weight`, `:tab-index`, `:aria-label`, `:use`, `:variant` |
+| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:use`, `:variant` |
 | `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
 | `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |

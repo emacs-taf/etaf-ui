@@ -26,15 +26,18 @@
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defun etaf-ui--window-action (label aria-label callback color)
+(defun etaf-ui--window-action (label aria-label callback color symbol)
   "Return a macOS traffic-light action Button node for CALLBACK.
 COLOR is the explicit traffic-light foreground used for LABEL."
   (etaf-node 'etaf-button
              (list :label label :aria-label aria-label
                    :variant 'ghost :class "etaf-window-control"
-                   :color color :bgcolor "transparent"
-                   :padding '((lh 0) (ch 0.35))
-                   :font-weight 'normal :disabled (null callback)
+                   :color color :bgcolor "#F3F4F6"
+                   :border '((px 0) solid "#F3F4F6")
+                   :padding '((lh 0) (ch 0.25))
+                   :font-weight 'bold
+                   :help-echo (format "%s %s" symbol aria-label)
+                   :disabled (null callback)
                    :on-press callback)
              nil))
 
@@ -45,13 +48,14 @@ REF and USE are the caller-owned Host reference and Behavior for this handle."
          (properties
           (append
            (list :class (format "etaf-window-resize-handle %s" edge)
-                 :position 'absolute :z-index 20 :role 'separator
+                 :position 'absolute :z-index 40 :role 'separator
                  :pointer (if (memq edge '(top bottom)) 'vdrag 'hdrag)
-                 :aria-label label :tab-index (when (or on-resize use) 0)
-                 :use use
-                 :on-drag (when on-resize
-                            (lambda (gesture)
-                              (funcall on-resize edge gesture))))
+                 :aria-label label :tab-index (when (or on-resize use) 0))
+           (when use (list :use use))
+           (when on-resize
+             (list :on-drag
+                   (lambda (gesture)
+                     (funcall on-resize edge gesture))))
            (when ref (list :ref ref)))))
     ;; Keep handles as small absolute Hosts.  Their visual styling is left to
     ;; the catalog theme; a caller may override these classes globally.
@@ -118,35 +122,40 @@ default slots are projected after the built-in controls."
           ;; close (red), minimize (yellow), maximize/restore (green).
           (append
            (when show-close
-             (list (etaf-ui--window-action "●" "Close" on-close "#FF5F57")))
+             (list (etaf-ui--window-action "⬤" "Close" on-close "#FF5F57" "×")))
            (when show-minimize
-             (list (etaf-ui--window-action "●" "Minimize" on-minimize "#FEBC2E")))
+             (list (etaf-ui--window-action "⬤" "Minimize" on-minimize "#FEBC2E" "−")))
            (when show-maximize
              (list (if (eq mode 'maximized)
-                       (etaf-ui--window-action "●" "Restore" on-restore "#28C840")
-                     (etaf-ui--window-action "●" "Maximize" on-maximize "#28C840"))))
-           (etaf-current-slot 'actions)
-           (etaf-current-slot 'default))))
+                       (etaf-ui--window-action "⬤" "Restore" on-restore "#28C840" "＋")
+                     (etaf-ui--window-action "⬤" "Maximize" on-maximize "#28C840" "＋"))))
+           nil))
+         (extra-actions (append (etaf-current-slot 'actions)
+                                (etaf-current-slot 'default)))
+         (title-node
+          (etaf-node 'box
+                     (list :width 'stretch :flex-grow 1 :flex-basis '(px 0)
+                           :text-align 'center
+                           :font-weight 'bold :color "#1F2937")
+                     (list (etaf-node 'text nil (list title)))))
+         )
     (etaf-node 'flex
                (append
-           (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
+                (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
                       :role 'heading :ref ref :width 'stretch :z-index 30
                       :pointer 'hand
-                      :align-items 'center :column-gap '(ch 0.5)
+                      :align-items 'center :justify-content 'center
                       :padding '((lh 0) (ch 1))
-                      :background-color "#E5E5E5" :color "#2B2B2B"
-                      :on-drag on-move :use use)
-                nil)
-               (append
-                actions
-                (list (etaf-node 'etaf-label
-                                 (list :text title :variant 'strong)
-                                 nil))
-                (list (etaf-node 'box
-                                 (list :flex-grow 1 :flex-basis '(px 0)
-                                       :min-width '(px 0))
-                                 nil))
-                nil))))
+                      :background-color "#F3F4F6" :color "#1F2937")
+                (when on-move (list :on-drag on-move))
+                (when use (list :use use)))
+               (append actions
+                       (list title-node
+                             (etaf-node 'box
+                                        (list :flex-grow 1 :flex-basis '(px 0)
+                                              :min-width '(px 0))
+                                        nil))
+                       extra-actions))))
 
 (etaf-define-component etaf-resizable-panel
     (&key (x '(px 0)) (y '(lh 0)) width height (position 'absolute)
@@ -266,7 +275,8 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      (list :class "etaf-window-content" :width 'stretch
                            :height (if (eq mode 'minimized) '(lh 0) 'stretch)
                            :visibility (if (eq mode 'minimized) 'hidden 'visible)
-                           :overflow 'hidden)
+                           :overflow 'hidden
+                           :padding '((lh 1) (ch 1)))
                      (append body
                              (when footer
                                (list (etaf-node 'row
@@ -275,11 +285,13 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                                                 footer))))))
          (chrome
           (etaf-node 'etaf-window-chrome
-                     (list :title title :mode mode :show-minimize show-minimize
+                     (append (list :title title :mode mode :show-minimize show-minimize
                            :show-maximize show-maximize :show-close show-close
                            :on-minimize on-minimize :on-maximize on-maximize
                            :on-restore on-restore :on-close on-close
-                           :on-move on-move :ref chrome-ref :use move-use)
+                           :ref chrome-ref)
+                             (when on-move (list :on-move on-move))
+                             (when move-use (list :use move-use)))
                      header
                      (list (cons 'actions actions)))))
     (etaf-node 'etaf-resizable-panel
@@ -289,7 +301,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      :resizable (and resizable (not (eq mode 'minimized)))
                      :resize-edges resize-edges :resize-refs resize-refs
                      :resize-use resize-use
-                     :on-resize on-resize :on-move nil
+                     :on-resize on-resize
                      :ref ref :id id :class (etaf-ui--class-value "etaf-window" mode class)
                      :role 'dialog :use use :overflow overflow)
                (list (etaf-node 'column

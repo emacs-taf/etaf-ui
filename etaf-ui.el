@@ -18,7 +18,7 @@
 ;; This Commentary is the authoritative export list; implementations and precise
 ;; docstrings remain beside their definitions. The manual contains workflows.
 ;;
-;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-weight tab-index aria-label use variant)
+;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
 ;; DISABLED removes the callback and default focus tab index.  Presentation props
