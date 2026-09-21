@@ -42,6 +42,7 @@ REF and USE are the caller-owned Host reference and Behavior for this handle."
           (append
            (list :class (format "etaf-window-resize-handle %s" edge)
                  :position 'absolute :z-index 20 :role 'separator
+                 :pointer (if (memq edge '(top bottom)) 'vdrag 'hdrag)
                  :aria-label label :tab-index (when (or on-resize use) 0)
                  :use use
                  :on-drag (when on-resize
@@ -122,8 +123,9 @@ default slots are projected after the built-in controls."
            (etaf-current-slot 'default))))
     (etaf-node 'flex
                (append
-                (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
-                      :role 'heading :ref ref :width 'stretch
+           (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
+                      :role 'heading :ref ref :width 'stretch :z-index 30
+                      :pointer 'hand
                       :align-items 'center :column-gap '(ch 1)
                       :on-drag on-move :use use)
                 nil)
@@ -253,7 +255,9 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
          (content
           (etaf-node 'column
                      (list :class "etaf-window-content" :width 'stretch
-                           :height 'stretch :overflow 'auto)
+                           :height (if (eq mode 'minimized) '(lh 0) 'stretch)
+                           :visibility (if (eq mode 'minimized) 'hidden 'visible)
+                           :overflow 'hidden)
                      (append body
                              (when footer
                                (list (etaf-node 'row
@@ -282,9 +286,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                (list (etaf-node 'column
                                 (list :class "etaf-window-layout" :width 'stretch
                                       :height 'stretch)
-                                (append (list chrome)
-                                        (unless (eq mode 'minimized)
-                                          (list content))))))))
+                                (list chrome content))))))
 
 (provide 'etaf-ui-window)
 ;;; etaf-ui-window.el ends here

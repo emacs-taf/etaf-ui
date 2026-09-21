@@ -201,9 +201,10 @@ The callbacks in a real application convert the gesture into geometry writes,
 or can be supplied by an ETAF Behavior.  The catalog only supplies the gesture
 targets and visual composition.  A
 maximized or minimized mode does not change geometry, z-order, focus policy,
-or workspace membership.  Build those rules in the application layer (for
-example, an `etaf-desktop` package), while using these Components as its
-reusable visual shell.
+or workspace membership.  Minimizing hides the body while retaining it in the
+Component tree, so caller-owned child state remains mounted.  Build those
+rules in the application layer (for example, an `etaf-desktop` package), while
+using these Components as its reusable visual shell.
 
 ## Basic controls
 
