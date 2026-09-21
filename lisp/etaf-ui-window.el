@@ -45,62 +45,57 @@ COLOR is the explicit traffic-light foreground used for LABEL."
              nil))
 
 (defun etaf-ui--window-handle (edge on-resize ref use)
-  "Return a resize handle node for EDGE calling ON-RESIZE with a gesture.
-REF and USE are the caller-owned Host reference and Behavior for this handle."
-  (let* ((label (format "Resize %s" edge))
-         (properties
-          (append
-           (list :class (format "etaf-window-resize-handle %s" edge)
-                 ;; Keep blank hit surfaces behind flow paint so edge bounds
-                 ;; never erase application glyphs.  Ebox still retains their
-                 ;; geometry and pointer map for boundary gestures.
-                 :position 'absolute :z-index -1 :role 'separator
-                 :pointer (cond ((memq edge '(top bottom)) 'vdrag)
-                                ((memq edge '(left right)) 'hdrag)
-                                (t 'nhdrag))
-                 :aria-label label :tab-index (when (or on-resize use) 0))
-           (when use (list :use use))
-           (when on-resize
-             (list :on-drag
-                   (lambda (gesture)
-                     (funcall on-resize edge gesture))))
-           (when ref (list :ref ref)))))
-    ;; Keep handles as small absolute Hosts.  Their visual styling is left to
-    ;; the catalog theme; a caller may override these classes globally.
-    (setq properties
-          (append properties
-                  (cond
-                   ((eq edge 'top)
-                    (list :left '(px 0) :top '(lh 0) :width 'stretch :height '(lh 1)))
-                   ((eq edge 'bottom)
-                    (list :left '(px 0)
-                          :top '(calc (- (% 100) (lh 1)))
-                          :width 'stretch :height '(lh 1)))
-                   ((eq edge 'left)
-                    (list :left '(px 0) :top '(lh 0) :width '(px 3) :height 'stretch))
-                   ((eq edge 'right)
-                    (list :left (list 'calc (list '- '(% 100) '(px 3)))
-                          :top '(lh 0) :width '(px 3) :height 'stretch))
-                   ((eq edge 'top-left)
-                    (list :left '(px 0) :top '(lh 0) :width '(px 5) :height '(lh 1)))
-                   ((eq edge 'top-right)
-                    (list :left (list 'calc (list '- '(% 100) '(px 5)))
-                          :top '(lh 0) :width '(px 5) :height '(lh 1)))
-                   ((eq edge 'bottom-left)
-                    (list :left '(px 0)
-                          :top '(calc (- (% 100) (lh 1)))
-                          :width '(px 5) :height '(lh 1)))
-                   ((eq edge 'bottom-right)
-                    (list :left (list 'calc (list '- '(% 100) '(px 5)))
-                          :top '(calc (- (% 100) (lh 1)))
-                          :width '(px 5) :height '(lh 1)))
-                   (t nil))))
-    ;; Keep one committed text position inside the absolute handle.  The
-    ;; handle remains visually empty (its inherited surface matches the panel)
-    ;; but Ebox can resolve a real mouse position to this Host for native
-    ;; drag tracking and public bounds queries.
-    (etaf-node 'box properties
-               (list (etaf-node 'text nil (list " "))))))
+  "Return a flow resize handle for EDGE with caller-owned input callbacks."
+  (etaf-node
+   'box
+   (append
+    (list :key edge :class (format "etaf-window-resize-handle %s" edge)
+          :width 'stretch :height 'stretch :overflow 'hidden
+          :role 'separator :aria-label (format "Resize %s" edge)
+          :pointer (cond ((memq edge '(top bottom)) 'vdrag)
+                         ((memq edge '(left right)) 'hdrag)
+                         (t 'nhdrag))
+          :tab-index (when (or on-resize use) 0))
+    (when ref (list :ref ref))
+    (when use (list :use use))
+    (when on-resize
+      (list :on-drag (lambda (gesture) (funcall on-resize edge gesture)))))
+   (list (etaf-node 'text nil (list " ")))))
+
+(defun etaf-ui--panel-frame (content edges on-resize refs behaviors)
+  "Surround CONTENT with disjoint resize cells for EDGES.
+The text backend's vertical hit regions are whole rows.  Reserving them in
+flow keeps the title, buttons and body visible and independently interactive."
+  (let* ((left (cl-intersection edges '(left top-left bottom-left)))
+         (right (cl-intersection edges '(right top-right bottom-right)))
+         (top (cl-intersection edges '(top top-left top-right)))
+         (bottom (cl-intersection edges '(bottom bottom-left bottom-right)))
+         (cells '(top-left top top-right left content right
+                  bottom-left bottom bottom-right)))
+    (etaf-node
+     'grid
+     (list :width 'stretch :height 'stretch
+           :grid-template-columns
+           (list (if left '(px 6) '(px 0)) '(minmax (px 0) (fr 1))
+                 (if right '(px 6) '(px 0)))
+           :grid-template-rows
+           (list (if top '(lh 1) '(lh 0)) '(minmax (lh 0) (fr 1))
+                 (if bottom '(lh 1) '(lh 0)))
+           :gap '((lh 0) (px 0)))
+     (mapcar
+      (lambda (cell)
+        (cond
+         ((eq cell 'content)
+          (etaf-node 'column
+                     (list :key 'content :width 'stretch :height 'stretch
+                           :min-width '(px 0) :min-height '(lh 0)
+                           :overflow 'hidden)
+                     content))
+         ((memq cell edges)
+          (etaf-ui--window-handle cell on-resize (cdr (assq cell refs))
+                                  (cdr (assq cell behaviors))))
+         (t (etaf-node 'box (list :key cell :width 'stretch :height 'stretch) nil))))
+      cells))))
 
 (defconst etaf-ui--window-resize-edges
   '(top right bottom left top-left top-right bottom-right bottom-left)
@@ -177,7 +172,8 @@ default slots are projected after the built-in controls."
                       :border-bottom '((px 1) solid "#CBD5E1"))
                 (when on-move (list :on-drag on-move))
                 (when use (list :use use)))
-               (list left-actions title-node right-actions))))
+               (list (etaf-node 'text nil (list " "))
+                     left-actions title-node right-actions))))
 
 (etaf-define-component etaf-resizable-panel
     (&key (x '(px 0)) (y '(lh 0)) width height (position 'absolute)
@@ -231,14 +227,8 @@ z-order or interaction state is retained by this Component."
   :render
   (let* ((visible (etaf-ui--reactive-value visible))
          (theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
-         (handles
-         (when (and resizable (or on-resize resize-use))
-           (mapcar
-            (lambda (edge)
-              (etaf-ui--window-handle edge on-resize
-                                      (cdr (assq edge resize-refs))
-                                      (cdr (assq edge resize-use))))
-            resize-edges))))
+         (content (etaf-current-slot 'default))
+         (framed (and resizable resize-edges (or on-resize resize-use))))
     (etaf-node 'box
                (append
                 (list :class (etaf-ui--class-value "etaf-resizable-panel" nil class)
@@ -257,7 +247,10 @@ z-order or interaction state is retained by this Component."
                       :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
                       :on-drag on-move :use use)
                 (when id (list :id id)))
-               (append (etaf-current-slot 'default) handles))))
+               (if framed
+                   (list (etaf-ui--panel-frame content resize-edges on-resize
+                                               resize-refs resize-use))
+                 content))))
 
 (etaf-define-component etaf-window
     (&key title (mode 'normal) (x '(px 0)) (y '(lh 0))
@@ -265,7 +258,7 @@ z-order or interaction state is retained by this Component."
           (min-width '(px 160)) max-width (min-height '(lh 2)) max-height
           (resizable t) (resize-edges etaf-ui--window-resize-edges)
           resize-refs resize-use move-use
-          on-move on-resize on-focus on-minimize on-maximize on-restore on-close
+          on-move on-resize on-minimize on-maximize on-restore on-close
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
   "Render a controlled window shell from `etaf-resizable-panel'.
@@ -283,7 +276,6 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                          (memq mode '(normal minimized maximized)))
                      "normal, minimized or maximized" 'etaf-window)
     (dolist (entry `((:on-move . ,on-move) (:on-resize . ,on-resize)
-                     (:on-focus . ,on-focus)
                      (:on-minimize . ,on-minimize) (:on-maximize . ,on-maximize)
                      (:on-restore . ,on-restore) (:on-close . ,on-close)))
       (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window)))
@@ -295,13 +287,11 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
          (footer (etaf-current-slot 'footer))
          (content
           (etaf-node 'column
-                     (append
-                      (list :class "etaf-window-content" :width 'stretch
-                            :height (if (eq mode 'minimized) '(lh 0) 'stretch)
-                            :visibility (if (eq mode 'minimized) 'hidden 'visible)
-                            :overflow 'hidden
-                            :padding '((lh 1) (ch 1)))
-                      (when on-focus (list :on-press on-focus)))
+                     (list :class "etaf-window-content" :width 'stretch
+                           :height (if (eq mode 'minimized) '(lh 0) 'stretch)
+                           :visibility (if (eq mode 'minimized) 'hidden 'visible)
+                           :overflow 'hidden
+                           :padding '((lh 1) (ch 1)))
                      (append body
                              (when footer
                                (list (etaf-node 'row

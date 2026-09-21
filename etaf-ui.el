@@ -177,7 +177,7 @@
 ;; only request caller-owned state transitions; `actions' and default slots
 ;; append custom controls/content.
 
-;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
