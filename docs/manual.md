@@ -247,7 +247,8 @@ as application-defined Components.
 Button and Checkbox are controlled Components. `etaf-button` accepts `:label`,
 `:on-press`, `:disabled`, `:ref`, `:id`, and the small presentation set
 `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:help-echo`,
-and `:aria-label`, plus `:use` for a public Behavior list. An enabled button
+`:hover-content`, and `:aria-label`, plus `:use` for a public Behavior list. An
+enabled button
 defaults to role `button` and tab index `0`; a disabled button keeps its label
 and disabled styling but has no press handler, Behavior, or tab stop.
 `etaf-checkbox` accepts `:checked`, `:label`,
@@ -380,7 +381,9 @@ attributes use Ebox capabilities through ETAF, including TextInput, NumberInput,
 Select and Menu composed from Button. Omission preserves inherited feedback;
 explicit nil removes it. Tie these attributes to the same disabled input when
 feedback should disappear while disabled. Hover ends when the pointer leaves
-and does not create retained ETAF visual state.
+and does not create retained ETAF visual state. `:hover-content` is a one-line
+text replacement handled by Ebox's retained text-property update path; it does
+not create an Emacs overlay.
 
 The parent owns spacing: use `(row :item-gap '(ch 1) ...)` or
 `(column :item-gap '(lh 1) ...)`; `flex` and `grid` use `:gap`. In particular, migrate
@@ -421,7 +424,7 @@ separate from forwarded Host attributes:
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`, `:variant` |
-| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:use`, `:variant` |
+| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:hover-content`, `:use`, `:variant` |
 | `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
 | `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |

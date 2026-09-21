@@ -203,7 +203,7 @@ Core 不会自动加载 `.etaf`。可选的 Playground 读取 inert 结构源，
 Button 和 Checkbox 都是受控组件。`etaf-button` 支持 `:label`、
 `:on-press`、`:disabled`、`:ref`，以及最小 presentation 属性
 `:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-size`、`:font-weight`、`:help-echo`、
-`:tab-index`、`:aria-label` 和公共 Behavior 列表 `:use`。启用按钮默认使用
+`:tab-index`、`:aria-label`、`:hover-content` 和公共 Behavior 列表 `:use`。启用按钮默认使用
 `button` role 和 `tab-index 0`；禁用按钮仍显示标签和禁用样式，但没有 press
 回调、Behavior，也不进入 tab 顺序。`etaf-checkbox` 支持 `:checked`、`:label`、`:on-change`、
 `:disabled`、`:ref` 及相同的 presentation 属性。启用时它提供
@@ -348,7 +348,7 @@ surface presentation 属性，并投影命名的 `header` slot 和默认 slot。
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`、`:variant` |
-| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:id`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-size`、`:font-weight`、`:tab-index`、`:aria-label`、`:help-echo`、`:use`、`:variant` |
+| `etaf-button` | `:label`、`:on-press`、`:disabled`、`:id`、`:ref`、`:class`、`:color`、`:bgcolor`、`:border`、`:padding`、`:font-size`、`:font-weight`、`:tab-index`、`:aria-label`、`:help-echo`、`:hover-content`、`:use`、`:variant` |
 | `etaf-checkbox` | `:checked`、`:label`、`:on-change`、`:disabled`、`:bind` |
 | `etaf-panel` | `:title`、`:variant` |
 | `etaf-number-input` | `:value`、`:label`、`:on-change`、`:disabled`、`:min`、`:max`、`:bind` |

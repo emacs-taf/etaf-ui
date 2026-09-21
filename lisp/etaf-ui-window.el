@@ -26,17 +26,18 @@
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defun etaf-ui--window-action (label aria-label callback color symbol)
+(defun etaf-ui--window-action (label aria-label callback color hover-label)
   "Return a macOS traffic-light action Button node for CALLBACK.
 COLOR is the explicit traffic-light foreground used for LABEL."
   (etaf-node 'etaf-button
              (list :label label :aria-label aria-label
                    :variant 'ghost :class "etaf-window-control"
+                   :height '(lh 1)
                    :color color :bgcolor "#F3F4F6"
                    :border '((px 0) solid "#F3F4F6")
                    :padding '((lh 0) (ch 0.25))
                    :font-weight 'bold
-                   :help-echo (format "%s %s" symbol aria-label)
+                   :hover-content hover-label
                    :disabled (null callback)
                    :on-press callback)
              nil))
@@ -87,7 +88,12 @@ REF and USE are the caller-owned Host reference and Behavior for this handle."
                           :top '(calc (- (% 100) (lh 1)))
                           :width '(px 5) :height '(lh 1)))
                    (t nil))))
-    (etaf-node 'box properties nil)))
+    ;; Keep one committed text position inside the absolute handle.  The
+    ;; handle remains visually empty (its inherited surface matches the panel)
+    ;; but Ebox can resolve a real mouse position to this Host for native
+    ;; drag tracking and public bounds queries.
+    (etaf-node 'box properties
+               (list (etaf-node 'text nil (list " "))))))
 
 (defconst etaf-ui--window-resize-edges
   '(top right bottom left top-left top-right bottom-right bottom-left)
@@ -122,31 +128,37 @@ default slots are projected after the built-in controls."
           ;; close (red), minimize (yellow), maximize/restore (green).
           (append
            (when show-close
-             (list (etaf-ui--window-action "⬤" "Close" on-close "#FF5F57" "×")))
+             (list (etaf-ui--window-action "●" "Close" on-close "#FF5F57" "×")))
            (when show-minimize
-             (list (etaf-ui--window-action "⬤" "Minimize" on-minimize "#FEBC2E" "−")))
+             (list (etaf-ui--window-action "●" "Minimize" on-minimize "#FEBC2E" "−")))
            (when show-maximize
              (list (if (eq mode 'maximized)
-                       (etaf-ui--window-action "⬤" "Restore" on-restore "#28C840" "＋")
-                     (etaf-ui--window-action "⬤" "Maximize" on-maximize "#28C840" "＋"))))
+                       (etaf-ui--window-action "●" "Restore" on-restore "#28C840" "＋")
+                     (etaf-ui--window-action "●" "Maximize" on-maximize "#28C840" "＋"))))
            nil))
          (extra-actions (append (etaf-current-slot 'actions)
                                 (etaf-current-slot 'default)))
          (title-node
           (etaf-node 'box
-                     (list :width 'stretch :flex-grow 1 :flex-basis '(px 0)
-                           :text-align 'center
-                           :font-weight 'bold :color "#1F2937")
+                     ;; Absolute full-width title layer keeps the title at the
+                     ;; geometric center of the chrome, independent of the
+                     ;; traffic-light group width or trailing actions.
+                     (list :position 'absolute :left '(px 0) :top '(lh 0)
+                           :width 'stretch :height '(lh 1) :z-index 31
+                           :text-align 'center :font-size 13
+                           :font-weight 'bold :color "#334155")
                      (list (etaf-node 'text nil (list title)))))
          )
     (etaf-node 'flex
                (append
                 (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
-                      :role 'heading :ref ref :width 'stretch :z-index 30
+                      :role 'heading :ref ref :width 'stretch :height '(lh 1) :z-index 30
+                      :position 'relative
                       :pointer 'hand
                       :align-items 'center :justify-content 'center
                       :padding '((lh 0) (ch 1))
-                      :background-color "#F3F4F6" :color "#1F2937")
+                      :background-color "#F8FAFC" :color "#1F2937"
+                      :border-bottom '((px 1) solid "#CBD5E1"))
                 (when on-move (list :on-drag on-move))
                 (when use (list :use use)))
                (append actions
@@ -154,8 +166,9 @@ default slots are projected after the built-in controls."
                              (etaf-node 'box
                                         (list :flex-grow 1 :flex-basis '(px 0)
                                               :min-width '(px 0))
-                                        nil))
-                       extra-actions))))
+                                        (list (etaf-node 'text nil
+                                                         (list (make-string 256 ?\s)))))
+                       extra-actions)))))
 
 (etaf-define-component etaf-resizable-panel
     (&key (x '(px 0)) (y '(lh 0)) width height (position 'absolute)

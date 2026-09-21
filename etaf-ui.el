@@ -18,7 +18,7 @@
 ;; This Commentary is the authoritative export list; implementations and precise
 ;; docstrings remain beside their definitions. The manual contains workflows.
 ;;
-;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo use variant)
+;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
 ;; DISABLED removes the callback and default focus tab index.  Presentation props
@@ -26,7 +26,8 @@
 ;; so a failed render keeps the previous callback and its captured values.
 ;; ID reaches the rendered Host so anchor-based surfaces can reference the
 ;; Button by identity.
-;; Native root attributes :pointer, :help-echo and :hover-style request Ebox
+;; Native root attributes :pointer, :help-echo, :hover-style and
+;; :hover-content request Ebox text-property capabilities.
 ;; interaction feedback; explicit nil blocks inherited capabilities.
 ;; Use inside (etaf-view (etaf-button ...)); keyword arguments are component props.
 ;; A default slot replaces the visible label with ordinary non-interactive

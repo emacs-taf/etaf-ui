@@ -46,15 +46,12 @@ TITLE-KEY is the plist key used for the visible caption, defaulting to
     items))
 
 (defun etaf-ui--desktop-item-caption (item title-key)
-  "Return ITEM's TITLE-KEY caption with an optional status marker."
-  (let* ((label (plist-get item title-key))
-         (state (plist-get item :state))
-         (marker (pcase state
-                   ('active "● ")
-                   ('minimized "▁ ")
-                   ('error "⚠ ")
-                   (_ ""))))
-    (concat marker label)))
+  "Return ITEM's TITLE-KEY caption.
+
+State is communicated by the surrounding button presentation.  Keeping the
+caption free of marker glyphs avoids a noisy taskbar and leaves the text width
+stable as focus changes."
+  (plist-get item title-key))
 
 (etaf-define-component etaf-taskbar
     (&key items active on-select on-launch (launcher-label "Applications") class)
@@ -95,18 +92,19 @@ when supplied, opens the caller's launcher."
      'row
      (list :class (etaf-ui--class-value "etaf-taskbar" nil class)
            :role 'toolbar :aria-label "Taskbar" :width 'stretch
-           :height '(lh 2) :item-gap '(ch 0.5)
+           :height '(lh 1) :item-gap '(ch 0.5)
            :padding '((lh 0) (ch 1))
-           :background-color "#111827"
-           :color "#F9FAFB")
+           :background-color "#F8FAFC"
+           :color "#1F2937"
+           :border '((px 1) solid "#E2E8F0"))
      (append
       (when on-launch
          (list (etaf-node 'etaf-button
-                         (list :label (concat "+ " launcher-label)
+                         (list :label launcher-label
                                :aria-label launcher-label :variant 'ghost
                                :class "etaf-taskbar-launcher"
-                               :color "#F9FAFB" :bgcolor "#2563EB"
-                               :border '((px 0) solid "#2563EB")
+                               :color "#1D4ED8" :bgcolor "#DBEAFE"
+                               :border '((px 0) solid "#DBEAFE")
                                :padding '((lh 0) (ch 1))
                                :ref 'etaf-taskbar-launcher
                                :on-press on-launch)
@@ -125,9 +123,11 @@ when supplied, opens the caller's launcher."
                    :aria-label (plist-get item :label)
                    :class (if selected "etaf-taskbar-item active"
                             "etaf-taskbar-item")
-                   :color "#F9FAFB"
-                   :bgcolor (if selected "#374151" "#1F2937")
-                   :border '((px 0) solid "#1F2937")
+                   :color (if selected "#1D4ED8" "#475569")
+                   :bgcolor (if selected "#DBEAFE" "#F8FAFC")
+                   :border (if selected
+                               '((px 1) solid "#2563EB")
+                             '((px 1) solid "#F8FAFC"))
                    :padding '((lh 0) (ch 0.75))
                    :disabled disabled
                    :variant 'ghost
@@ -186,12 +186,15 @@ No workspace is created, removed or persisted by this Component."
      'row
      (list :class (etaf-ui--class-value "etaf-workspace-bar" nil class)
            :role 'tablist :aria-label "Workspaces" :width 'stretch
-           :height '(lh 2) :item-gap '(ch 0.5)
-           :padding '((lh 0) (ch 1)))
+           :height '(lh 1) :item-gap '(ch 0.5)
+           :padding '((lh 0) (ch 1))
+           :background-color "#F8FAFC"
+           :color "#1F2937"
+           :border '((px 1) solid "#E2E8F0"))
      (append
       (when brand
         (list (etaf-node 'text
-                         (list :font-weight 'bold :color "#F9FAFB")
+                         (list :font-weight 'bold :color "#334155")
                          (list brand))))
       (mapcar
        (lambda (item)
@@ -207,9 +210,11 @@ No workspace is created, removed or persisted by this Component."
                   :variant 'ghost
                   :class (if selected "etaf-workspace-item active"
                            "etaf-workspace-item")
-                  :color "#F9FAFB"
-                  :bgcolor (if selected "#374151" "#111827")
-                  :border '((px 0) solid "#111827")
+                  :color (if selected "#1D4ED8" "#475569")
+                  :bgcolor (if selected "#DBEAFE" "#F8FAFC")
+                  :border (if selected
+                              '((px 1) solid "#2563EB")
+                            '((px 1) solid "#F8FAFC"))
                   :padding '((lh 0) (ch 0.75))
                   :disabled disabled
                   :on-press (and on-select (not disabled)
