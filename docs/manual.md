@@ -13,6 +13,7 @@ View, props, slots, lifecycle and Ebox host interaction contracts.
 | Category | Components | Foundation owned by |
 | --- | --- | --- |
 | Layout and containers | `etaf-panel`, `etaf-card`, `etaf-divider` | Ebox flow/flex/grid geometry; ETAF controls which branch is visible |
+| Controlled panels and windows | `etaf-resizable-panel`, `etaf-window-chrome`, `etaf-window` | Ebox positioned geometry and gestures; caller owns coordinates, mode and z-order |
 | Feedback and status | `etaf-label`, `etaf-badge`, `etaf-tag`, `etaf-kbd`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton` | Ebox text and box paint; caller owns the status value |
 | Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-context-menu`, `etaf-toast`, `etaf-dialog`, `etaf-drawer` | Ebox anchor/layer/occlusion plus shared panel focus |
 | Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-input`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
