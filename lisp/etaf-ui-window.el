@@ -33,9 +33,11 @@ COLOR is the explicit traffic-light foreground used for LABEL."
              (list :label label :aria-label aria-label
                    :variant 'ghost :class "etaf-window-control"
                    :height '(lh 1)
+                   :pointer 'arrow
                    :color color :bgcolor "#F3F4F6"
                    :border '((px 0) solid "#F3F4F6")
                    :padding '((lh 0) (ch 0.25))
+                   :font-size 16
                    :font-weight 'bold
                    :hover-content hover-label
                    :disabled (null callback)
@@ -49,8 +51,13 @@ REF and USE are the caller-owned Host reference and Behavior for this handle."
          (properties
           (append
            (list :class (format "etaf-window-resize-handle %s" edge)
-                 :position 'absolute :z-index 40 :role 'separator
-                 :pointer (if (memq edge '(top bottom)) 'vdrag 'hdrag)
+                 ;; Keep blank hit surfaces behind flow paint so edge bounds
+                 ;; never erase application glyphs.  Ebox still retains their
+                 ;; geometry and pointer map for boundary gestures.
+                 :position 'absolute :z-index -1 :role 'separator
+                 :pointer (cond ((memq edge '(top bottom)) 'vdrag)
+                                ((memq edge '(left right)) 'hdrag)
+                                (t 'nhdrag))
                  :aria-label label :tab-index (when (or on-resize use) 0))
            (when use (list :use use))
            (when on-resize
@@ -258,7 +265,7 @@ z-order or interaction state is retained by this Component."
           (min-width '(px 160)) max-width (min-height '(lh 2)) max-height
           (resizable t) (resize-edges etaf-ui--window-resize-edges)
           resize-refs resize-use move-use
-          on-move on-resize on-minimize on-maximize on-restore on-close
+          on-move on-resize on-focus on-minimize on-maximize on-restore on-close
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
   "Render a controlled window shell from `etaf-resizable-panel'.
@@ -276,6 +283,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                          (memq mode '(normal minimized maximized)))
                      "normal, minimized or maximized" 'etaf-window)
     (dolist (entry `((:on-move . ,on-move) (:on-resize . ,on-resize)
+                     (:on-focus . ,on-focus)
                      (:on-minimize . ,on-minimize) (:on-maximize . ,on-maximize)
                      (:on-restore . ,on-restore) (:on-close . ,on-close)))
       (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window)))
@@ -287,11 +295,13 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
          (footer (etaf-current-slot 'footer))
          (content
           (etaf-node 'column
-                     (list :class "etaf-window-content" :width 'stretch
-                           :height (if (eq mode 'minimized) '(lh 0) 'stretch)
-                           :visibility (if (eq mode 'minimized) 'hidden 'visible)
-                           :overflow 'hidden
-                           :padding '((lh 1) (ch 1)))
+                     (append
+                      (list :class "etaf-window-content" :width 'stretch
+                            :height (if (eq mode 'minimized) '(lh 0) 'stretch)
+                            :visibility (if (eq mode 'minimized) 'hidden 'visible)
+                            :overflow 'hidden
+                            :padding '((lh 1) (ch 1)))
+                      (when on-focus (list :on-press on-focus)))
                      (append body
                              (when footer
                                (list (etaf-node 'row

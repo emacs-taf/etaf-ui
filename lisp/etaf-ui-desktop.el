@@ -94,7 +94,7 @@ when supplied, opens the caller's launcher."
            :role 'toolbar :aria-label "Taskbar" :width 'stretch
            :height '(lh 1) :item-gap '(ch 0.5)
            :padding '((lh 0) (ch 1))
-           :background-color "#F8FAFC"
+           :background-color "#DCE6F0"
            :color "#1F2937"
            :border '((px 1) solid "#E2E8F0"))
      (append
@@ -103,8 +103,8 @@ when supplied, opens the caller's launcher."
                          (list :label launcher-label
                                :aria-label launcher-label :variant 'ghost
                                :class "etaf-taskbar-launcher"
-                               :color "#1D4ED8" :bgcolor "#DBEAFE"
-                               :border '((px 0) solid "#DBEAFE")
+                               :color "#334155" :bgcolor "#C5D4E2"
+                               :border '((px 0) solid "#C5D4E2")
                                :padding '((lh 0) (ch 1))
                                :ref 'etaf-taskbar-launcher
                                :on-press on-launch)
@@ -123,11 +123,11 @@ when supplied, opens the caller's launcher."
                    :aria-label (plist-get item :label)
                    :class (if selected "etaf-taskbar-item active"
                             "etaf-taskbar-item")
-                   :color (if selected "#1D4ED8" "#475569")
-                   :bgcolor (if selected "#DBEAFE" "#F8FAFC")
+                   :color (if selected "#334155" "#64748B")
+                   :bgcolor (if selected "#C5D4E2" "#DCE6F0")
                    :border (if selected
-                               '((px 1) solid "#2563EB")
-                             '((px 1) solid "#F8FAFC"))
+                               '((px 1) solid "#8FA6BB")
+                             '((px 1) solid "#DCE6F0"))
                    :padding '((lh 0) (ch 0.75))
                    :disabled disabled
                    :variant 'ghost
@@ -188,7 +188,7 @@ No workspace is created, removed or persisted by this Component."
            :role 'tablist :aria-label "Workspaces" :width 'stretch
            :height '(lh 1) :item-gap '(ch 0.5)
            :padding '((lh 0) (ch 1))
-           :background-color "#F8FAFC"
+           :background-color "#DCE6F0"
            :color "#1F2937"
            :border '((px 1) solid "#E2E8F0"))
      (append
@@ -210,11 +210,11 @@ No workspace is created, removed or persisted by this Component."
                   :variant 'ghost
                   :class (if selected "etaf-workspace-item active"
                            "etaf-workspace-item")
-                  :color (if selected "#1D4ED8" "#475569")
-                  :bgcolor (if selected "#DBEAFE" "#F8FAFC")
+                  :color (if selected "#334155" "#64748B")
+                  :bgcolor (if selected "#C5D4E2" "#DCE6F0")
                   :border (if selected
-                              '((px 1) solid "#2563EB")
-                            '((px 1) solid "#F8FAFC"))
+                              '((px 1) solid "#8FA6BB")
+                            '((px 1) solid "#DCE6F0"))
                   :padding '((lh 0) (ch 0.75))
                   :disabled disabled
                   :on-press (and on-select (not disabled)

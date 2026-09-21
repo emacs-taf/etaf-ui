@@ -247,10 +247,13 @@ as application-defined Components.
 Button and Checkbox are controlled Components. `etaf-button` accepts `:label`,
 `:on-press`, `:disabled`, `:ref`, `:id`, and the small presentation set
 `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:help-echo`,
-`:hover-content`, and `:aria-label`, plus `:use` for a public Behavior list. An
+`:hover-content`, `:pointer`, and `:aria-label`, plus `:use` for a public Behavior list. An
 enabled button
 defaults to role `button` and tab index `0`; a disabled button keeps its label
 and disabled styling but has no press handler, Behavior, or tab stop.
+Enabled buttons default to the native `arrow` pointer; pass `:pointer 'hand`
+for a drag-style affordance. Window title bars use `hand`, while resize handles
+use directional resize pointers.
 `etaf-checkbox` accepts `:checked`, `:label`,
 `:on-change`, `:disabled`, `:ref`, and the same presentation props. It exposes
 role `checkbox`, a stable `:ref`, and tab index `0` while enabled. Its
@@ -424,7 +427,7 @@ separate from forwarded Host attributes:
 | Component | Business props |
 | --- | --- |
 | `etaf-label` | `:text`, `:variant` |
-| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:hover-content`, `:use`, `:variant` |
+| `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:hover-content`, `:pointer`, `:use`, `:variant` |
 | `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
 | `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |

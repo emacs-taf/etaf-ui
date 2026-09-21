@@ -112,7 +112,7 @@ ref directly; it owns no state or subscription of its own."
 (etaf-define-component etaf-button
     (&key label on-press disabled id ref class color bgcolor border padding
           font-size font-weight tab-index aria-label help-echo hover-content
-          use variant)
+          pointer use variant)
   "Render a standard pressable Button with a committed callback.
 
 DISABLED removes the callback and default focus tab index.  Presentation props
@@ -137,6 +137,7 @@ captured values."
        :tab-index (unless disabled (or tab-index 0))
        :aria-label (or aria-label label)
        :help-echo help-echo
+       :pointer (or pointer (and (not disabled) 'arrow))
        :color (or color (plist-get variant-values :color))
        :background-color (or bgcolor (plist-get variant-values :bgcolor))
        :border (or border (plist-get variant-values :border))

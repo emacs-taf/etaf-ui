@@ -134,6 +134,7 @@
             (should (equal '("⊗" "⊖" "⊕") hover-labels))
             (dolist (entry controls)
               (let ((props (cdr entry)))
+                (should (eq 'arrow (plist-get props :pointer)))
                 (should (equal "#F3F4F6" (plist-get props :background-color)))
                 (should (equal '((px 0) solid "#F3F4F6")
                                (plist-get props :border)))))
