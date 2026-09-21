@@ -128,13 +128,13 @@ default slots are projected after the built-in controls."
           ;; close (red), minimize (yellow), maximize/restore (green).
           (append
            (when show-close
-             (list (etaf-ui--window-action "●" "Close" on-close "#FF5F57" "×")))
+             (list (etaf-ui--window-action "●" "Close" on-close "#FF5F57" "⊗")))
            (when show-minimize
-             (list (etaf-ui--window-action "●" "Minimize" on-minimize "#FEBC2E" "−")))
+             (list (etaf-ui--window-action "●" "Minimize" on-minimize "#FEBC2E" "⊖")))
            (when show-maximize
              (list (if (eq mode 'maximized)
-                       (etaf-ui--window-action "●" "Restore" on-restore "#28C840" "＋")
-                     (etaf-ui--window-action "●" "Maximize" on-maximize "#28C840" "＋"))))
+                       (etaf-ui--window-action "●" "Restore" on-restore "#28C840" "⊕")
+                     (etaf-ui--window-action "●" "Maximize" on-maximize "#28C840" "⊕"))))
            nil))
          (extra-actions (append (etaf-current-slot 'actions)
                                 (etaf-current-slot 'default)))

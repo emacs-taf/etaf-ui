@@ -131,7 +131,7 @@
                                         controls)))
             (should (equal '("Close" "Minimize" "Maximize") labels))
             (should (equal '("#FF5F57" "#FEBC2E" "#28C840") colors))
-            (should (equal '("×" "−" "＋") hover-labels))
+            (should (equal '("⊗" "⊖" "⊕") hover-labels))
             (dolist (entry controls)
               (let ((props (cdr entry)))
                 (should (equal "#F3F4F6" (plist-get props :background-color)))
