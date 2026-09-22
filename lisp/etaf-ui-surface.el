@@ -10,6 +10,8 @@
 (require 'etaf-ui-input)
 (require 'etaf-ui-feedback)
 
+(defvar ebox-viewport-height)
+
 (defvar-local etaf-ui--surface-return-stack nil
   "Saved return routes for open surfaces, newest first; not current focus.")
 
@@ -68,7 +70,8 @@ Target selection and navigation stay with the public Runtime."
             (kill-local-variable tag)))))))
 
 (etaf-define-component etaf-ui--open-surface
-    (&key anchor (placement 'bottom-start) side (width '(ch 32)) title on-close modal)
+    (&key anchor (placement 'bottom-start) side (width '(ch 32)) title on-close
+          modal center (backdrop t))
   "Render one open floating surface and own its keyboard attachment."
   :bindings
   ((panel (etaf-local-ref 'panel))
@@ -108,6 +111,9 @@ Target selection and navigation stay with the public Runtime."
                  (etaf-event-error nil)))))))))
   :render
   (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
+         (viewport-height-known
+          (and (display-graphic-p)
+               (numberp ebox-viewport-height) (> ebox-viewport-height 0)))
          (content
           (etaf-node
            'column
@@ -119,33 +125,53 @@ Target selection and navigation stay with the public Runtime."
                  :left (cond (anchor '(px 0))
                              ((eq side 'left) '(px 0))
                              ((eq side 'right)
-                              (list 'calc (list '- '(% 100) width)))
-                             (t (list 'calc (list '- '(% 50) (list '* 0.5 width)))))
+                             (list 'calc (list '- '(% 100) width)))
+                             ((and center viewport-height-known)
+                              ;; Root-layer percentage positioning is the
+                              ;; stable text-grid center anchor; resolving a
+                              ;; calc against a ch width can fall back to the
+                              ;; left edge on some Emacs builds.
+                              '(% 25))
+                             (t '(px 0)))
                  :top (cond (anchor '(lh 0))
                             ((memq side '(left right)) '(lh 0))
+                            ((and center viewport-height-known)
+                             (list 'calc (list '- '(% 50) '(lh 18))))
                             (t '(lh 2)))
-                 :height (when (memq side '(left right)) '(% 100))
+                 :height (cond ((memq side '(left right)) '(% 100))
+                               ((and modal viewport-height-known) '(% 80)))
+                 :max-height (when (and modal viewport-height-known) '(% 80))
                  :width width
                  :item-gap (if (or modal side) '(lh 1) '(lh 0))
                  :padding '((lh 1) (ch 2))
                  :color (plist-get theme :ui-panel-fg)
                  :background-color (plist-get theme :ui-panel-bg)
+                 :overflow (when (and modal viewport-height-known) 'scroll)
                  :border (etaf-ui--style-border (plist-get theme :ui-panel-border)))
            (append
             (when title
               (list (etaf-node 'etaf-label (list :text title :variant 'strong) nil)))
             (etaf-current-slot 'default)
             (etaf-current-slot 'footer)))))
-    (if modal
-        (etaf-node 'fragment nil (list
-         (etaf-node 'box
-                    (list :position 'absolute :layer 'root :left '(px 0) :top '(lh 0)
-                          :width '(% 100) :height '(% 100) :z-index 1001
-                          :class "etaf-modal-backdrop" :background-color "#243039"
-                          :role 'presentation :keymap nil)
-                    nil)
-         content))
-      content)))
+    (if (and modal backdrop)
+        (etaf-node 'fragment nil
+                   (list
+                    (etaf-node 'box
+                               (list :position 'absolute :layer 'root
+                                     :left '(px 0) :top '(lh 0)
+                                     :width '(% 100) :height '(% 100)
+                                     :z-index 1001
+                                     :class "etaf-modal-backdrop"
+                                     :background-color "#243039"
+                                     :role 'presentation :keymap nil)
+                               nil)
+                    content))
+      ;; A Desktop may request an unpainted modal while retaining its
+      ;; application surface underneath.  The panel's retained focus/keymap
+      ;; policy still owns keyboard dismissal and navigation.
+      (if modal
+          (etaf-node 'fragment nil (list content))
+        content))))
 
 (etaf-define-component etaf-popover
     (&key open anchor (placement 'bottom-start) (width '(ch 32)) title on-close)
@@ -166,8 +192,11 @@ Target selection and navigation stay with the public Runtime."
                (list (cons 'footer (etaf-current-slot 'footer))))))
 
 (etaf-define-component etaf-dialog
-    (&key open (title "Dialog") (width '(ch 48)) (close-label "Close") on-close)
-  "Show a controlled modal panel with default content and a footer slot."
+    (&key open (title "Dialog") (width '(ch 48)) (close-label "Close")
+          on-close (backdrop t))
+  "Show a controlled modal panel with default content and a footer slot.
+When BACKDROP is nil, retain the underlying surface's paint while keeping the
+panel as a root-layer projection; the caller owns any outside-click policy."
   :validate
   (progn
     (etaf-check-prop :on-close on-close (functionp on-close) "a function")
@@ -176,7 +205,8 @@ Target selection and navigation stay with the public Runtime."
   :render
   (when (etaf-ui--reactive-value open)
     (etaf-node 'etaf-ui--open-surface
-               (list :modal t :title title :width width :on-close on-close)
+               (list :modal t :center t :backdrop backdrop :title title
+                     :width width :on-close on-close)
                (etaf-current-slot 'default)
                (list (cons 'footer
                            (append (etaf-current-slot 'footer)

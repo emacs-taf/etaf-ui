@@ -21,7 +21,8 @@
 
 (ert-deftest etaf-ui-taskbar-and-workspace-bar-publish-controlled-actions ()
   "Taskbar and workspace controls expose caller-owned selection callbacks."
-  (let ((buffer (generate-new-buffer "*etaf-ui-desktop-bars*")) selected workspace)
+  (let ((buffer (generate-new-buffer "*etaf-ui-desktop-bars*"))
+        selected workspace settings)
     (unwind-protect
         (progn
           (etaf-mount
@@ -35,25 +36,33 @@
               :on-select (lambda (key) (setq selected key)))
              (etaf-workspace-bar
               :workspaces '(main dev)
-              :active 'main
-              :on-select (lambda (key) (setq workspace key))))))
+             :active 'main
+              :on-select (lambda (key) (setq workspace key))
+              :settings-label "Settings"
+              :settings-action (lambda () (setq settings t))))))
           (let ((runtime (etaf-runtime-for-buffer buffer)))
             (let ((active-props
                    (etaf-runtime-host-props-for
                     runtime (etaf-ui-desktop-test--ref runtime "Notes")))
                   (minimized-props
                    (etaf-runtime-host-props-for
-                    runtime (etaf-ui-desktop-test--ref runtime "Files"))))
+                    runtime (etaf-ui-desktop-test--ref runtime "Files")))
+                  (settings-props
+                   (etaf-runtime-host-props-for
+                    runtime 'etaf-workspace-settings)))
               (should (equal "#C5D4E2" (plist-get active-props :background-color)))
               (should (equal "#E7EDF3" (plist-get minimized-props :background-color)))
               (should (equal '((px 1) solid "#B8C4CF")
-                             (plist-get minimized-props :border))))
+                             (plist-get minimized-props :border)))
+              (should (equal "Settings" (plist-get settings-props :aria-label))))
             (etaf-dispatch-event runtime
                                  (etaf-ui-desktop-test--ref runtime "Files") 'press)
             (etaf-dispatch-event runtime
                                  (etaf-ui-desktop-test--ref runtime "dev") 'press)
+            (etaf-dispatch-event runtime 'etaf-workspace-settings 'press)
             (should (eq selected 'files))
             (should (eq workspace 'dev))
+            (should settings)
             (should (string-match-p "Notes" (with-current-buffer buffer (buffer-string))))))
       (etaf-ui-desktop-test--cleanup buffer))))
 

@@ -196,16 +196,17 @@
 ;; runs for body activation and through ETAF's explicit ancestor capture hook
 ;; when a nested body control is pressed.
 ;;
-;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
+;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label accent-color class)
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
 ;; string :label, with optional :state (`active', `minimized' or `error') and
 ;; :disabled.  Callers own window state; ON-SELECT receives a key and
 ;; ON-LAUNCH opens a caller-owned application launcher.
 ;;
-;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status class)
+;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action accent-color class)
 ;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item
 ;; plists with :key/:label.  Callbacks request caller-owned workspace changes;
-;; this Component creates no workspace state.
+;; this Component creates no workspace state.  LAYOUT-LABEL/LAYOUT-ACTION and
+;; SETTINGS-LABEL/SETTINGS-ACTION optionally add trailing caller-owned controls.
 ;;
 ;; Component: etaf-launcher (&key open title items on-select on-close close-label)
 ;; Render a controlled modal application launcher from item plists.  The
@@ -252,7 +253,7 @@
 ;; The application root must reserve a canvas height for floating content.
 ;; Ebox owns clipping, flipping, occlusion and layout. No child frame is created.
 ;;
-;; Component: etaf-dialog (&key open title width close-label on-close)
+;; Component: etaf-dialog (&key open title width close-label on-close backdrop)
 ;; Show a controlled modal panel using the same floating surface as Popover.
 ;; TITLE defaults to Dialog and WIDTH to (ch 48). Default content and footer
 ;; slots compose ordinary Components; a CLOSE-LABEL button (default "Close")
@@ -260,7 +261,9 @@
 ;; The opaque backdrop covers the root canvas, blocking covered controls and
 ;; their focus targets. It does not close on a backdrop click. Keyboard
 ;; navigation, dismissal and focus return follow Popover. The backdrop uses
-;; solid paint; Ebox does not provide alpha blending. Dialogs own no form data.
+;; solid paint; Ebox does not provide alpha blending. Set BACKDROP nil for an
+;; application-owned unpainted modal projection when the underlying surface
+;; must remain visible. Dialogs own no form data.
 ;;
 ;; Component: etaf-dropdown-menu (&key label items on-select disabled width)
 ;; Render a Button and an anchored Popover of menu items. LABEL defaults to

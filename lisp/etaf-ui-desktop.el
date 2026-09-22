@@ -54,7 +54,8 @@ stable as focus changes."
   (plist-get item title-key))
 
 (etaf-define-component etaf-taskbar
-    (&key items active on-select on-launch (launcher-label "Applications") class)
+    (&key items active on-select on-launch (launcher-label "Applications")
+          (accent-color "#C5D4E2") class)
   "Render a controlled TASKBAR for desktop windows.
 
 ITEMS are plists with scalar :key and nonempty string :label.  Optional
@@ -85,7 +86,9 @@ when supplied, opens the caller's launcher."
                      (or (null on-launch) (functionp on-launch))
                      "a function or nil" 'etaf-taskbar)
     (etaf-check-prop :launcher-label launcher-label (stringp launcher-label)
-                     "a string" 'etaf-taskbar))
+                     "a string" 'etaf-taskbar)
+    (etaf-check-prop :accent-color accent-color (stringp accent-color)
+                     "a color string" 'etaf-taskbar))
   :render
   (let ((active (etaf-ui--reactive-value active)))
     (etaf-node
@@ -129,7 +132,7 @@ when supplied, opens the caller's launcher."
                    :color (cond (selected "#334155")
                                 ((eq state 'minimized) "#94A3B8")
                                 (t "#64748B"))
-                   :bgcolor (cond (selected "#C5D4E2")
+                   :bgcolor (cond (selected accent-color)
                                   ((eq state 'minimized) "#E7EDF3")
                                   (t "#DCE6F0"))
                    :border (cond
@@ -150,15 +153,17 @@ when supplied, opens the caller's launcher."
 
 (etaf-define-component etaf-workspace-bar
     (&key workspaces active on-select on-add on-close (add-label "New workspace")
-          brand status layout-label layout-action class)
+          brand status layout-label layout-action settings-label settings-action
+          (accent-color "#C5D4E2") class)
   "Render controlled WORKSPACES as an accessible workspace switcher bar.
 
 WORKSPACES may contain scalar keys or plists with :key, :label, optional
 :description and :disabled.  ACTIVE marks the selected workspace.  ON-SELECT
 receives a key; ON-ADD and ON-CLOSE are optional caller-owned policy actions.
 LAYOUT-LABEL and LAYOUT-ACTION render the trailing control that reports and
-switches the workspace's window-management mode.  No workspace is created,
-removed or persisted by this Component."
+switches the workspace's window-management mode.  SETTINGS-LABEL and
+SETTINGS-ACTION optionally add a trailing caller-owned settings action.  No
+workspace is created, removed or persisted by this Component."
   :validate
   (progn
     (etaf-check-prop :workspaces workspaces (proper-list-p workspaces)
@@ -190,7 +195,15 @@ removed or persisted by this Component."
                      "a string or nil" 'etaf-workspace-bar)
     (etaf-check-prop :layout-action layout-action
                      (or (null layout-action) (functionp layout-action))
-                     "a function or nil" 'etaf-workspace-bar))
+                     "a function or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :settings-label settings-label
+                     (or (null settings-label) (stringp settings-label))
+                     "a string or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :settings-action settings-action
+                     (or (null settings-action) (functionp settings-action))
+                     "a function or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :accent-color accent-color (stringp accent-color)
+                     "a color string" 'etaf-workspace-bar))
   :render
   (let ((active (etaf-ui--reactive-value active))
         (items
@@ -229,9 +242,9 @@ removed or persisted by this Component."
                   :class (if selected "etaf-workspace-item active"
                            "etaf-workspace-item")
                   :color (if selected "#334155" "#64748B")
-                  :bgcolor (if selected "#C5D4E2" "#DCE6F0")
+                  :bgcolor (if selected accent-color "#DCE6F0")
                   :border (if selected
-                              '((px 1) solid "#8FA6BB")
+                              (list '(px 1) 'solid accent-color)
                             '((px 1) solid "#DCE6F0"))
                   :padding '((lh 0) (ch 0.75))
                   :disabled disabled
@@ -260,11 +273,24 @@ removed or persisted by this Component."
                                :ref 'etaf-workspace-layout
                                :variant 'ghost
                                :class "etaf-workspace-layout"
-                               :color "#334155" :bgcolor "#C5D4E2"
+                               :color "#334155" :bgcolor accent-color
                                :border '((px 1) solid "#8FA6BB")
                                :padding '((lh 0) (ch 0.75))
                                :pointer 'hand
                                :on-press layout-action)
+                         nil)))
+      (when (and settings-label settings-action)
+        (list (etaf-node 'etaf-button
+                         (list :label settings-label
+                               :aria-label settings-label
+                               :ref 'etaf-workspace-settings
+                               :variant 'ghost
+                               :class "etaf-workspace-settings"
+                               :color "#334155" :bgcolor "#DCE6F0"
+                               :border '((px 1) solid "#DCE6F0")
+                               :padding '((lh 0) (ch 0.75))
+                               :pointer 'arrow
+                               :on-press settings-action)
                          nil)))))))
 
 (defun etaf-ui--desktop-launcher-items (items component)

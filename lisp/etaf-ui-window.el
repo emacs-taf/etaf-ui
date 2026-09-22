@@ -86,22 +86,33 @@ COLOR is the explicit traffic-light foreground used for LABEL."
   "Return a resize handle for EDGE with caller-owned input callbacks.
 PROPS are appended to the handle node, so a frame can place the handle in a
 grid cell or present it like the content it covers."
-  (etaf-node
-   'box
-   (append
-    (list :key edge :class (format "etaf-window-resize-handle %s" edge)
-          :width 'stretch :height 'stretch :overflow 'hidden
-          :role 'separator :aria-label (format "Resize %s" edge)
-          :pointer (cond ((memq edge '(top bottom)) 'vdrag)
-                         ((memq edge '(left right)) 'hdrag)
-                         (t 'nhdrag))
-          :tab-index (when (or on-resize use) 0))
-    props
-    (when ref (list :ref ref))
-    (when use (list :use use))
-    (when on-resize
-      (list :on-drag (lambda (gesture) (funcall on-resize edge gesture)))))
-   (list (etaf-node 'text nil (list " ")))))
+  (let* ((width (or (plist-get props :width) 'stretch))
+         (height (or (plist-get props :height) 'stretch))
+         ;; A Component property list is strict about duplicate keys.  Width
+         ;; and height are the two defaults a frame may intentionally override
+         ;; (the top-edge hit strip uses a pixel height), so consume those
+         ;; overrides before composing the final node properties.
+         (extra
+          (cl-loop for (key value) on props by #'cddr
+                   unless (memq key '(:width :height))
+                   append (list key value)))
+         (properties
+          (append
+           (list :key edge :class (format "etaf-window-resize-handle %s" edge)
+                 :width width :height height :overflow 'hidden
+                 :role 'separator :aria-label (format "Resize %s" edge)
+                 :pointer (cond ((memq edge '(top bottom)) 'vdrag)
+                                ((memq edge '(left right)) 'hdrag)
+                                (t 'nhdrag))
+                 :tab-index (when (or on-resize use) 0))
+           extra
+           (when ref (list :ref ref))
+           (when use (list :use use))
+           (when on-resize
+             (list :on-drag
+                   (lambda (gesture) (funcall on-resize edge gesture)))))))
+    (etaf-node 'box properties
+               (list (etaf-node 'text nil (list " "))))))
 
 (defun etaf-ui--panel-frame (content edges on-resize refs behaviors &optional header header-style)
   "Surround CONTENT with edge-owned resize cells for EDGES.
@@ -142,12 +153,30 @@ shrinking behind reserved handle columns."
       nil
       (append
        (when header
-         (list (etaf-node 'column
-                          (list :key 'header :width 'stretch :height '(lh 1)
-                                :min-width '(px 0)
-                                :grid-column 2 :grid-row 1
-                                :overflow 'hidden)
-                          header)))
+         (list
+          (etaf-node
+           'flex
+           (list :key 'header :width 'stretch :height '(lh 1)
+                 :min-width '(px 0) :grid-column 2 :grid-row 1
+                 :overflow 'hidden)
+           (append
+            (list
+             (etaf-node 'column
+                        (list :key 'header-content :width 'stretch
+                              :height '(lh 1) :min-width '(px 0)
+                              :flex-grow 1 :flex-shrink 1 :overflow 'hidden)
+                        header))
+            ;; Ebox block geometry is row-based.  Reserve a narrow, explicit
+            ;; top-edge cell at the end of the title row so the top resize
+            ;; Behavior has a real public Host without adding a second row or
+            ;; using an Emacs overlay.  The remaining title row stays the move
+            ;; surface and the side corner cells cover the actual corners.
+            (when (memq 'top edges)
+              (list
+               (funcall handle 'top
+                        '(:width (px 6) :height (lh 1)
+                          :flex-grow 0 :flex-shrink 0)
+                        header-style)))))))
        (list
         (funcall title-cell 'top-left '(:grid-column 1 :grid-row 1))
         (unless header
@@ -247,7 +276,7 @@ background and bottom rule across the window's outer columns.")
           (show-close t) (active t)
           on-minimize on-maximize on-restore on-close
           on-move (drag-lock-modifier 'shift)
-          group ref class use)
+          (title-font-size 14) font-family group ref class use)
   "Render a controlled window title bar and caller-owned action callbacks.
 
 ON-MOVE receives Ebox's gesture plist from the title bar.  The component does
@@ -275,6 +304,12 @@ default slots are projected after the built-in controls."
                          (memq drag-lock-modifier
                                '(shift control meta super hyper)))
                      "nil or a supported modifier" 'etaf-window-chrome)
+    (etaf-check-prop :title-font-size title-font-size
+                     (and (numberp title-font-size) (> title-font-size 0))
+                     "a positive number" 'etaf-window-chrome)
+    (etaf-check-prop :font-family font-family
+                     (or (null font-family) (stringp font-family))
+                     "a string or nil" 'etaf-window-chrome)
     (etaf-check-prop :group group
                      (or (symbolp group) (stringp group) (numberp group))
                      "a scalar hover group key" 'etaf-window-chrome))
@@ -301,7 +336,11 @@ default slots are projected after the built-in controls."
                            :flex-grow 1 :flex-basis '(px 0)
                            :min-width '(px 0) :text-align 'center
                            :font-weight 'bold :color "#334155")
-                     (list (etaf-node 'text (list :font-size 14) (list title)))))
+                     (list (etaf-node 'text
+                                      (append (list :font-size title-font-size)
+                                              (when font-family
+                                                (list :font-family font-family)))
+                                      (list title)))))
          (right-actions
           (etaf-node 'flex
                      (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
@@ -329,7 +368,7 @@ default slots are projected after the built-in controls."
           (min-height '(lh 2)) max-height (resizable t)
           (resize-edges etaf-ui--window-resize-edges) resize-refs resize-use
           on-resize on-move header-style
-          ref id class role use overflow)
+          (font-size 14) font-family ref id class role use overflow)
   "Render a controlled positioned panel with optional resize handles.
 
 X, Y, WIDTH, HEIGHT, Z-INDEX and visibility are passed to Ebox as geometry;
@@ -374,7 +413,13 @@ state is retained by this Component."
                                resize-use)))
                      "an edge-to-Behavior alist" 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-resize on-resize 'etaf-resizable-panel)
-    (etaf-ui--window-callback :on-move on-move 'etaf-resizable-panel))
+    (etaf-ui--window-callback :on-move on-move 'etaf-resizable-panel)
+    (etaf-check-prop :font-size font-size
+                     (and (numberp font-size) (> font-size 0))
+                     "a positive number" 'etaf-resizable-panel)
+    (etaf-check-prop :font-family font-family
+                     (or (null font-family) (stringp font-family))
+                     "a string or nil" 'etaf-resizable-panel))
   :render
   (let* ((visible (etaf-ui--reactive-value visible))
          (theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
@@ -395,6 +440,7 @@ state is retained by this Component."
                       :max-height (etaf-ui--reactive-value max-height)
                       :color (plist-get theme :ui-panel-fg)
                       :background-color (plist-get theme :ui-panel-bg)
+                      :font-size font-size
                       :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
                       :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
                       :on-drag on-move :use use)
@@ -413,6 +459,7 @@ state is retained by this Component."
           resize-refs resize-use move-use
           on-move on-resize on-focus on-minimize on-maximize on-restore on-close
           (drag-lock-modifier 'shift)
+          (title-font-size 14) (content-font-size 14) font-family
           controls-group (controls-active t)
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
@@ -444,7 +491,16 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      (or (etaf-ref-p controls-active)
                          (etaf-computed-p controls-active)
                          (booleanp (etaf-ui--reactive-value controls-active)))
-                     "a boolean" 'etaf-window))
+                     "a boolean" 'etaf-window)
+    (etaf-check-prop :title-font-size title-font-size
+                     (and (numberp title-font-size) (> title-font-size 0))
+                     "a positive number" 'etaf-window)
+    (etaf-check-prop :content-font-size content-font-size
+                     (and (numberp content-font-size) (> content-font-size 0))
+                     "a positive number" 'etaf-window)
+    (etaf-check-prop :font-family font-family
+                     (or (null font-family) (stringp font-family))
+                     "a string or nil" 'etaf-window))
   :render
   (let* ((mode (etaf-ui--window-mode mode))
          (body (etaf-current-slot 'default))
@@ -457,6 +513,8 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                       (list :class "etaf-window-content" :width 'stretch
                             :height (if (eq mode 'minimized) '(lh 0) 'stretch)
                             :visibility (if (eq mode 'minimized) 'hidden 'visible)
+                            :font-size content-font-size
+                            :font-family font-family
                             :overflow 'hidden
                             :padding '((lh 1) (ch 1)))
                       (when on-focus
@@ -474,7 +532,9 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                                    :show-minimize show-minimize
                            :show-maximize show-maximize :show-close show-close
                            :on-minimize on-minimize :on-maximize on-maximize
-                           :on-restore on-restore :on-close on-close
+                                   :on-restore on-restore :on-close on-close
+                                   :title-font-size title-font-size
+                                   :font-family font-family
                            :drag-lock-modifier drag-lock-modifier
                            :group controls-group
                            :ref chrome-ref)
@@ -484,6 +544,8 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      (list (cons 'actions actions)))))
     (etaf-node 'etaf-resizable-panel
                (list :x x :y y :width width :height height :position 'absolute
+                     :font-size (max title-font-size content-font-size)
+                     :font-family font-family
                      :z-index z-index :visible visible :min-width min-width
                      :max-width max-width :min-height min-height :max-height max-height
                      :resizable (and resizable (not (eq mode 'minimized)))
