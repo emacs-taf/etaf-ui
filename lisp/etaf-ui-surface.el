@@ -11,6 +11,7 @@
 (require 'etaf-ui-feedback)
 
 (defvar ebox-viewport-height)
+(defvar ebox-viewport-width)
 
 (defvar-local etaf-ui--surface-return-stack nil
   "Saved return routes for open surfaces, newest first; not current focus.")
@@ -114,6 +115,21 @@ Target selection and navigation stay with the public Runtime."
          (viewport-height-known
           (and (display-graphic-p)
                (numberp ebox-viewport-height) (> ebox-viewport-height 0)))
+         (viewport-width-known
+          (and (display-graphic-p)
+               (numberp ebox-viewport-width) (> ebox-viewport-width 0)))
+         (center-left
+          (when (and center viewport-width-known
+                     (consp width) (eq (car width) 'ch)
+                     (numberp (cadr width)))
+            (list 'px
+                  (max 0
+                       (floor (/ (- ebox-viewport-width
+                                    (* (max 1 (frame-char-width)) (cadr width)))
+                                 2))))))
+         (center-top
+          (when (and center viewport-height-known)
+            (list 'lh (max 0 (floor (/ (- ebox-viewport-height 36) 2))))))
          (content
           (etaf-node
            'column
@@ -126,17 +142,11 @@ Target selection and navigation stay with the public Runtime."
                              ((eq side 'left) '(px 0))
                              ((eq side 'right)
                              (list 'calc (list '- '(% 100) width)))
-                             ((and center viewport-height-known)
-                              ;; Root-layer percentage positioning is the
-                              ;; stable text-grid center anchor; resolving a
-                              ;; calc against a ch width can fall back to the
-                              ;; left edge on some Emacs builds.
-                              '(% 25))
+                             (center-left center-left)
                              (t '(px 0)))
                  :top (cond (anchor '(lh 0))
                             ((memq side '(left right)) '(lh 0))
-                            ((and center viewport-height-known)
-                             (list 'calc (list '- '(% 50) '(lh 18))))
+                            (center-top center-top)
                             (t '(lh 2)))
                  :height (cond ((memq side '(left right)) '(% 100))
                                ((and modal viewport-height-known) '(% 80)))
