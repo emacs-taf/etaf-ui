@@ -150,13 +150,15 @@ when supplied, opens the caller's launcher."
 
 (etaf-define-component etaf-workspace-bar
     (&key workspaces active on-select on-add on-close (add-label "New workspace")
-          brand status class)
+          brand status layout-label layout-action class)
   "Render controlled WORKSPACES as an accessible workspace switcher bar.
 
 WORKSPACES may contain scalar keys or plists with :key, :label, optional
 :description and :disabled.  ACTIVE marks the selected workspace.  ON-SELECT
 receives a key; ON-ADD and ON-CLOSE are optional caller-owned policy actions.
-No workspace is created, removed or persisted by this Component."
+LAYOUT-LABEL and LAYOUT-ACTION render the trailing control that reports and
+switches the workspace's window-management mode.  No workspace is created,
+removed or persisted by this Component."
   :validate
   (progn
     (etaf-check-prop :workspaces workspaces (proper-list-p workspaces)
@@ -182,7 +184,13 @@ No workspace is created, removed or persisted by this Component."
     (etaf-check-prop :brand brand (or (null brand) (stringp brand))
                      "a string or nil" 'etaf-workspace-bar)
     (etaf-check-prop :status status (or (null status) (stringp status))
-                     "a string or nil" 'etaf-workspace-bar))
+                     "a string or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :layout-label layout-label
+                     (or (null layout-label) (stringp layout-label))
+                     "a string or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :layout-action layout-action
+                     (or (null layout-action) (functionp layout-action))
+                     "a function or nil" 'etaf-workspace-bar))
   :render
   (let ((active (etaf-ui--reactive-value active))
         (items
@@ -244,7 +252,20 @@ No workspace is created, removed or persisted by this Component."
       (when status
         (list (etaf-node 'text
                          (list :color "#9CA3AF")
-                         (list status))))))))
+                         (list status))))
+      (when layout-label
+        (list (etaf-node 'etaf-button
+                         (list :label layout-label
+                               :aria-label layout-label
+                               :ref 'etaf-workspace-layout
+                               :variant 'ghost
+                               :class "etaf-workspace-layout"
+                               :color "#334155" :bgcolor "#C5D4E2"
+                               :border '((px 1) solid "#8FA6BB")
+                               :padding '((lh 0) (ch 0.75))
+                               :pointer 'hand
+                               :on-press layout-action)
+                         nil)))))))
 
 (defun etaf-ui--desktop-launcher-items (items component)
   "Validate launcher ITEMS and return them unchanged."
