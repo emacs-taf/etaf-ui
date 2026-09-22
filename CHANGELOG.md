@@ -4,6 +4,20 @@
 
 ### Fixed
 
+- An inactive window renders all three macOS traffic lights in one gray and
+  the active window keeps red, yellow and green.  `etaf-window` exposes
+  `:controls-active` and `etaf-desktop` sets it from the focused window.
+
+- `etaf-window` renders its title bar across the complete panel width.  The
+  frame no longer reserves handle columns inside the panel: side and bottom
+  cells own the panel's outer tracks, the header owns the title row, and its
+  two corner cells keep the top edge resizable while the title keeps the move
+  gesture.  Title backgrounds and bottom rules stay closed across the window.
+
+- `etaf-splitter` overlay dividers accept `:divider-content` and `:z-index`.
+  A positioned divider paints only the content it has, so a caller that owns
+  the panes supplies the divider's rendered extent and stacking order.
+
 - Gallery diagnostic traces include the complete input operation, including
   Ebox pressed-state and focus publications outside the application callback.
   Latency and profiler passes continue measuring the unobserved input route.

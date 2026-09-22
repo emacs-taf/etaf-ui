@@ -82,8 +82,10 @@ COLOR is the explicit traffic-light foreground used for LABEL."
                    :on-press callback)
              nil))
 
-(defun etaf-ui--window-handle (edge on-resize ref use)
-  "Return a flow resize handle for EDGE with caller-owned input callbacks."
+(defun etaf-ui--window-handle (edge on-resize ref use &optional props)
+  "Return a resize handle for EDGE with caller-owned input callbacks.
+PROPS are appended to the handle node, so a frame can place the handle in a
+grid cell or present it like the content it covers."
   (etaf-node
    'box
    (append
@@ -94,64 +96,103 @@ COLOR is the explicit traffic-light foreground used for LABEL."
                          ((memq edge '(left right)) 'hdrag)
                          (t 'nhdrag))
           :tab-index (when (or on-resize use) 0))
+    props
     (when ref (list :ref ref))
     (when use (list :use use))
     (when on-resize
       (list :on-drag (lambda (gesture) (funcall on-resize edge gesture)))))
    (list (etaf-node 'text nil (list " ")))))
 
-(defun etaf-ui--panel-frame (content edges on-resize refs behaviors)
-  "Surround CONTENT with disjoint resize cells for EDGES.
-The text backend's vertical hit regions are whole rows.  Reserving them in
-flow keeps the title, buttons and body visible and independently interactive."
+(defun etaf-ui--panel-frame (content edges on-resize refs behaviors &optional header header-style)
+  "Surround CONTENT with edge-owned resize cells for EDGES.
+
+HEADER, when supplied, owns the frame's first row between the two corner
+cells so a caller's title bar reaches both panel borders; HEADER-STYLE
+presents those corner cells with the same background and rule, keeping the
+covered title row visually closed.  Without HEADER the first row belongs to
+the enabled top cells.  The text backend's hit regions are whole rows and
+columns, so each enabled side cell keeps the body rows and the bottom cells
+keep the last row.  CONTENT spans the panel's remaining body area instead of
+shrinking behind reserved handle columns."
   (let* ((left (cl-intersection edges '(left top-left bottom-left)))
          (right (cl-intersection edges '(right top-right bottom-right)))
          (bottom (cl-intersection edges '(bottom bottom-left bottom-right)))
-         (cells '(top-left top top-right left content right
-                  bottom-left bottom bottom-right)))
+         (top-cells (cl-intersection edges '(top top-left top-right)))
+         (handle (lambda (edge placement style)
+                   (when (memq edge edges)
+                     (etaf-ui--window-handle
+                      edge on-resize (cdr (assq edge refs))
+                      (cdr (assq edge behaviors))
+                      (append placement style)))))
+         (title-cell (lambda (corner placement)
+                       (or (funcall handle corner placement header-style)
+                           (funcall handle 'top placement header-style)))))
     (etaf-node
      'grid
      (list :width 'stretch :height 'stretch
            :grid-template-columns
-           (list (if left '(px 6) '(px 0)) '(minmax (px 0) (fr 1))
-                 (if right '(px 6) '(px 0)))
+           (list (if (or left top-cells) '(px 6) '(px 0))
+                 '(minmax (px 0) (fr 1))
+                 (if (or right top-cells) '(px 6) '(px 0)))
            :grid-template-rows
-           (list '(lh 0) '(minmax (lh 0) (fr 1))
+           (list '(lh 1) '(minmax (lh 0) (fr 1))
                  (if bottom '(lh 1) '(lh 0)))
            :gap '((lh 0) (px 0)))
-     (mapcar
-      (lambda (cell)
-        (cond
-         ((eq cell 'content)
-          (etaf-node 'column
-                     (list :key 'content :width 'stretch :height 'stretch
-                           :min-width '(px 0) :min-height '(lh 0)
-                           :overflow 'hidden)
-                     content))
-         ((memq cell edges)
-          (etaf-ui--window-handle cell on-resize (cdr (assq cell refs))
-                                  (cdr (assq cell behaviors))))
-         (t (etaf-node 'box (list :key cell :width 'stretch :height 'stretch) nil))))
-      cells))))
+     (delq
+      nil
+      (append
+       (when header
+         (list (etaf-node 'column
+                          (list :key 'header :width 'stretch :height '(lh 1)
+                                :min-width '(px 0)
+                                :grid-column 2 :grid-row 1
+                                :overflow 'hidden)
+                          header)))
+       (list
+        (funcall title-cell 'top-left '(:grid-column 1 :grid-row 1))
+        (unless header
+          (funcall handle 'top '(:grid-column 2 :grid-row 1) nil))
+        (funcall title-cell 'top-right '(:grid-column 3 :grid-row 1))
+        (etaf-node 'column
+                   (list :key 'content :width 'stretch :height 'stretch
+                         :min-width '(px 0) :min-height '(lh 0)
+                         :grid-column 2 :grid-row 2
+                         :overflow 'hidden)
+                   content)
+        (funcall handle 'left '(:grid-column 1 :grid-row 2) nil)
+        (funcall handle 'right '(:grid-column 3 :grid-row 2) nil)
+        (funcall handle 'bottom-left '(:grid-column 1 :grid-row 3) nil)
+        (funcall handle 'bottom '(:grid-column 2 :grid-row 3) nil)
+        (funcall handle 'bottom-right '(:grid-column 3 :grid-row 3) nil)))))))
 
 (defconst etaf-ui--window-resize-edges
   '(top right bottom left top-left top-right bottom-right bottom-left)
   "Supported edge and corner names for resize handles.")
 
+(defconst etaf-ui--window-control-inactive-color "#B7BDC6"
+  "Traffic-light color for a window that is not the active one.")
+
 (etaf-define-component etaf-window-controls
     (&key (mode 'normal) (show-minimize t) (show-maximize t) (show-close t)
+          (active t)
           on-minimize on-maximize on-restore on-close
           (group 'etaf-window-controls) class)
   "Render reusable macOS-style traffic-light controls.
 GROUP is shared by the three buttons so Ebox updates all hover glyphs in one
-incremental batch.  The component owns no window policy; callbacks request
-caller-owned transitions."
+incremental batch.  ACTIVE selects the macOS presentation: an inactive window
+renders all three lights in one gray, while the active window keeps the red,
+yellow and green lights.  The component owns no window policy; callbacks
+request caller-owned transitions."
   :validate
   (progn
     (etaf-check-prop :mode mode
                      (or (etaf-ref-p mode) (etaf-computed-p mode)
                          (memq mode '(normal minimized maximized)))
                      "normal, minimized or maximized" 'etaf-window-controls)
+    (etaf-check-prop :active active
+                     (or (etaf-ref-p active) (etaf-computed-p active)
+                         (booleanp (etaf-ui--reactive-value active)))
+                     "a boolean" 'etaf-window-controls)
     (etaf-check-prop :group group
                      (or (symbolp group) (stringp group) (numberp group))
                      "a scalar hover group key" 'etaf-window-controls)
@@ -163,25 +204,29 @@ caller-owned transitions."
                                 'etaf-window-controls)))
   :render
   (let* ((mode (etaf-ui--window-mode mode))
+         (active (etaf-ui--reactive-value active))
+         (close-color (if active "#FF5F57" etaf-ui--window-control-inactive-color))
+         (minimize-color (if active "#FEBC2E" etaf-ui--window-control-inactive-color))
+         (maximize-color (if active "#28C840" etaf-ui--window-control-inactive-color))
          (actions
           (append
            (when show-close
              (list (etaf-ui--window-action
-                    (etaf-ui--window-hover-icon "⬤" "#FF5F57")
-                    "Close" on-close "#FF5F57" "⊗" group)))
+                    (etaf-ui--window-hover-icon "⬤" close-color)
+                    "Close" on-close close-color "⊗" group)))
            (when show-minimize
              (list (etaf-ui--window-action
-                    (etaf-ui--window-hover-icon "⬤" "#FEBC2E")
-                    "Minimize" on-minimize "#FEBC2E" "⊖" group)))
+                    (etaf-ui--window-hover-icon "⬤" minimize-color)
+                    "Minimize" on-minimize minimize-color "⊖" group)))
            (when show-maximize
              (list
               (if (eq mode 'maximized)
                   (etaf-ui--window-action
-                   (etaf-ui--window-hover-icon "⬤" "#28C840")
-                   "Restore" on-restore "#28C840" "⊕" group)
+                   (etaf-ui--window-hover-icon "⬤" maximize-color)
+                   "Restore" on-restore maximize-color "⊕" group)
                 (etaf-ui--window-action
-                 (etaf-ui--window-hover-icon "⬤" "#28C840")
-                 "Maximize" on-maximize "#28C840" "⊕" group)))))))
+                 (etaf-ui--window-hover-icon "⬤" maximize-color)
+                 "Maximize" on-maximize maximize-color "⊕" group)))))))
     (etaf-node 'flex
                (list :class (etaf-ui--class-value
                              "etaf-window-controls" nil class)
@@ -190,9 +235,17 @@ caller-owned transitions."
                      :align-items 'center :column-gap '(ch 0.15))
                actions)))
 
+(defconst etaf-ui--window-title-style
+  (list :background-color "#F8FAFC" :color "#1F2937"
+        :border-bottom '((px 1) solid "#CBD5E1"))
+  "Presentation shared by a window title bar and its corner resize cells.
+The panel copies these properties so the title row keeps one continuous
+background and bottom rule across the window's outer columns.")
+
 (etaf-define-component etaf-window-chrome
     (&key title (mode 'normal) (show-minimize t) (show-maximize t)
-          (show-close t) on-minimize on-maximize on-restore on-close
+          (show-close t) (active t)
+          on-minimize on-maximize on-restore on-close
           on-move (drag-lock-modifier 'shift)
           group ref class use)
   "Render a controlled window title bar and caller-owned action callbacks.
@@ -213,6 +266,10 @@ default slots are projected after the built-in controls."
                      (:on-close . ,on-close)
                      (:on-move . ,on-move)))
       (etaf-ui--window-callback (car entry) (cdr entry) 'etaf-window-chrome))
+    (etaf-check-prop :active active
+                     (or (etaf-ref-p active) (etaf-computed-p active)
+                         (booleanp (etaf-ui--reactive-value active)))
+                     "a boolean" 'etaf-window-chrome)
     (etaf-check-prop :drag-lock-modifier drag-lock-modifier
                      (or (null drag-lock-modifier)
                          (memq drag-lock-modifier
@@ -228,7 +285,8 @@ default slots are projected after the built-in controls."
                                 (etaf-current-slot 'default)))
          (left-actions
           (etaf-node 'etaf-window-controls
-                     (list :mode mode :show-minimize show-minimize
+                     (list :mode mode :active active
+                           :show-minimize show-minimize
                            :show-maximize show-maximize :show-close show-close
                            :on-minimize on-minimize :on-maximize on-maximize
                            :on-restore on-restore :on-close on-close
@@ -253,17 +311,13 @@ default slots are projected after the built-in controls."
     (etaf-node 'flex
                (append
                 (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
-                      :role 'heading :ref ref :position 'relative
-                      :left '(px -6)
-                      :width '(calc (+ (% 100) (px 12)))
+                      :role 'heading :ref ref
+                      :width 'stretch
                       :height '(lh 1) :z-index 30
                       :pointer 'hand :drag-lock-modifier drag-lock-modifier
                       :align-items 'center :justify-content 'center
-                      ;; Child columns own their horizontal breathing room so
-                      ;; the bottom rule spans the complete chrome box.
-                      :padding '((lh 0) (ch 0))
-                      :background-color "#F8FAFC" :color "#1F2937"
-                      :border-bottom '((px 1) solid "#CBD5E1"))
+                      :padding '((lh 0) (ch 0)))
+                etaf-ui--window-title-style
                 (when on-move (list :on-drag on-move))
                 (when use (list :use use)))
                (list (etaf-node 'text nil (list " "))
@@ -274,7 +328,7 @@ default slots are projected after the built-in controls."
           z-index (visible t) (min-width '(px 80)) max-width
           (min-height '(lh 2)) max-height (resizable t)
           (resize-edges etaf-ui--window-resize-edges) resize-refs resize-use
-          on-resize on-move
+          on-resize on-move header-style
           ref id class role use overflow)
   "Render a controlled positioned panel with optional resize handles.
 
@@ -282,8 +336,11 @@ X, Y, WIDTH, HEIGHT, Z-INDEX and visibility are passed to Ebox as geometry;
 they may be values, refs or computed values.  ON-MOVE receives a gesture plist
 from the panel root, while ON-RESIZE receives EDGE and that gesture plist.
 Callbacks must update caller-owned geometry through ETAF's reactive APIs.
-RESIZE-EDGES is a list of edge/corner symbols.  No geometry, constraints,
-z-order or interaction state is retained by this Component."
+RESIZE-EDGES is a list of edge/corner symbols.  The `header' slot, when
+supplied, owns the panel's first row between the corner cells; HEADER-STYLE
+presents those corner cells like the header so its background and rule stay
+closed across the row.  No geometry, constraints, z-order or interaction
+state is retained by this Component."
   :validate
   (progn
     (etaf-check-prop :position position (memq position '(absolute relative))
@@ -322,6 +379,7 @@ z-order or interaction state is retained by this Component."
   (let* ((visible (etaf-ui--reactive-value visible))
          (theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
          (content (etaf-current-slot 'default))
+         (header (etaf-current-slot 'header))
          (framed (and resizable resize-edges (or on-resize resize-use))))
     (etaf-node 'box
                (append
@@ -343,7 +401,8 @@ z-order or interaction state is retained by this Component."
                 (when id (list :id id)))
                (if framed
                    (list (etaf-ui--panel-frame content resize-edges on-resize
-                                               resize-refs resize-use))
+                                               resize-refs resize-use header
+                                               header-style))
                  content))))
 
 (etaf-define-component etaf-window
@@ -354,7 +413,7 @@ z-order or interaction state is retained by this Component."
           resize-refs resize-use move-use
           on-move on-resize on-focus on-minimize on-maximize on-restore on-close
           (drag-lock-modifier 'shift)
-          controls-group
+          controls-group (controls-active t)
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
   "Render a controlled window shell from `etaf-resizable-panel'.
@@ -380,7 +439,12 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      (or (null drag-lock-modifier)
                          (memq drag-lock-modifier
                                '(shift control meta super hyper)))
-                     "nil or a supported modifier" 'etaf-window))
+                     "nil or a supported modifier" 'etaf-window)
+    (etaf-check-prop :controls-active controls-active
+                     (or (etaf-ref-p controls-active)
+                         (etaf-computed-p controls-active)
+                         (booleanp (etaf-ui--reactive-value controls-active)))
+                     "a boolean" 'etaf-window))
   :render
   (let* ((mode (etaf-ui--window-mode mode))
          (body (etaf-current-slot 'default))
@@ -406,7 +470,8 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                                                 footer))))))
          (chrome
           (etaf-node 'etaf-window-chrome
-                     (append (list :title title :mode mode :show-minimize show-minimize
+                     (append (list :title title :mode mode :active controls-active
+                                   :show-minimize show-minimize
                            :show-maximize show-maximize :show-close show-close
                            :on-minimize on-minimize :on-maximize on-maximize
                            :on-restore on-restore :on-close on-close
@@ -424,13 +489,12 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      :resizable (and resizable (not (eq mode 'minimized)))
                      :resize-edges resize-edges :resize-refs resize-refs
                      :resize-use resize-use
+                     :header-style etaf-ui--window-title-style
                      :on-resize on-resize
                      :ref ref :id id :class (etaf-ui--class-value "etaf-window" mode class)
                      :role 'dialog :use use :overflow overflow)
-               (list (etaf-node 'column
-                                (list :class "etaf-window-layout" :width 'stretch
-                                      :height 'stretch)
-                                (list chrome content))))))
+               (list content)
+               (list (cons 'header (list chrome))))))
 
 (provide 'etaf-ui-window)
 ;;; etaf-ui-window.el ends here

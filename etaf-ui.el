@@ -164,18 +164,23 @@
 ;; Render a titled Panel with named header and default slots.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
 
-;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move ref id class role use overflow)
+;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style ref id class role use overflow)
 ;; Render a controlled positioned panel and optional edge/corner resize handles.
 ;; Geometry props are passed to Ebox and may be values, refs or computed values.
 ;; ON-MOVE receives a gesture plist; ON-RESIZE receives EDGE and that gesture.
+;; The `header' slot owns the first row between the corner cells, HEADER-STYLE
+;; presents those cells like the header, and the default slot fills the body
+;; area, so a caller's title bar reaches both panel borders.
 ;; Callers own geometry updates and constraints.  This component stores no
 ;; state, does not assign z-order and does not implement a window manager.
 
-;; Component: etaf-window-controls (&key mode show-minimize show-maximize show-close on-minimize on-maximize on-restore on-close group class)
+;; Component: etaf-window-controls (&key mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close group class)
 ;; Render reusable macOS-style traffic-light controls.  GROUP is forwarded to
-;; Ebox hover grouping so all controls update in one incremental batch.
+;; Ebox hover grouping so all controls update in one incremental batch.  ACTIVE
+;; selects the macOS presentation: an inactive window shows one gray for all
+;; three lights and the active window keeps red, yellow and green.
 ;;
-;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close on-minimize on-maximize on-restore on-close on-move drag-lock-modifier group ref class use)
+;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close on-move drag-lock-modifier group ref class use)
 ;; Render a controlled title bar with minimize, maximize/restore and close
 ;; action buttons.  The title bar forwards drag gestures to ON-MOVE; its
 ;; `drag-lock-modifier' defaults to `shift' for a release-independent drag.
@@ -183,7 +188,7 @@
 ;; only request caller-owned state transitions; `actions' and default slots
 ;; append custom controls/content.
 
-;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier controls-group on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
@@ -210,7 +215,7 @@
 ;; Render a controlled modal application/window switcher.  SELECTED marks the
 ;; caller-owned active item and ON-SELECT receives a key.
 ;;
-;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class overlay)
+;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class overlay z-index divider-content)
 ;; Render a controlled horizontal or vertical split with named `first' and
 ;; `second' slots.  RATIO remains caller-owned; ON-CHANGE receives divider
 ;; gestures and USE can install an ETAF Behavior for keyboard/pointer updates.

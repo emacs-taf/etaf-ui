@@ -238,7 +238,10 @@ state, window identity or persistence data, so the same controls work for a
 desktop's floating and tiled managers. When `:overlay` is non-nil, it renders
 only the divider over panes that the caller already owns. This is useful when
 an application has positioned windows and wants the reusable splitter
-interaction without an additional opaque pane.
+interaction without an additional opaque pane. A positioned divider paints
+only the content it has, so an overlay caller passes `:divider-content` (a row
+of characters for a top/bottom split, one character per row for a left/right
+split) and `:z-index` above the panes it separates.
 
 ## Basic controls
 

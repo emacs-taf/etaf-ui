@@ -347,14 +347,18 @@ whether the switcher closes, changes focus or changes workspace."
 
 (etaf-define-component etaf-splitter
     (&key (orientation 'horizontal) (ratio 0.5) (min-ratio 0.1)
-          (max-ratio 0.9) on-change use class overlay)
+          (max-ratio 0.9) on-change use class overlay z-index divider-content)
   "Render a controlled split layout with a keyboard-focusable divider.
 
 HORIZONTAL splits left/right; VERTICAL splits top/bottom.  RATIO is the first
 pane's fraction and is caller-owned.  ON-CHANGE receives the raw divider
 gesture and USE may contain an ETAF Behavior that converts that gesture into a
-new ratio.  Named `first' and `second' slots hold the pane Views.  The
-Component never stores a ratio or window/layout policy."
+new ratio.  Named `first' and `second' slots hold the pane Views.  OVERLAY
+renders only the divider for a caller-owned positioned host, and
+DIVIDER-CONTENT supplies that divider's rendered extent (a row of characters
+for VERTICAL, one character per row for HORIZONTAL) because a positioned box
+paints only the content it has.  The Component never stores a ratio or
+window/layout policy."
   :validate
   (progn
     (etaf-check-prop :orientation orientation (memq orientation '(horizontal vertical))
@@ -371,7 +375,13 @@ Component never stores a ratio or window/layout policy."
     (etaf-check-prop :on-change on-change (or (null on-change) (functionp on-change))
                      "a function or nil" 'etaf-splitter)
     (etaf-check-prop :overlay overlay (booleanp overlay)
-                     "a boolean" 'etaf-splitter))
+                     "a boolean" 'etaf-splitter)
+    (etaf-check-prop :z-index z-index
+                     (or (null z-index) (integerp z-index))
+                     "nil or an integer" 'etaf-splitter)
+    (etaf-check-prop :divider-content divider-content
+                     (or (null divider-content) (stringp divider-content))
+                     "nil or a string" 'etaf-splitter))
   :render
   (let* ((ratio (float (etaf-ui--reactive-value ratio)))
          (first-width (list '% (round (* 100 ratio))))
@@ -383,6 +393,7 @@ Component never stores a ratio or window/layout policy."
                                 "Resize columns" "Resize rows")
                 :pointer (if (eq orientation 'horizontal) 'hdrag 'vdrag)
                 :use use :on-drag on-change
+                :z-index z-index
                 :background-color (etaf-theme-token :ui-border "#687386")))
          (divider
           (if overlay
@@ -392,11 +403,13 @@ Component never stores a ratio or window/layout policy."
                        (if (eq orientation 'horizontal)
                            (list :position 'absolute
                                  :left (list '% (round (* 100 ratio)))
-                                 :top '(lh 0) :width '(px 3) :height 'stretch)
+                                 :top '(lh 0) :width '(px 3)
+                                 :height 'stretch)
                          (list :position 'absolute :left '(px 0)
                                :top (list '% (round (* 100 ratio)))
                                :width 'stretch :height '(lh 1))))
-               nil)
+               (when divider-content
+                 (list (etaf-node 'text nil (list divider-content)))))
             (if (eq orientation 'horizontal)
                 (etaf-node 'box
                            (append divider-props
