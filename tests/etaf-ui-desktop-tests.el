@@ -44,8 +44,8 @@
                   (minimized-props
                    (etaf-runtime-host-props-for
                     runtime (etaf-ui-desktop-test--ref runtime "Files"))))
-              (should (equal "#C5D4E2" (plist-get active-props :background-color)))
-              (should (equal "#E7EDF3" (plist-get minimized-props :background-color)))
+              (should (equal "#DCEBFF" (plist-get active-props :background-color)))
+              (should (equal "#F1F4F7" (plist-get minimized-props :background-color)))
               (should (equal '((px 1) solid "#B8C4CF")
                              (plist-get minimized-props :border))))
             (etaf-dispatch-event runtime

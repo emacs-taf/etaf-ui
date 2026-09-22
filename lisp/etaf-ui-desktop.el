@@ -94,17 +94,17 @@ when supplied, opens the caller's launcher."
            :role 'toolbar :aria-label "Taskbar" :width 'stretch
            :height '(lh 1) :item-gap '(ch 0.5)
            :padding '((lh 0) (ch 1))
-           :background-color "#DCE6F0"
-           :color "#1F2937"
-           :border '((px 1) solid "#E2E8F0"))
+           :background-color "#F7F9FC"
+           :color "#243447"
+           :border '((px 1) solid "#D8E1EA"))
      (append
       (when on-launch
          (list (etaf-node 'etaf-button
                          (list :label launcher-label
                                :aria-label launcher-label :variant 'ghost
                                :class "etaf-taskbar-launcher"
-                               :color "#334155" :bgcolor "#C5D4E2"
-                               :border '((px 0) solid "#C5D4E2")
+                               :color "#29435C" :bgcolor "#E5EEF7"
+                               :border '((px 1) solid "#C3D3E2")
                                :padding '((lh 0) (ch 1))
                                :ref 'etaf-taskbar-launcher
                                :on-press on-launch)
@@ -126,17 +126,17 @@ when supplied, opens the caller's launcher."
                             (if (eq state 'minimized)
                                 "etaf-taskbar-item minimized"
                               "etaf-taskbar-item"))
-                   :color (cond (selected "#334155")
-                                ((eq state 'minimized) "#94A3B8")
-                                (t "#64748B"))
-                   :bgcolor (cond (selected "#C5D4E2")
-                                  ((eq state 'minimized) "#E7EDF3")
-                                  (t "#DCE6F0"))
+                   :color (cond (selected "#0B63CE")
+                                ((eq state 'minimized) "#8A98A8")
+                                (t "#52606D"))
+                   :bgcolor (cond (selected "#DCEBFF")
+                                  ((eq state 'minimized) "#F1F4F7")
+                                  (t "#F7F9FC"))
                    :border (cond
-                            (selected '((px 1) solid "#68809A"))
+                            (selected '((px 1) solid "#74A9E6"))
                             ((eq state 'minimized)
                              '((px 1) solid "#B8C4CF"))
-                            (t '((px 1) solid "#DCE6F0")))
+                            (t '((px 1) solid "#F7F9FC")))
                    :font-weight (if selected 'bold 'normal)
                    :padding '((lh 0) (ch 0.75))
                    :disabled disabled
@@ -193,14 +193,15 @@ No workspace is created, removed or persisted by this Component."
               (list :key workspace :label (format "%s" workspace))))
           workspaces)))
     (etaf-node
-     'row
+     'flex
      (list :class (etaf-ui--class-value "etaf-workspace-bar" nil class)
            :role 'tablist :aria-label "Workspaces" :width 'stretch
-           :height '(lh 1) :item-gap '(ch 0.5)
+           :height '(lh 1) :column-gap '(ch 0.5)
+           :align-items 'center
            :padding '((lh 0) (ch 1))
-           :background-color "#DCE6F0"
-           :color "#1F2937"
-           :border '((px 1) solid "#E2E8F0"))
+           :background-color "#F7F9FC"
+           :color "#243447"
+           :border '((px 1) solid "#D8E1EA"))
      (append
       (when brand
         (list (etaf-node 'text
@@ -220,11 +221,12 @@ No workspace is created, removed or persisted by this Component."
                   :variant 'ghost
                   :class (if selected "etaf-workspace-item active"
                            "etaf-workspace-item")
-                  :color (if selected "#334155" "#64748B")
-                  :bgcolor (if selected "#C5D4E2" "#DCE6F0")
+                  :color (if selected "#0B63CE" "#52606D")
+                  :bgcolor (if selected "#E2EEFF" "#F7F9FC")
                   :border (if selected
-                              '((px 1) solid "#8FA6BB")
-                            '((px 1) solid "#DCE6F0"))
+                              '((px 1) solid "#74A9E6")
+                            '((px 1) solid "#F7F9FC"))
+                  :font-weight (if selected 'bold 'normal)
                   :padding '((lh 0) (ch 0.75))
                   :disabled disabled
                   :on-press (and on-select (not disabled)
@@ -242,9 +244,21 @@ No workspace is created, removed or persisted by this Component."
                                :variant 'ghost :on-press on-close)
                          nil)))
       (when status
-        (list (etaf-node 'text
-                         (list :color "#9CA3AF")
-                         (list status))))))))
+        (list
+         (etaf-node 'box
+                    (list :width 'stretch :height '(lh 1)
+                          :flex-grow 1 :flex-basis '(px 0)
+                          :min-width '(px 0))
+                    nil)
+         (etaf-node 'box
+                    (list :class "etaf-workspace-status"
+                          :width 'max-content :height '(lh 1)
+                          :padding '((lh 0) (ch 1))
+                          :background-color "#EAF2FD"
+                          :color "#0B63CE"
+                          :font-weight 'bold
+                          :border '((px 1) solid "#C2D8F2"))
+                    (list (etaf-node 'text nil (list status))))))))))
 
 (defun etaf-ui--desktop-launcher-items (items component)
   "Validate launcher ITEMS and return them unchanged."
