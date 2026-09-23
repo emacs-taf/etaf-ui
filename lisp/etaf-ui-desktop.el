@@ -392,9 +392,24 @@ whether the switcher closes, changes focus or changes workspace."
                  (list (etaf-ui--desktop-picker-body items on-select selected
                                                      "etaf-switcher-list"))))))
 
+(defun etaf-ui--splitter-overlay-rect-p (rect)
+  "Return non-nil when RECT is a complete positioned divider rectangle."
+  (and (proper-list-p rect)
+       (= (length rect) 8)
+       (cl-loop for key in '(:left :top :width :height)
+                for unit in '(px lh px lh)
+                for minimum in '(0 0 1 1)
+                always (let ((value (plist-get rect key)))
+                         (and (proper-list-p value)
+                              (= (length value) 2)
+                              (eq (car value) unit)
+                              (integerp (cadr value))
+                              (>= (cadr value) minimum))))))
+
 (etaf-define-component etaf-splitter
     (&key (orientation 'horizontal) (ratio 0.5) (min-ratio 0.1)
-          (max-ratio 0.9) on-change use class overlay z-index divider-content)
+          (max-ratio 0.9) on-change use class overlay z-index divider-content
+          overlay-rect)
   "Render a controlled split layout with a keyboard-focusable divider.
 
 HORIZONTAL splits left/right; VERTICAL splits top/bottom.  RATIO is the first
@@ -404,8 +419,10 @@ new ratio.  Named `first' and `second' slots hold the pane Views.  OVERLAY
 renders only the divider for a caller-owned positioned host, and
 DIVIDER-CONTENT supplies that divider's rendered extent (a row of characters
 for VERTICAL, one character per row for HORIZONTAL) because a positioned box
-paints only the content it has.  The Component never stores a ratio or
-window/layout policy."
+paints only the content it has.  OVERLAY-RECT optionally supplies the exact
+caller-allocated :left/:top/:width/:height for an overlay; absent it, the
+divider uses RATIO relative to its positioned parent.  The Component never
+stores a ratio or window/layout policy."
   :validate
   (progn
     (etaf-check-prop :orientation orientation (memq orientation '(horizontal vertical))
@@ -428,7 +445,13 @@ window/layout policy."
                      "nil or an integer" 'etaf-splitter)
     (etaf-check-prop :divider-content divider-content
                      (or (null divider-content) (stringp divider-content))
-                     "nil or a string" 'etaf-splitter))
+                     "nil or a string" 'etaf-splitter)
+    (etaf-check-prop :overlay-rect overlay-rect
+                     (or (null overlay-rect)
+                         (and overlay
+                              (etaf-ui--splitter-overlay-rect-p overlay-rect)))
+                     "nil or an overlay (:left (px N) :top (lh N) :width (px N) :height (lh N)) rectangle"
+                     'etaf-splitter))
   :render
   (let* ((ratio (float (etaf-ui--reactive-value ratio)))
          (first-width (list '% (round (* 100 ratio))))
@@ -447,14 +470,20 @@ window/layout policy."
               (etaf-node
                'box
                (append divider-props
-                       (if (eq orientation 'horizontal)
+                       (if overlay-rect
                            (list :position 'absolute
-                                 :left (list '% (round (* 100 ratio)))
-                                 :top '(lh 0) :width '(px 3)
-                                 :height 'stretch)
-                         (list :position 'absolute :left '(px 0)
-                               :top (list '% (round (* 100 ratio)))
-                               :width 'stretch :height '(lh 1))))
+                                 :left (plist-get overlay-rect :left)
+                                 :top (plist-get overlay-rect :top)
+                                 :width (plist-get overlay-rect :width)
+                                 :height (plist-get overlay-rect :height))
+                         (if (eq orientation 'horizontal)
+                             (list :position 'absolute
+                                   :left (list '% (round (* 100 ratio)))
+                                   :top '(lh 0) :width '(px 3)
+                                   :height 'stretch)
+                           (list :position 'absolute :left '(px 0)
+                                 :top (list '% (round (* 100 ratio)))
+                                 :width 'stretch :height '(lh 1)))))
                (when divider-content
                  (list (etaf-node 'text nil (list divider-content)))))
             (if (eq orientation 'horizontal)

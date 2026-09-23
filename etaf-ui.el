@@ -216,11 +216,14 @@
 ;; Render a controlled modal application/window switcher.  SELECTED marks the
 ;; caller-owned active item and ON-SELECT receives a key.
 ;;
-;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class overlay z-index divider-content)
+;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class overlay z-index divider-content overlay-rect)
 ;; Render a controlled horizontal or vertical split with named `first' and
 ;; `second' slots.  RATIO remains caller-owned; ON-CHANGE receives divider
 ;; gestures and USE can install an ETAF Behavior for keyboard/pointer updates.
-;; OVERLAY renders only the divider over caller-owned panes.
+;; OVERLAY renders only the divider over caller-owned panes.  OVERLAY-RECT is an
+;; optional exact positioned rectangle using :left/:width in `(px N)' and
+;; :top/:height in `(lh N)'; it keeps nested or constrained dividers aligned
+;; with the caller's pane allocation.  Without it the overlay follows RATIO.
 ;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)
 ;; Render ordinary ROWS as a presentational Table.

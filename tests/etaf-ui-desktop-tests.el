@@ -121,6 +121,33 @@
             (should (string-match-p "Preview" (with-current-buffer buffer (buffer-string))))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
+(ert-deftest etaf-ui-splitter-overlay-uses-caller-rectangle ()
+  "An overlay divider uses its caller's exact positioned rectangle."
+  (let ((buffer (generate-new-buffer "*etaf-ui-splitter-overlay*")) gesture)
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (box :position 'relative :width '(px 80) :height '(lh 8)
+              (etaf-splitter
+               :orientation 'vertical :ratio 0.5 :overlay t
+               :overlay-rect '(:left (px 5) :top (lh 3)
+                               :width (px 30) :height (lh 1))
+               :divider-content "----"
+               :on-change (lambda (event) (setq gesture event))))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (divider (etaf-ui-desktop-test--ref runtime "Resize rows"))
+                 (props (etaf-runtime-host-props-for runtime divider)))
+            (should divider)
+            (dolist (entry '((:left . (px 5)) (:top . (lh 3))
+                             (:width . (px 30)) (:height . (lh 1))))
+              (should (equal (cdr entry) (plist-get props (car entry)))))
+            (etaf-dispatch-event runtime divider 'drag
+                                 '(:phase move :delta (0 . 2)) t)
+            (should (eq 'move (plist-get gesture :phase)))))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
 (ert-deftest etaf-ui-window-chrome-uses-macos-traffic-lights ()
   "Window chrome puts red/yellow/green controls on the left of the title."
   (let ((buffer (generate-new-buffer "*etaf-ui-macos-chrome*")))

@@ -18,6 +18,9 @@
   A positioned divider paints only the content it has, so a caller that owns
   the panes supplies the divider's rendered extent and stacking order.
 
+- `etaf-splitter` accepts a caller-owned `:overlay-rect` so nested and
+  constrained split dividers can occupy the exact gap reserved by the layout.
+
 - Gallery diagnostic traces include the complete input operation, including
   Ebox pressed-state and focus publications outside the application callback.
   Latency and profiler passes continue measuring the unobserved input route.

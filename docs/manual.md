@@ -241,7 +241,11 @@ an application has positioned windows and wants the reusable splitter
 interaction without an additional opaque pane. A positioned divider paints
 only the content it has, so an overlay caller passes `:divider-content` (a row
 of characters for a top/bottom split, one character per row for a left/right
-split) and `:z-index` above the panes it separates.
+split) and `:z-index` above the panes it separates. A caller that allocates
+its own split geometry passes `:overlay-rect` with `:left` and `:width` as
+`(px N)`, and `:top` and `:height` as `(lh N)`. The rectangle is relative to
+the positioned parent and keeps nested or minimum-size-constrained dividers
+aligned with the allocated gap. Without it, the overlay follows `:ratio`.
 
 ## Basic controls
 
