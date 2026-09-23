@@ -53,6 +53,73 @@ caption free of marker glyphs avoids a noisy taskbar and leaves the text width
 stable as focus changes."
   (plist-get item title-key))
 
+(etaf-define-component etaf-ui--desktop-bar-item
+    (&key item-key label ref active disabled callback state class active-class
+          minimized-class accent-color active-border bold-active)
+  "Project controlled selection onto one stateless navigation Host."
+  :view
+  (box :ref ref :role 'button :aria-label label
+       :width 'max-content :disabled disabled
+       :tab-index (unless disabled 0) :pointer (unless disabled 'arrow)
+       :on-press callback :padding '((lh 0) (ch 0.75))
+       :class (cond ((equal item-key (etaf-ui--reactive-value active)) active-class)
+                    ((eq state 'minimized) minimized-class)
+                    (t class))
+       :color (cond ((equal item-key (etaf-ui--reactive-value active)) "#334155")
+                    ((eq state 'minimized) "#94A3B8")
+                    (t "#64748B"))
+       :background-color
+       (cond ((equal item-key (etaf-ui--reactive-value active)) accent-color)
+             ((eq state 'minimized) "#E7EDF3")
+             (t "#DCE6F0"))
+       :border (cond ((equal item-key (etaf-ui--reactive-value active)) active-border)
+                     ((eq state 'minimized) '((px 1) solid "#B8C4CF"))
+                     (t '((px 1) solid "#DCE6F0")))
+       :font-weight (if (and bold-active
+                             (equal item-key (etaf-ui--reactive-value active)))
+                        'bold 'normal)
+       (text (expr label))))
+
+(defun etaf-ui--desktop-bar-item-node (item active on-select accent-color taskbar)
+  "Build ITEM's selection Host using ACTIVE and ON-SELECT.
+TASKBAR selects window-state presentation; ACCENT-COLOR marks selection."
+  (let* ((key (plist-get item :key))
+         (disabled (plist-get item :disabled))
+         (class (etaf-ui--class-value
+                 "etaf-button" (if disabled "disabled" "enabled")
+                 (if taskbar "etaf-taskbar-item" "etaf-workspace-item"))))
+    (etaf-node
+     'etaf-ui--desktop-bar-item
+     (append
+      (list :key key :item-key key :label (plist-get item :label)
+            :ref (or (plist-get item :ref)
+                     (unless taskbar (intern (format "etaf-workspace-%s" key))))
+            :active active :disabled disabled
+            :callback (and on-select (not disabled)
+                           (lambda () (funcall on-select key)))
+            :class class :active-class (concat class " active")
+            :minimized-class (concat class " minimized")
+            :state (and taskbar (plist-get item :state))
+            :accent-color accent-color :bold-active taskbar
+            :active-border (list '(px 1) 'solid
+                                 (if taskbar "#68809A" accent-color)))
+      (unless taskbar (list :flex-shrink 0 :min-width 'max-content)))
+     nil)))
+
+(etaf-define-component etaf-ui--desktop-status (&key status)
+  "Render STATUS in the workspace bar's remaining single-row space."
+  :view
+  (box :class "etaf-workspace-status"
+       :flex-grow 1 :flex-basis '(px 0)
+       :min-width '(px 0) :height '(lh 1)
+       :wrap-mode 'none :overflow 'hidden
+    (text :color "#9CA3AF"
+          (expr (let ((value (etaf-ui--reactive-value status)))
+                  (etaf-check-prop :status value
+                                   (or (null value) (stringp value))
+                                   "a string or nil" 'etaf-workspace-bar)
+                  (or value ""))))))
+
 (etaf-define-component etaf-taskbar
     (&key items active on-select on-launch (launcher-label "Applications")
           (accent-color "#C5D4E2") class)
@@ -60,9 +127,9 @@ stable as focus changes."
 
 ITEMS are plists with scalar :key and nonempty string :label.  Optional
 :state is `active', `minimized', `error' or nil and :disabled suppresses
-activation.  ACTIVE may be a value or ref and marks the focused item.  The
-caller owns all window state; ON-SELECT receives an item key and ON-LAUNCH,
-when supplied, opens the caller's launcher."
+activation.  ACTIVE may be a scalar key, nil, ref or computed and marks the
+focused item.  The caller owns all window state.  ON-SELECT receives an item
+key; ON-LAUNCH, when supplied, opens the caller's launcher."
   :validate
   (progn
     (etaf-ui--desktop-items items 'etaf-taskbar)
@@ -74,11 +141,9 @@ when supplied, opens the caller's launcher."
                        (memq (plist-get item :state) '(nil active minimized error))
                        "nil, active, minimized or error" 'etaf-taskbar))
     (etaf-check-prop :active active
-                     (or (null active) (etaf-ui--reactive-value active)
-                         (cl-some (lambda (item)
-                                   (equal (etaf-ui--reactive-value active)
-                                          (plist-get item :key))) items))
-                     "a taskbar key or nil" 'etaf-taskbar)
+                     (or (etaf-ref-p active) (etaf-computed-p active)
+                         (etaf-ui--desktop-scalar-key-p active))
+                     "a taskbar key, nil, ref or computed" 'etaf-taskbar)
     (etaf-check-prop :on-select on-select
                      (or (null on-select) (functionp on-select))
                      "a function or nil" 'etaf-taskbar)
@@ -90,66 +155,34 @@ when supplied, opens the caller's launcher."
     (etaf-check-prop :accent-color accent-color (stringp accent-color)
                      "a color string" 'etaf-taskbar))
   :render
-  (let ((active (etaf-ui--reactive-value active)))
-    (etaf-node
-     'row
-     (list :class (etaf-ui--class-value "etaf-taskbar" nil class)
-           :role 'toolbar :aria-label "Taskbar" :width 'stretch
-           :height '(lh 1) :item-gap '(ch 0.5)
-           :padding '((lh 0) (ch 1))
-           :background-color "#DCE6F0"
-           :color "#1F2937"
-           :border '((px 1) solid "#E2E8F0"))
-     (append
-      (when on-launch
-         (list (etaf-node 'etaf-button
-                         (list :label launcher-label
-                               :aria-label launcher-label :variant 'ghost
-                               :class "etaf-taskbar-launcher"
-                               :color "#334155" :bgcolor "#C5D4E2"
-                               :border '((px 0) solid "#C5D4E2")
-                               :padding '((lh 0) (ch 1))
-                               :ref 'etaf-taskbar-launcher
-                               :on-press on-launch)
-                         nil)))
-      (or
-       (mapcar
-        (lambda (item)
-          (let* ((key (plist-get item :key))
-                 (selected (equal key active))
-                 (disabled (plist-get item :disabled))
-                 (state (plist-get item :state))
-                 (caption (etaf-ui--desktop-item-caption item :label)))
-            (etaf-node
-             'etaf-button
-             (list :key key :label caption
-                   :ref (plist-get item :ref)
-                   :aria-label (plist-get item :label)
-                   :class (if selected "etaf-taskbar-item active"
-                            (if (eq state 'minimized)
-                                "etaf-taskbar-item minimized"
-                              "etaf-taskbar-item"))
-                   :color (cond (selected "#334155")
-                                ((eq state 'minimized) "#94A3B8")
-                                (t "#64748B"))
-                   :bgcolor (cond (selected accent-color)
-                                  ((eq state 'minimized) "#E7EDF3")
-                                  (t "#DCE6F0"))
-                   :border (cond
-                            (selected '((px 1) solid "#68809A"))
-                            ((eq state 'minimized)
-                             '((px 1) solid "#B8C4CF"))
-                            (t '((px 1) solid "#DCE6F0")))
-                   :font-weight (if selected 'bold 'normal)
-                   :padding '((lh 0) (ch 0.75))
-                   :disabled disabled
-                   :variant 'ghost
-                   :on-press (and on-select (not disabled)
-                                  (lambda () (funcall on-select key))))
-             nil)))
-        items)
-       (list (etaf-node 'etaf-label
-                        (list :text "No windows" :variant 'muted) nil)))))))
+  (etaf-node
+   'row
+   (list :class (etaf-ui--class-value "etaf-taskbar" nil class)
+         :role 'toolbar :aria-label "Taskbar" :width 'stretch
+         :height '(lh 1) :item-gap '(ch 0.5)
+         :padding '((lh 0) (ch 1))
+         :background-color "#DCE6F0"
+         :color "#1F2937"
+         :border '((px 1) solid "#E2E8F0"))
+   (append
+    (when on-launch
+      (list (etaf-node 'etaf-button
+                      (list :label launcher-label
+                            :aria-label launcher-label :variant 'ghost
+                            :class "etaf-taskbar-launcher"
+                            :color "#334155" :bgcolor "#C5D4E2"
+                            :border '((px 0) solid "#C5D4E2")
+                            :padding '((lh 0) (ch 1))
+                            :ref 'etaf-taskbar-launcher
+                            :on-press on-launch)
+                      nil)))
+    (or
+     (mapcar
+      (lambda (item)
+        (etaf-ui--desktop-bar-item-node item active on-select accent-color t))
+      items)
+     (list (etaf-node 'etaf-label
+                     (list :text "No windows" :variant 'muted) nil))))))
 
 (etaf-define-component etaf-workspace-bar
     (&key workspaces active on-select on-add on-close (add-label "New workspace")
@@ -158,8 +191,11 @@ when supplied, opens the caller's launcher."
   "Render controlled WORKSPACES as an accessible workspace switcher bar.
 
 WORKSPACES may contain scalar keys or plists with :key, :label, optional
-:description and :disabled.  ACTIVE marks the selected workspace.  ON-SELECT
-receives a key; ON-ADD and ON-CLOSE are optional caller-owned policy actions.
+:description and :disabled.  ACTIVE is a selected key, ref or computed.
+STATUS is a string, nil, ref or computed.  Its single-row region uses the
+remaining bar width and clips excess text, keeping trailing actions at the
+right edge.  ON-SELECT receives a key; ON-ADD and ON-CLOSE are optional
+caller-owned policy actions.
 LAYOUT-LABEL and LAYOUT-ACTION render the trailing control that reports and
 switches the workspace's window-management mode.  SETTINGS-LABEL and
 SETTINGS-ACTION optionally add a trailing caller-owned settings action.  No
@@ -188,8 +224,10 @@ workspace is created, removed or persisted by this Component."
                      "a string" 'etaf-workspace-bar)
     (etaf-check-prop :brand brand (or (null brand) (stringp brand))
                      "a string or nil" 'etaf-workspace-bar)
-    (etaf-check-prop :status status (or (null status) (stringp status))
-                     "a string or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :status status
+                     (or (null status) (stringp status)
+                         (etaf-ref-p status) (etaf-computed-p status))
+                     "a string, nil, ref or computed" 'etaf-workspace-bar)
     (etaf-check-prop :layout-label layout-label
                      (or (null layout-label) (stringp layout-label))
                      "a string or nil" 'etaf-workspace-bar)
@@ -205,8 +243,7 @@ workspace is created, removed or persisted by this Component."
     (etaf-check-prop :accent-color accent-color (stringp accent-color)
                      "a color string" 'etaf-workspace-bar))
   :render
-  (let ((active (etaf-ui--reactive-value active))
-        (items
+  (let ((items
          (mapcar
           (lambda (workspace)
             (if (listp workspace)
@@ -214,10 +251,10 @@ workspace is created, removed or persisted by this Component."
               (list :key workspace :label (format "%s" workspace))))
           workspaces)))
     (etaf-node
-     'row
+     'flex
      (list :class (etaf-ui--class-value "etaf-workspace-bar" nil class)
            :role 'tablist :aria-label "Workspaces" :width 'stretch
-           :height '(lh 1) :item-gap '(ch 0.5)
+           :height '(lh 1) :flex-direction 'row :gap '((lh 0) (ch 0.5))
            :padding '((lh 0) (ch 1))
            :background-color "#DCE6F0"
            :color "#1F2937"
@@ -229,43 +266,22 @@ workspace is created, removed or persisted by this Component."
                          (list brand))))
       (mapcar
        (lambda (item)
-         (let* ((key (plist-get item :key))
-                (selected (equal key active))
-                (disabled (plist-get item :disabled)))
-           (etaf-node
-            'etaf-button
-            (list :key key :label (plist-get item :label)
-                  :ref (or (plist-get item :ref)
-                           (intern (format "etaf-workspace-%s" key)))
-                  :aria-label (plist-get item :label)
-                  :variant 'ghost
-                  :class (if selected "etaf-workspace-item active"
-                           "etaf-workspace-item")
-                  :color (if selected "#334155" "#64748B")
-                  :bgcolor (if selected accent-color "#DCE6F0")
-                  :border (if selected
-                              (list '(px 1) 'solid accent-color)
-                            '((px 1) solid "#DCE6F0"))
-                  :padding '((lh 0) (ch 0.75))
-                  :disabled disabled
-                  :on-press (and on-select (not disabled)
-                                 (lambda () (funcall on-select key))))
-            nil)))
+         (etaf-ui--desktop-bar-item-node item active on-select accent-color nil))
        items)
       (when on-add
         (list (etaf-node 'etaf-button
                          (list :label "+" :aria-label add-label
+                               :flex-shrink 0 :min-width 'max-content
                                :variant 'ghost :on-press on-add)
                          nil)))
       (when on-close
         (list (etaf-node 'etaf-button
                          (list :label "×" :aria-label "Close workspace bar"
+                               :flex-shrink 0 :min-width 'max-content
                                :variant 'ghost :on-press on-close)
                          nil)))
-      (when status
-        (list (etaf-node 'text
-                         (list :color "#9CA3AF")
-                         (list status))))
+      (when (or status layout-label (and settings-label settings-action))
+        (list (etaf-node 'etaf-ui--desktop-status (list :status status) nil)))
       (when layout-label
         (list (etaf-node 'etaf-button
                          (list :label layout-label
@@ -273,6 +289,7 @@ workspace is created, removed or persisted by this Component."
                                :ref 'etaf-workspace-layout
                                :variant 'ghost
                                :class "etaf-workspace-layout"
+                               :flex-shrink 0 :min-width 'max-content
                                :color "#334155" :bgcolor accent-color
                                :border '((px 1) solid "#8FA6BB")
                                :padding '((lh 0) (ch 0.75))
@@ -286,6 +303,7 @@ workspace is created, removed or persisted by this Component."
                                :ref 'etaf-workspace-settings
                                :variant 'ghost
                                :class "etaf-workspace-settings"
+                               :flex-shrink 0 :min-width 'max-content
                                :color "#334155" :bgcolor "#DCE6F0"
                                :border '((px 1) solid "#DCE6F0")
                                :padding '((lh 0) (ch 0.75))

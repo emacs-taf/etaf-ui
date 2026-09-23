@@ -19,6 +19,19 @@
           (equal label (plist-get (cdr entry) :aria-label)))
         (etaf-runtime-host-props-entries runtime))))
 
+(defun etaf-ui-desktop-test--host-geometry (runtime buffer ref)
+  "Return REF's rendered row, horizontal position and width in BUFFER."
+  (let ((bounds (etaf-host-ref-bounds runtime ref)))
+    (should bounds)
+    (with-current-buffer buffer
+      (save-excursion
+        (goto-char (car bounds))
+        (list (line-number-at-pos)
+              (ebox-string-pixel-width
+               (buffer-substring (line-beginning-position) (car bounds)))
+              (ebox-string-pixel-width
+               (buffer-substring (car bounds) (cdr bounds))))))))
+
 (ert-deftest etaf-ui-taskbar-and-workspace-bar-publish-controlled-actions ()
   "Taskbar and workspace controls expose caller-owned selection callbacks."
   (let ((buffer (generate-new-buffer "*etaf-ui-desktop-bars*"))
@@ -64,6 +77,135 @@
             (should (eq workspace 'dev))
             (should settings)
             (should (string-match-p "Notes" (with-current-buffer buffer (buffer-string))))))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
+(ert-deftest etaf-ui-desktop-bars-follow-selection-and-status-sources ()
+  "Bar sources publish selection and status while preserving input targets."
+  (let* ((buffer (generate-new-buffer " *etaf-ui-bar-sources*"))
+         (active (etaf-ref 'notes))
+         (workspace (etaf-ref 'main))
+         (status (etaf-ref "Notes focused"))
+         (scope (etaf-effect-scope :detached t))
+         (selected-source
+          (etaf-scope-run scope (lambda () (etaf-computed (lambda () (etaf-value active))))))
+         selected)
+    (unwind-protect
+        (progn
+          (dolist (value '(notes files nil))
+            (should
+             (ebox-canonical-input-p
+              (etaf-render
+               (etaf-view
+                (column
+                 (etaf-taskbar :items '((:key notes :label "Notes")) :active value)
+                 (etaf-workspace-bar :workspaces '(main dev) :active 'main
+                                     :status "Pure status")))))))
+          (etaf-mount
+           buffer
+           (etaf-view
+            (column :width '(ch 80)
+             (etaf-taskbar
+              :items '((:key notes :label "Notes" :ref notes-button)
+                       (:key files :label "Files" :ref files-button :state minimized)
+                       (:key locked :label "Locked" :ref locked-button :disabled t))
+              :active selected-source :on-select (lambda (key) (setq selected key)))
+             (etaf-workspace-bar :workspaces '(main dev) :active workspace :status status))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (notes-position (etaf-host-ref-position runtime 'notes-button))
+                 (files-position (etaf-host-ref-position runtime 'files-button)))
+            (should notes-position)
+            (should files-position)
+            (etaf-batch
+              (etaf-set-value active 'files)
+              (etaf-set-value workspace 'dev)
+              (etaf-set-value status "Files focused"))
+            (should (equal "#C5D4E2"
+                           (plist-get (etaf-runtime-host-props-for runtime 'files-button)
+                                      :background-color)))
+            (should (equal "#DCE6F0"
+                           (plist-get (etaf-runtime-host-props-for runtime 'notes-button)
+                                      :background-color)))
+            (should (equal "#C5D4E2"
+                           (plist-get (etaf-runtime-host-props-for runtime 'etaf-workspace-dev)
+                                      :background-color)))
+            (should (equal notes-position (etaf-host-ref-position runtime 'notes-button)))
+            (should (equal files-position (etaf-host-ref-position runtime 'files-button)))
+            (should (string-match-p "Files focused" (with-current-buffer buffer (buffer-string))))
+            (etaf-dispatch-event runtime 'files-button 'press)
+            (should (eq selected 'files))
+            (should-error (etaf-dispatch-event runtime 'locked-button 'press)
+                          :type 'etaf-event-error)
+            (should (eq selected 'files))
+            (etaf-batch (etaf-set-value active nil) (etaf-set-value status nil))
+            (should (equal "#E7EDF3"
+                           (plist-get (etaf-runtime-host-props-for runtime 'files-button)
+                                      :background-color)))
+            (should-not (string-match-p "Files focused" (with-current-buffer buffer (buffer-string))))
+            (etaf-set-value status "Ready again")
+            (should (string-match-p "Ready again" (with-current-buffer buffer (buffer-string))))))
+      (etaf-ui-desktop-test--cleanup buffer)
+      (etaf-scope-stop scope))))
+
+(ert-deftest etaf-ui-workspace-status-keeps-trailing-actions-visible ()
+  "Variable status text clips within one region and preserves trailing actions."
+  (let ((buffer (generate-new-buffer " *etaf-ui-workspace-status*"))
+        (status (etaf-ref "Notes"))
+        (layouts 0) (settings 0))
+    (unwind-protect
+        (progn
+          (should
+           (string-match-p
+            "Floating.*Settings"
+            (ebox-render
+             (etaf-render
+              (etaf-view
+               (box :width '(ch 80)
+                 (etaf-workspace-bar
+                  :workspaces '(main dev) :status "Pure title"
+                  :layout-label "Floating" :layout-action #'ignore
+                  :settings-label "Settings" :settings-action #'ignore)))))))
+          (etaf-mount
+           buffer
+           (etaf-view
+            (box :width '(ch 80)
+              (etaf-workspace-bar
+               :workspaces '(main dev) :status status
+               :layout-label "Floating" :layout-action (lambda () (cl-incf layouts))
+               :settings-label "Settings" :settings-action (lambda () (cl-incf settings))))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (status-ref
+                  (car (cl-find-if
+                        (lambda (entry)
+                          (equal "etaf-workspace-status" (plist-get (cdr entry) :class)))
+                        (etaf-runtime-host-props-entries runtime))))
+                 (refs (list status-ref 'etaf-workspace-layout 'etaf-workspace-settings))
+                 (geometry
+                  (mapcar (lambda (ref)
+                            (etaf-ui-desktop-test--host-geometry runtime buffer ref)) refs))
+                 (width (with-current-buffer buffer (ebox-string-pixel-width (buffer-string))))
+                 (long (concat "Long status " (make-string 200 ?x) " invisible-tail")))
+            (should status-ref)
+            (dolist (entry (list (cons "A longer title" "A longer title")
+                                (cons long "Long status")
+                                (cons "First line\nHidden second line" "First line")
+                                (cons nil nil)
+                                (cons "Restored" "Restored")))
+              (etaf-set-value status (car entry))
+              (should (equal (car entry) (etaf-value status)))
+              (should
+               (equal geometry
+                      (mapcar (lambda (ref)
+                                (etaf-ui-desktop-test--host-geometry runtime buffer ref)) refs)))
+              (with-current-buffer buffer
+                (let ((text (buffer-string)))
+                  (should (= width (ebox-string-pixel-width text)))
+                  (when (cdr entry) (should (string-match-p (regexp-quote (cdr entry)) text)))
+                  (should-not (string-match-p "invisible-tail\\|Hidden second line" text))
+                  (should (string-match-p "Floating.*Settings" text))))
+              (etaf-dispatch-event runtime 'etaf-workspace-layout 'press)
+              (etaf-dispatch-event runtime 'etaf-workspace-settings 'press))
+            (should (= layouts 5))
+            (should (= settings 5))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
 (ert-deftest etaf-ui-launcher-and-switcher-remain-controlled ()
@@ -187,6 +329,49 @@
                                (plist-get props :border)))))
             (with-current-buffer buffer
                 (should (string-match-p "D" (buffer-string)))))))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
+(ert-deftest etaf-ui-window-controls-react-to-active-paint-and-retain-targets ()
+  "Active-state paint changes preserve each traffic light's native input target."
+  (dolist (active '(t nil))
+    (should (ebox-canonical-input-p
+             (etaf-render (etaf-view (etaf-window-controls :active active)))))
+    (should (string-match-p
+             "Pure title"
+             (ebox-render
+              (etaf-render
+               (etaf-view (etaf-window-chrome :title "Pure title" :active active)))))))
+  (let ((buffer (generate-new-buffer " *window-active-paint*"))
+        (active (etaf-ref t)) (closed 0))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window-controls :active active :group 'lights
+                                  :on-close (lambda () (cl-incf closed))
+                                  :on-minimize (lambda ()) :on-maximize (lambda ()))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (controls
+                  (cl-remove-if-not
+                   (lambda (entry)
+                     (member (plist-get (cdr entry) :aria-label)
+                             '("Close" "Minimize" "Maximize")))
+                   (etaf-runtime-host-props-entries runtime)))
+                 (refs (mapcar #'car controls)))
+            (should (= 3 (length refs)))
+            (etaf-set-value active nil)
+            (dolist (ref refs)
+              (should (etaf-host-ref-position runtime ref))
+              (should (equal "#B7BDC6"
+                             (plist-get (etaf-runtime-host-props-for runtime ref) :color))))
+            (etaf-set-value active t)
+            (should (equal '("#FF5F57" "#FEBC2E" "#28C840")
+                           (mapcar (lambda (ref)
+                                     (plist-get (etaf-runtime-host-props-for runtime ref) :color))
+                                   refs)))
+            (etaf-dispatch-event runtime (car refs) 'press)
+            (should (= closed 1))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
 (ert-deftest etaf-ui-window-controls-is-reusable-and-grouped ()

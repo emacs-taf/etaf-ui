@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Workspace status uses a clipped single-row region; layout and settings
+  actions stay at the right edge when status length changes. Long titles no
+  longer push these controls out of the bar.
+
 - Native text and number inputs omit decorative edit glyphs, and native
   Select/Menu controls use an ASCII marker. Opening forms no longer increases
   line height through a taller fallback font for those decorations.
@@ -41,6 +45,10 @@
   activation that is already mid-flight.
 
 ### Added
+
+- `etaf-workspace-bar` accepts a caller-owned ref or computed `:status` value;
+  nil clears the status text. Both desktop bars retain their input targets
+  while ref or computed selection values change.
 
 - Gallery Review has continuous callback, keyboard and mouse performance
   scenarios that reuse one page and verify both directions of the toggle.

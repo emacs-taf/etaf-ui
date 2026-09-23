@@ -22,33 +22,38 @@
     (max 10 (min 16 (- line-height 4)))))
 
 (defun etaf-ui--window-hover-icon (symbol color)
-  "Return SYMBOL as a stable hover Text value in traffic-light COLOR.
-On graphical displays the returned string carries an SVG `display' text
-property: the circle and black operation glyph are one text cell, with no
-overlay.  Batch and terminal displays retain the Unicode fallback SYMBOL."
-  (let ((text (copy-sequence symbol)))
-    (when (and (display-graphic-p)
-               (fboundp 'image-type-available-p)
-               (image-type-available-p 'svg))
-      (let* ((size (etaf-ui--window-icon-size))
-             (path
-              (pcase symbol
-                ("⊗" "M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5")
-                ("⊖" "M3.5 7H10.5")
-                ("⊕" "M3.5 7H10.5M7 3.5V10.5")
-                (_ "")))
-             (image
-              (or (gethash (list symbol color size) etaf-ui--window-icon-cache)
-                  (puthash
-                   (list symbol color size)
-                   (create-image
-                    (format
-                     "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 14 14'><circle cx='7' cy='7' r='6.5' fill='%s'/><path d='%s' fill='none' stroke='#111111' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
-                     size size color path)
-                    'svg t :ascent 'center)
-                   etaf-ui--window-icon-cache))))
-        (put-text-property 0 (length text) 'display image text)))
-    text))
+  "Return an immutable cached traffic-light Text value for SYMBOL and COLOR.
+Display size and SVG availability select separate variants.  Cache hits do
+not allocate a compound key or copy the already prepared string."
+  (let* ((svg (and (display-graphic-p)
+                   (fboundp 'image-type-available-p)
+                   (image-type-available-p 'svg)))
+         (size (etaf-ui--window-icon-size))
+         (variant (+ size (if svg 32 0)))
+         (colors (gethash symbol etaf-ui--window-icon-cache))
+         (variants (and colors (gethash color colors))))
+    (or (and variants (gethash variant variants))
+        (let ((text (copy-sequence symbol)))
+          (unless colors
+            (setq colors (make-hash-table :test #'equal))
+            (puthash symbol colors etaf-ui--window-icon-cache))
+          (unless variants
+            (setq variants (make-hash-table :test #'eql))
+            (puthash color variants colors))
+          (when svg
+            (let* ((path (pcase symbol
+                           ("⊗" "M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5")
+                           ("⊖" "M3.5 7H10.5")
+                           ("⊕" "M3.5 7H10.5M7 3.5V10.5")
+                           (_ "")))
+                   (image
+                    (create-image
+                     (format
+                      "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 14 14'><circle cx='7' cy='7' r='6.5' fill='%s'/><path d='%s' fill='none' stroke='#111111' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
+                      size size color path)
+                     'svg t :ascent 'center)))
+              (put-text-property 0 (length text) 'display image text)))
+          (puthash variant text variants)))))
 
 (defun etaf-ui--window-callback (property value component)
   "Validate optional callback VALUE for COMPONENT PROPERTY."
@@ -63,23 +68,37 @@ overlay.  Batch and terminal displays retain the Unicode fallback SYMBOL."
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defun etaf-ui--window-action (label aria-label callback color hover-label group)
-  "Return a macOS traffic-light action Button node for CALLBACK.
-COLOR is the explicit traffic-light foreground used for LABEL."
-  (etaf-node 'etaf-button
-             (list :label label :aria-label aria-label
-                   :variant 'ghost :class "etaf-window-control"
-                   :height '(lh 1)
-                   :pointer 'arrow
-                   :color color :bgcolor "#F3F4F6"
-                   :border '((px 0) solid "#F3F4F6")
-                   :padding '((lh 0) (ch 0.30))
-                   :font-size 14
-                   :font-weight 'bold
-                   :hover-group group
-                   :hover-content (etaf-ui--window-hover-icon hover-label color)
-                   :disabled (null callback)
-                   :on-press callback)
+(defconst etaf-ui--window-control-inactive-color "#B7BDC6"
+  "Traffic-light color for a window that is not the active one.")
+
+(etaf-define-component etaf-ui--window-control-surface
+    (&key active color hover-label aria-label callback group)
+  "Project one traffic light's paint directly onto a retained native target.
+This stateless surface also supports pure rendering."
+  :view
+  (box :class (if callback "etaf-button enabled etaf-window-control"
+                "etaf-button disabled etaf-window-control")
+       :role 'button :aria-label aria-label
+       :width 'max-content :height '(lh 1)
+       :pointer 'arrow :disabled (null callback)
+       :tab-index (when callback 0) :on-press callback
+       :color (if (etaf-ui--reactive-value active)
+                  color etaf-ui--window-control-inactive-color)
+       :background-color "#F3F4F6" :border '((px 0) solid "#F3F4F6")
+       :padding '((lh 0) (ch 0.30)) :font-size 14 :font-weight 'bold
+       :hover-group group
+       :hover-content (etaf-ui--window-hover-icon
+                       hover-label (if (etaf-ui--reactive-value active)
+                                       color etaf-ui--window-control-inactive-color))
+       (text (expr (etaf-ui--window-hover-icon
+                    "⬤" (if (etaf-ui--reactive-value active)
+                            color etaf-ui--window-control-inactive-color))))))
+
+(defun etaf-ui--window-action (active aria-label callback color hover-label group)
+  "Construct a controlled traffic light with caller-owned ACTIVE state."
+  (etaf-node 'etaf-ui--window-control-surface
+             (list :active active :aria-label aria-label :callback callback
+                   :color color :hover-label hover-label :group group)
              nil))
 
 (defun etaf-ui--window-handle (edge on-resize ref use &optional props)
@@ -198,9 +217,6 @@ shrinking behind reserved handle columns."
   '(top right bottom left top-left top-right bottom-right bottom-left)
   "Supported edge and corner names for resize handles.")
 
-(defconst etaf-ui--window-control-inactive-color "#B7BDC6"
-  "Traffic-light color for a window that is not the active one.")
-
 (etaf-define-component etaf-window-controls
     (&key (mode 'normal) (show-minimize t) (show-maximize t) (show-close t)
           (active t)
@@ -233,29 +249,21 @@ request caller-owned transitions."
                                 'etaf-window-controls)))
   :render
   (let* ((mode (etaf-ui--window-mode mode))
-         (active (etaf-ui--reactive-value active))
-         (close-color (if active "#FF5F57" etaf-ui--window-control-inactive-color))
-         (minimize-color (if active "#FEBC2E" etaf-ui--window-control-inactive-color))
-         (maximize-color (if active "#28C840" etaf-ui--window-control-inactive-color))
          (actions
           (append
            (when show-close
              (list (etaf-ui--window-action
-                    (etaf-ui--window-hover-icon "⬤" close-color)
-                    "Close" on-close close-color "⊗" group)))
+                    active "Close" on-close "#FF5F57" "⊗" group)))
            (when show-minimize
              (list (etaf-ui--window-action
-                    (etaf-ui--window-hover-icon "⬤" minimize-color)
-                    "Minimize" on-minimize minimize-color "⊖" group)))
+                    active "Minimize" on-minimize "#FEBC2E" "⊖" group)))
            (when show-maximize
              (list
               (if (eq mode 'maximized)
                   (etaf-ui--window-action
-                   (etaf-ui--window-hover-icon "⬤" maximize-color)
-                   "Restore" on-restore maximize-color "⊕" group)
+                   active "Restore" on-restore "#28C840" "⊕" group)
                 (etaf-ui--window-action
-                 (etaf-ui--window-hover-icon "⬤" maximize-color)
-                 "Maximize" on-maximize maximize-color "⊕" group)))))))
+                 active "Maximize" on-maximize "#28C840" "⊕" group)))))))
     (etaf-node 'flex
                (list :class (etaf-ui--class-value
                              "etaf-window-controls" nil class)
@@ -421,35 +429,34 @@ state is retained by this Component."
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-resizable-panel))
   :render
-  (let* ((visible (etaf-ui--reactive-value visible))
-         (theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
+  (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
          (content (etaf-current-slot 'default))
          (header (etaf-current-slot 'header))
          (framed (and resizable resize-edges (or on-resize resize-use))))
-    (etaf-node 'box
-               (append
-                (list :class (etaf-ui--class-value "etaf-resizable-panel" nil class)
-                      :position position :left (etaf-ui--reactive-value x)
-                      :top (etaf-ui--reactive-value y)
-                      :width (etaf-ui--reactive-value width)
-                      :height (etaf-ui--reactive-value height)
-                      :z-index (etaf-ui--reactive-value z-index) :visibility (if visible 'visible 'hidden)
-                      :min-width (etaf-ui--reactive-value min-width)
-                      :max-width (etaf-ui--reactive-value max-width)
-                      :min-height (etaf-ui--reactive-value min-height)
-                      :max-height (etaf-ui--reactive-value max-height)
-                      :color (plist-get theme :ui-panel-fg)
-                      :background-color (plist-get theme :ui-panel-bg)
-                      :font-size font-size
-                      :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
-                      :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
-                      :on-drag on-move :use use)
-                (when id (list :id id)))
-               (if framed
-                   (list (etaf-ui--panel-frame content resize-edges on-resize
-                                               resize-refs resize-use header
-                                               header-style))
-                 content))))
+    ;; Keep reactive geometry reads on Host properties.  The retained panel
+    ;; frame, slots and gesture routes do not depend on each pointer position.
+    (etaf-view
+     (box :class (etaf-ui--class-value "etaf-resizable-panel" nil class)
+          :position position :left (etaf-ui--reactive-value x)
+          :top (etaf-ui--reactive-value y)
+          :width (etaf-ui--reactive-value width)
+          :height (etaf-ui--reactive-value height)
+          :z-index (etaf-ui--reactive-value z-index)
+          :visibility (if (etaf-ui--reactive-value visible) 'visible 'hidden)
+          :min-width (etaf-ui--reactive-value min-width)
+          :max-width (etaf-ui--reactive-value max-width)
+          :min-height (etaf-ui--reactive-value min-height)
+          :max-height (etaf-ui--reactive-value max-height)
+          :color (plist-get theme :ui-panel-fg)
+          :background-color (plist-get theme :ui-panel-bg)
+          :font-size font-size
+          :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
+          :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
+          :on-drag on-move :use use :id id
+          (expr (if framed
+                    (etaf-ui--panel-frame content resize-edges on-resize
+                                         resize-refs resize-use header header-style)
+                  content))))))
 
 (etaf-define-component etaf-window
     (&key title (mode 'normal) (x '(px 0)) (y '(lh 0))

@@ -200,13 +200,19 @@
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
 ;; string :label, with optional :state (`active', `minimized' or `error') and
 ;; :disabled.  Callers own window state; ON-SELECT receives a key and
-;; ON-LAUNCH opens a caller-owned application launcher.
+;; ON-LAUNCH opens a caller-owned application launcher.  ACTIVE accepts a
+;; scalar key, nil, ref or computed; matching items show selection.
 ;;
 ;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action accent-color class)
 ;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item
 ;; plists with :key/:label.  Callbacks request caller-owned workspace changes;
 ;; this Component creates no workspace state.  LAYOUT-LABEL/LAYOUT-ACTION and
 ;; SETTINGS-LABEL/SETTINGS-ACTION optionally add trailing caller-owned controls.
+;; ACTIVE accepts a scalar key, nil, ref or computed.  STATUS accepts a string,
+;; nil, ref or computed; nil clears status text.  Reactive sources remain
+;; caller-owned and are read at their retained Host properties or Text payload.
+;; Status occupies the remaining single-row space and clips excess text;
+;; layout and settings actions stay at the right edge as status length changes.
 ;;
 ;; Component: etaf-launcher (&key open title items on-select on-close close-label)
 ;; Render a controlled modal application launcher from item plists.  The

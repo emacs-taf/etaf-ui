@@ -181,6 +181,12 @@ from a handle.  Callbacks update caller-owned geometry, for example through
 title bar and individual edge handles; the corresponding callback props remain
 available for one-off adapters.
 
+Pass geometry refs and computed values directly to the shell, as below. Their
+live reads belong to the positioned Host properties, so moving or resizing
+does not rebuild the panel frame, content slots or gesture bindings. Reading
+the values while constructing a parent View instead makes that parent depend
+on every geometry change.
+
 `etaf-window-controls` is the reusable macOS-style traffic-light component.
 Pass the same `group` to related instances to make Ebox update every hover
 glyph in one incremental batch. `etaf-window-chrome` composes that component
@@ -226,6 +232,16 @@ taskbar items may also declare `:state` (`active`, `minimized`, or `error`) and
 `:disabled`. `on-select`, `on-add`, and `on-close` only request caller-owned
 policy changes. `on-launch` can open an application launcher beside the task
 buttons.
+
+Pass `:active` as a scalar key, ref or computed to either bar. Pass workspace
+`:status` as a string, nil, ref or computed; nil clears its text. Keep these
+sources intact in the parent View: selection is read by each retained button's
+paint properties, and status by its Text expression. Membership changes use
+the ordinary item list props. Both bars also support pure `etaf-render`.
+Workspace status uses the remaining width on one row; layout and settings
+actions stay at the right edge as the text changes. Long or multiline status
+values are clipped to the fitting first-line prefix without changing the
+caller-owned value. No ellipsis is inserted.
 
 `etaf-launcher` and `etaf-switcher` render controlled modal pickers. Items may
 include `:description`, `:state`, and `:disabled`; the caller owns the registry,

@@ -152,6 +152,10 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 组件不保存坐标、不决定图层。标题栏可通过 `move-use`、各边缘可通过
 `resize-use` 接收调用方提供的 ETAF Behavior；一次性场景仍可直接使用回调。
 
+像下面的示例一样，直接把几何 ref 或 computed 传给外壳。实时读取归定位 Host
+的属性，因此移动或缩放不会重建面板框架、内容 slot 或手势绑定。在构造父 View
+时先读取这些值，则会让父级依赖每次几何变化。
+
 `etaf-window-controls` 是可复用的 macOS 风格三色窗口按钮组件；相同的 `group`
 会让 Ebox 在一次增量发布中同时更新三个 hover 符号。`etaf-window-chrome` 组合它
 并提供受控标题栏以及最小化、最大化／恢复和关闭按钮，标题栏
@@ -186,6 +190,14 @@ plist 至少包含标量 `:key` 和字符串 `:label`；任务栏项目还可以
 `:state`（`active`、`minimized` 或 `error`）以及 `:disabled`。`on-select`、
 `on-add` 和 `on-close` 只请求调用方改变策略；`on-launch` 可以打开调用方拥有的
 应用启动器。工作区栏还可以显示调用方提供的 `:brand` 和 `:status` 文本，用于桌面的菜单／状态带。
+
+两个栏的 `:active` 都可以接收标量键、ref 或 computed。工作区 `:status` 可以
+接收字符串、nil、ref 或 computed，nil 会清空状态文本。父 View 应直接传入这些
+来源：选中状态由保留按钮的绘制属性读取，状态文本由 Text 表达式读取。项目增删
+仍通过普通列表属性表达。两个栏也支持纯 `etaf-render`。
+工作区状态占据单行中的剩余宽度；文本变化时，布局和设置操作固定在右侧。
+过长或多行状态仅显示第一行中能够容纳的前缀，不修改调用方持有的值，也不自动
+添加省略号。
 
 `etaf-launcher` 和 `etaf-switcher` 提供受控的模态选择器。项目可以包含
 `:description`、`:state` 和 `:disabled`；应用注册表、`open` ref 及应用／窗口

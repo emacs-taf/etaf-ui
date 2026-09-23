@@ -5,6 +5,49 @@
 (require 'ert)
 (require 'etaf-ui)
 
+(ert-deftest etaf-ui-window-reactive-geometry-preserves-content-and-input ()
+  "Move, resize and layer changes preserve the controlled content and input."
+  (let ((buffer (generate-new-buffer " *etaf-ui-window-reactive*"))
+        (x (etaf-ref '(px 4))) (y (etaf-ref '(lh 1)))
+        (width (etaf-ref '(px 260))) (height (etaf-ref '(lh 12)))
+        (z (etaf-ref 1)) (checked (etaf-ref nil)))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window :title "Inspector" :ref 'window :x x :y y
+                         :width width :height height :z-index z
+                         (etaf-checkbox :ref 'toggle :label "Preserved" :bind checked))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (original (etaf-runtime-host-props-for runtime 'window)))
+            (etaf-dispatch-event runtime 'toggle 'press)
+            (should (etaf-value checked))
+            (dolist (rectangle '((44 3 320 14 2) (12 2 240 10 3)))
+              (progn
+                (etaf-set-value x (list 'px (nth 0 rectangle)))
+                (etaf-set-value y (list 'lh (nth 1 rectangle)))
+                (etaf-set-value width (list 'px (nth 2 rectangle)))
+                (etaf-set-value height (list 'lh (nth 3 rectangle)))
+                (etaf-set-value z (nth 4 rectangle)))
+              (etaf-runtime-flush runtime)
+              (let ((props (etaf-runtime-host-props-for runtime 'window)))
+                (should (equal (plist-get props :left) (etaf-value x)))
+                (should (equal (plist-get props :top) (etaf-value y)))
+                (should (equal (plist-get props :width) (etaf-value width)))
+                (should (equal (plist-get props :height) (etaf-value height)))
+                (should (= (plist-get props :z-index) (etaf-value z))))
+              (should (etaf-host-ref-position runtime 'toggle))
+              (should (etaf-value checked))
+              (with-current-buffer buffer
+                (should (string-match-p "Preserved" (buffer-string)))))
+            (should (equal (plist-get original :left) '(px 4)))
+            (etaf-dispatch-event runtime 'toggle 'press)
+            (should-not (etaf-value checked))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
+        (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-window-keeps-geometry-and-mode-controlled ()
   "Window geometry is projected from caller refs and mode only changes content."
   (let ((buffer-name " *etaf-ui-window-controlled-test*")

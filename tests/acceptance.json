@@ -24,6 +24,8 @@
       "purpose": "Traffic-light controls are independently reusable and share an explicit hover group."
     },
     {"name": "etaf-ui-taskbar-and-workspace-bar-publish-controlled-actions", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Desktop navigation bars expose accessible controls whose selection remains caller-owned."},
+    {"name": "etaf-ui-desktop-bars-follow-selection-and-status-sources", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Ref and computed bar inputs update selection and status while retaining accessible input targets and supporting pure rendering."},
+    {"name": "etaf-ui-workspace-status-keeps-trailing-actions-visible", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Short, long, multiline and empty status values preserve a single-row region, full trailing labels and working action targets."},
     {"name": "etaf-ui-launcher-and-switcher-remain-controlled", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Launcher and switcher visibility, selection and dismissal remain controlled by the caller."},
     {"name": "etaf-ui-splitter-projects-named-panes-and-divider", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Splitter renders named panes and a keyboard-focusable divider that forwards gestures."},
     {"name": "etaf-ui-splitter-overlay-uses-caller-rectangle", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "An overlay splitter uses an exact caller-owned divider rectangle and forwards drag gestures."},
@@ -326,6 +328,16 @@
       "name": "etaf-ui-composition-components-render-public-contracts",
       "file": "tests/etaf-ui-modern-tests.el",
       "purpose": "Tag, Kbd, Steps and List compose through public props and caller-owned selection callbacks."
+    },
+    {
+      "name": "etaf-ui-window-reactive-geometry-preserves-content-and-input",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "Reactive position, dimensions and layering preserve nested control values and input ownership."
+    },
+    {
+      "name": "etaf-ui-window-controls-react-to-active-paint-and-retain-targets",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Traffic-light active colors update while their input targets remain valid."
     }
   ]
 }
