@@ -5,6 +5,7 @@ Source layout: add the repository root to `load-path` and use
 [`etaf-ui.el`](etaf-ui.el); implementation modules live in `lisp/`.
 
 `etaf-ui` is the official ETAF Component catalog. It is a normal optional package above `etaf`; it does not add a second Control or Widget model. Button, Checkbox, Label, Panel, and DataGrid are all ordinary Components with the same View, props, slots, events, and Data contracts.
+It requires Emacs 29.1+, ETAF 0.2.1+, and Ebox 3.0.0+.
 
 
 Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and

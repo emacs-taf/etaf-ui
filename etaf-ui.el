@@ -3,7 +3,7 @@
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1") (etaf "0.2.1"))
+;; Package-Requires: ((emacs "29.1") (etaf "0.2.1") (ebox "3.0.0"))
 ;; URL: https://github.com/ginqi7/etaf-ui
 
 ;;; Commentary:
@@ -256,10 +256,14 @@
 ;; The application root must reserve a canvas height for floating content.
 ;; Ebox owns clipping, flipping, occlusion and layout. No child frame is created.
 ;;
-;; Component: etaf-dialog (&key open title width close-label on-close backdrop)
+;; Component: etaf-dialog (&key open title width height compact close-label on-close backdrop)
 ;; Show a controlled modal panel using the same floating surface as Popover.
-;; TITLE defaults to Dialog and WIDTH to (ch 48). Default content and footer
-;; slots compose ordinary Components; a CLOSE-LABEL button (default "Close")
+;; TITLE defaults to Dialog and WIDTH to (ch 48).  HEIGHT optionally fixes the
+;; panel to `(lh N)' rows, bounded by the visible window.  COMPACT removes
+;; extra title spacing so its header occupies one row.  The panel centers in
+;; the window that displays its buffer when that window is graphical.
+;; Default content and footer slots compose ordinary Components; a
+;; CLOSE-LABEL button (default "Close")
 ;; requests ON-CLOSE.
 ;; The opaque backdrop covers the root canvas, blocking covered controls and
 ;; their focus targets. It does not close on a backdrop click. Keyboard

@@ -4,6 +4,7 @@
 入口 Commentary 列出公共 API 及用法；内部实现位于 `lisp/`。
 
 `etaf-ui` 是 ETAF 的官方 Component 目录，是建立在 `etaf` 之上的可选独立包。它不增加第二套 Control 或 Widget 模型；Button、Checkbox、Label、Panel、DataGrid 都是使用同一套 View、属性、slot、事件和 Data 契约的普通 Component。
+依赖 Emacs 29.1+、ETAF 0.2.1+ 和 Ebox 3.0.0+。
 
 
 所有 View 都使用准确的注册名称：`etaf-panel`、`etaf-label`、`etaf-button` 和

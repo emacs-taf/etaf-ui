@@ -263,6 +263,11 @@
       "purpose": "The modal canvas covers background targets and returns focus after closing."
     },
     {
+      "name": "etaf-ui-dialog-compact-height-keeps-one-row-header",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A bounded compact dialog keeps its title to one row while preserving background content."
+    },
+    {
       "name": "etaf-ui-floating-surfaces-nest-and-release-buffer-shortcuts",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "A menu inside a dialog restores the dialog keys, then the buffer's keys."

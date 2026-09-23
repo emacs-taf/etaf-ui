@@ -143,6 +143,40 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-dialog-compact-height-keeps-one-row-header ()
+  "A compact dialog uses the requested height and no extra header gap."
+  (with-temp-buffer
+    (let ((open (etaf-ref t)))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 30)
+                (etaf-label :text "Background")
+                (etaf-dialog :open open :title "Settings"
+                             :width '(ch 42) :height '(lh 18) :compact t
+                             :backdrop nil
+                             :on-close (lambda () (setf (etaf-value open) nil))
+                  (etaf-label :text "One-row content")))))
+            (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                   (panel
+                    (cl-find-if
+                     (lambda (entry)
+                       (equal "etaf-floating-panel"
+                              (plist-get (cdr entry) :class)))
+                     (etaf-runtime-host-props-entries runtime)))
+                   (props (cdr panel)))
+              (should panel)
+              (should (equal '(lh 18) (plist-get props :height)))
+              (should (equal '(lh 0) (plist-get props :item-gap)))
+              (should (equal '((lh 0) (ch 1)) (plist-get props :padding)))
+              (should (string-match-p "Background" (buffer-string)))
+              (setf (etaf-value open) nil)
+              (should (string-match-p "Background" (buffer-string)))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-floating-surfaces-nest-and-release-buffer-shortcuts ()
   "A menu inside a dialog restores the dialog keys, then the buffer's keys."
   (with-temp-buffer

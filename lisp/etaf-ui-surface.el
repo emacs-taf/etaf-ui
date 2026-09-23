@@ -9,6 +9,7 @@
 ;;; Code:
 (require 'etaf-ui-input)
 (require 'etaf-ui-feedback)
+(require 'ebox)
 
 (defvar ebox-viewport-height)
 (defvar ebox-viewport-width)
@@ -71,8 +72,8 @@ Target selection and navigation stay with the public Runtime."
             (kill-local-variable tag)))))))
 
 (etaf-define-component etaf-ui--open-surface
-    (&key anchor (placement 'bottom-start) side (width '(ch 32)) title on-close
-          modal center (backdrop t))
+    (&key anchor (placement 'bottom-start) side (width '(ch 32)) height
+          title on-close modal center compact (backdrop t))
   "Render one open floating surface and own its keyboard attachment."
   :bindings
   ((panel (etaf-local-ref 'panel))
@@ -112,24 +113,52 @@ Target selection and navigation stay with the public Runtime."
                  (etaf-event-error nil)))))))))
   :render
   (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
+         (target-buffer
+          (if-let* ((runtime (etaf-current-runtime)))
+              (etaf-runtime-buffer runtime)
+            (current-buffer)))
+         (display-window (and (display-graphic-p)
+                              (get-buffer-window target-buffer t)))
+         (viewport-width
+          (or (and display-window
+                   (ebox-viewport-window-width display-window))
+              (and (numberp ebox-viewport-width) ebox-viewport-width)))
+         (viewport-height
+          (or (and display-window (window-body-height display-window))
+              (and (numberp ebox-viewport-height) ebox-viewport-height)))
          (viewport-height-known
           (and (display-graphic-p)
-               (numberp ebox-viewport-height) (> ebox-viewport-height 0)))
+               (numberp viewport-height) (> viewport-height 0)))
          (viewport-width-known
           (and (display-graphic-p)
-               (numberp ebox-viewport-width) (> ebox-viewport-width 0)))
+               (numberp viewport-width) (> viewport-width 0)))
+         (requested-width-px
+          (pcase width
+            (`(ch ,(and n (pred numberp)))
+             (* (max 1 (frame-char-width)) n))
+            (`(px ,(and n (pred numberp))) n)))
+         (bounded-width-px
+          (when (and center viewport-width-known requested-width-px)
+            (min requested-width-px
+                 (max 1 (- viewport-width
+                           (* 2 (max 1 (frame-char-width))))))))
+         (requested-height-rows
+          (pcase height (`(lh ,(and n (pred integerp))) n)))
+         (bounded-height-rows
+          (when requested-height-rows
+            (if viewport-height-known
+                (min requested-height-rows (max 1 (- viewport-height 4)))
+              requested-height-rows)))
          (center-left
-          (when (and center viewport-width-known
-                     (consp width) (eq (car width) 'ch)
-                     (numberp (cadr width)))
+          (when bounded-width-px
             (list 'px
-                  (max 0
-                       (floor (/ (- ebox-viewport-width
-                                    (* (max 1 (frame-char-width)) (cadr width)))
-                                 2))))))
+                  (max 0 (floor (/ (- viewport-width bounded-width-px) 2))))))
          (center-top
           (when (and center viewport-height-known)
-            (list 'lh (max 0 (floor (/ (- ebox-viewport-height 36) 2))))))
+            (list 'lh
+                  (max 0 (floor (/ (- viewport-height
+                                      (or bounded-height-rows 36))
+                                   2))))))
          (content
           (etaf-node
            'column
@@ -149,11 +178,20 @@ Target selection and navigation stay with the public Runtime."
                             (center-top center-top)
                             (t '(lh 2)))
                  :height (cond ((memq side '(left right)) '(% 100))
+                               (bounded-height-rows
+                                (list 'lh bounded-height-rows))
                                ((and modal viewport-height-known) '(% 80)))
-                 :max-height (when (and modal viewport-height-known) '(% 80))
-                 :width width
-                 :item-gap (if (or modal side) '(lh 1) '(lh 0))
-                 :padding '((lh 1) (ch 2))
+                 :max-height (when modal
+                               (if bounded-height-rows
+                                   (list 'lh bounded-height-rows)
+                                 (when viewport-height-known '(% 80))))
+                 :width (if bounded-width-px
+                            (list 'px bounded-width-px)
+                          width)
+                 :item-gap (if compact '(lh 0)
+                             (if (or modal side) '(lh 1) '(lh 0)))
+                 :padding (if compact '((lh 0) (ch 1))
+                            '((lh 1) (ch 2)))
                  :color (plist-get theme :ui-panel-fg)
                  :background-color (plist-get theme :ui-panel-bg)
                  :overflow (when (and modal viewport-height-known) 'scroll)
@@ -202,21 +240,33 @@ Target selection and navigation stay with the public Runtime."
                (list (cons 'footer (etaf-current-slot 'footer))))))
 
 (etaf-define-component etaf-dialog
-    (&key open (title "Dialog") (width '(ch 48)) (close-label "Close")
-          on-close (backdrop t))
+    (&key open (title "Dialog") (width '(ch 48)) height compact
+          (close-label "Close") on-close (backdrop t))
   "Show a controlled modal panel with default content and a footer slot.
 When BACKDROP is nil, retain the underlying surface's paint while keeping the
-panel as a root-layer projection; the caller owns any outside-click policy."
+panel as a root-layer projection; the caller owns any outside-click policy.
+HEIGHT optionally fixes the panel to text rows, bounded by the visible window;
+COMPACT keeps the title at one text row without extra panel spacing."
   :validate
   (progn
     (etaf-check-prop :on-close on-close (functionp on-close) "a function")
     (etaf-check-prop :title title (stringp title) "a string")
+    (etaf-check-prop :height height
+                     (or (null height)
+                         (and (proper-list-p height)
+                              (= (length height) 2)
+                              (eq (car height) 'lh)
+                              (integerp (cadr height))
+                              (> (cadr height) 0)))
+                     "nil or (lh POSITIVE-INTEGER)" 'etaf-dialog)
+    (etaf-check-prop :compact compact (booleanp compact) "a boolean" 'etaf-dialog)
     (etaf-check-prop :close-label close-label (stringp close-label) "a string"))
   :render
   (when (etaf-ui--reactive-value open)
     (etaf-node 'etaf-ui--open-surface
                (list :modal t :center t :backdrop backdrop :title title
-                     :width width :on-close on-close)
+                     :width width :height height :compact compact
+                     :on-close on-close)
                (etaf-current-slot 'default)
                (list (cons 'footer
                            (append (etaf-current-slot 'footer)

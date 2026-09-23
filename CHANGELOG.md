@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- `etaf-dialog` can use a bounded row height and compact single-row title.
+  Centering measures the window displaying its buffer, so a modal no longer
+  falls back to the left edge when no dynamic Ebox viewport is bound.
+
 - An inactive window renders all three macOS traffic lights in one gray and
   the active window keeps red, yellow and green.  `etaf-window` exposes
   `:controls-active` and `etaf-desktop` sets it from the focused window.

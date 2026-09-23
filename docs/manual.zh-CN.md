@@ -97,6 +97,9 @@ View 或合法的 View 序列。
 `etaf-menu`。`etaf-popover` 把任意内容锚定到唯一的 Host `:id`，`etaf-dialog`
 提供模态表单或任务区域。它们组合相同的 Button、输入控件和 slot，完整参数及
 生命周期见[公共入口](../etaf-ui.el)。
+设置表单可给 `etaf-dialog` 传入限定高度的 `:height '(lh N)` 和 `:compact t`。
+面板会在显示目标 buffer 的图形窗口中居中，标题只占一行；内容超出时在面板内
+滚动，较小的窗口会限制实际宽高。
 
 ```elisp
 ;;; -*- lexical-binding: t; -*-

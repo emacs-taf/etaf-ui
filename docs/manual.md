@@ -112,6 +112,10 @@ the native completion choice for searchable lists. Use `etaf-popover` for
 arbitrary content anchored to a unique Host `:id`, and `etaf-dialog` for a
 modal form or task. These components compose the same Button, inputs and
 slots. Their supported props and lifecycle are listed in [the entry](../etaf-ui.el).
+For a settings form, pass a bounded `:height '(lh N)` and `:compact t` to
+`etaf-dialog`: it centers in the graphical window displaying its buffer,
+keeps the title to one row, and scrolls content inside the panel when needed.
+The requested width and height shrink to fit a smaller visible window.
 
 ```elisp
 ;;; -*- lexical-binding: t; -*-
