@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Native text and number inputs omit decorative edit glyphs, and native
+  Select/Menu controls use an ASCII marker. Opening forms no longer increases
+  line height through a taller fallback font for those decorations.
+
 - `etaf-dialog` can use a bounded row height and compact single-row title.
   Centering measures the window displaying its buffer, so a modal no longer
   falls back to the left edge when no dynamic Ebox viewport is bound.

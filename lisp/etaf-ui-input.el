@@ -60,7 +60,7 @@ Each item has a unique scalar :key, nonempty string :label and optional
                      "a function or nil" 'etaf-menu)
     (etaf-node
      'etaf-button
-     (list :label (concat label " ▾") :aria-label label :variant 'ghost
+     (list :label (concat label " v") :aria-label label :variant 'ghost
            :disabled (or disabled (null choices) (null on-select))
            :on-press
            (unless (or disabled (null choices) (null on-select))
@@ -114,7 +114,7 @@ number inputs.  Date values use ISO `YYYY-MM-DD' strings."
                      "a value compatible with :type" 'etaf-input)
     (etaf-view
      (etaf-button
-      :label (format "%s %s ✎" label display)
+      :label (format "%s %s" label display)
       :aria-label label :disabled disabled :variant 'secondary
       :width 'stretch :padding '((lh 0) (ch 1))
       :on-press
@@ -142,7 +142,7 @@ number inputs.  Date values use ISO `YYYY-MM-DD' strings."
                (when callback (funcall callback next)))))
       (flex :column-gap '(ch 2) :flex-wrap 'wrap
         (etaf-label :text label :variant 'muted :width '(ch 20))
-        (etaf-label :text (concat display " ✎") :variant 'strong
+        (etaf-label :text display :variant 'strong
                     :flex-grow 1 :min-width '(px 0) :wrap-mode 'word))))))
 
 (etaf-define-component etaf-text-input
@@ -162,7 +162,7 @@ Use VALUE/ON-CHANGE or writable ref BIND.  Nil VALUE displays as empty text."
                      "a string" 'etaf-text-input)
     (etaf-node
      'etaf-button
-     (list :label (format "%s %s ✎" label (if (or (null current) (equal current "")) placeholder current))
+     (list :label (format "%s %s" label (if (or (null current) (equal current "")) placeholder current))
            :aria-label label :disabled disabled :variant 'ghost
            :on-press
            (unless disabled
@@ -209,7 +209,7 @@ Values and nonempty string labels must be unique.  Use VALUE/ON-CHANGE or BIND."
     (let ((caption (cdr (assoc current choices))))
       (etaf-node
        'etaf-button
-       (list :label (format "%s %s ▾" label (or caption placeholder))
+       (list :label (format "%s %s v" label (or caption placeholder))
              :aria-label label :disabled (or disabled (null choices)) :variant 'ghost
              :on-press
              (unless (or disabled (null choices))
@@ -250,7 +250,7 @@ MAX are numbers or nil with MIN <= MAX. Invalid inputs signal
     (etaf-node
      'etaf-button
      (list
-      :label (format "%s %s ✎" label (or current-value "—"))
+      :label (format "%s %s" label (or current-value "—"))
       :disabled disabled :variant 'ghost
       :on-press
       (unless disabled
