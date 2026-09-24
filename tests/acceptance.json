@@ -338,6 +338,21 @@
       "name": "etaf-ui-window-controls-react-to-active-paint-and-retain-targets",
       "file": "tests/etaf-ui-desktop-tests.el",
       "purpose": "Traffic-light active colors update while their input targets remain valid."
+    },
+    {
+      "name": "etaf-ui-prepared-focus-publishes-real-ui-batches-once",
+      "file": "tests/etaf-ui-prepared-focus-tests.el",
+      "purpose": "Taskbar selection, traffic lights, stacking and variable status publish together with fresh-render parity and detached snapshots."
+    },
+    {
+      "name": "etaf-ui-prepared-focus-rejection-keeps-accepted-ui-until-retry",
+      "file": "tests/etaf-ui-prepared-focus-tests.el",
+      "purpose": "A rejected coordinated focus update preserves accepted UI, then publishes the requested appearance on retry."
+    },
+    {
+      "name": "etaf-ui-focus-scalar-props-preserve-renderable-snapshots",
+      "file": "tests/etaf-ui-prepared-focus-tests.el",
+      "purpose": "Controlled scalar props preserve matching rendered controls, canonical snapshots and fresh-mount appearance across focus changes."
     }
   ]
 }

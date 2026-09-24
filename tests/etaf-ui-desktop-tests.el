@@ -342,7 +342,7 @@
               (etaf-render
                (etaf-view (etaf-window-chrome :title "Pure title" :active active)))))))
   (let ((buffer (generate-new-buffer " *window-active-paint*"))
-        (active (etaf-ref t)) (closed 0))
+        (active (etaf-ref t)) (closed 0) (minimized 0) (maximized 0))
     (unwind-protect
         (progn
           (etaf-mount
@@ -350,7 +350,8 @@
            (etaf-view
             (etaf-window-controls :active active :group 'lights
                                   :on-close (lambda () (cl-incf closed))
-                                  :on-minimize (lambda ()) :on-maximize (lambda ()))))
+                                  :on-minimize (lambda () (cl-incf minimized))
+                                  :on-maximize (lambda () (cl-incf maximized)))))
           (let* ((runtime (etaf-runtime-for-buffer buffer))
                  (controls
                   (cl-remove-if-not
@@ -358,20 +359,39 @@
                      (member (plist-get (cdr entry) :aria-label)
                              '("Close" "Minimize" "Maximize")))
                    (etaf-runtime-host-props-entries runtime)))
-                 (refs (mapcar #'car controls)))
-            (should (= 3 (length refs)))
-            (etaf-set-value active nil)
-            (dolist (ref refs)
-              (should (etaf-host-ref-position runtime ref))
-              (should (equal "#B7BDC6"
-                             (plist-get (etaf-runtime-host-props-for runtime ref) :color))))
-            (etaf-set-value active t)
-            (should (equal '("#FF5F57" "#FEBC2E" "#28C840")
-                           (mapcar (lambda (ref)
-                                     (plist-get (etaf-runtime-host-props-for runtime ref) :color))
-                                   refs)))
-            (etaf-dispatch-event runtime (car refs) 'press)
-            (should (= closed 1))))
+                 (labels '("Close" "Minimize" "Maximize"))
+                 ;; Contribution enumeration is not visual or semantic order.
+                 ;; Retain each action's original target by its public label.
+                 (refs (mapcar
+                        (lambda (label)
+                          (car (cl-find label controls :test #'equal
+                                        :key (lambda (entry)
+                                               (plist-get (cdr entry) :aria-label)))))
+                        labels)))
+            (should (= 3 (length controls)))
+            (should (cl-every #'identity refs))
+            (should (= 3 (length (delete-dups (copy-sequence refs)))))
+            (dolist (value '(nil t nil t))
+              (etaf-set-value active value)
+              (dolist (ref refs)
+                (should (etaf-host-ref-position runtime ref)))
+              (should (equal labels
+                             (mapcar (lambda (ref)
+                                       (plist-get (etaf-runtime-host-props-for runtime ref)
+                                                  :aria-label))
+                                     refs)))
+              (should (equal (if value '("#FF5F57" "#FEBC2E" "#28C840")
+                               '("#B7BDC6" "#B7BDC6" "#B7BDC6"))
+                             (mapcar (lambda (ref)
+                                       (plist-get (etaf-runtime-host-props-for runtime ref)
+                                                  :color))
+                                     refs))))
+            (etaf-dispatch-event runtime (nth 0 refs) 'press)
+            (should (equal '(1 0 0) (list closed minimized maximized)))
+            (etaf-dispatch-event runtime (nth 1 refs) 'press)
+            (should (equal '(1 1 0) (list closed minimized maximized)))
+            (etaf-dispatch-event runtime (nth 2 refs) 'press)
+            (should (equal '(1 1 1) (list closed minimized maximized)))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
 (ert-deftest etaf-ui-window-controls-is-reusable-and-grouped ()
