@@ -133,7 +133,8 @@ grid cell or present it like the content it covers."
     (etaf-node 'box properties
                (list (etaf-node 'text nil (list " "))))))
 
-(defun etaf-ui--panel-frame (content edges on-resize refs behaviors &optional header header-style)
+(defun etaf-ui--panel-frame
+    (content edges on-resize refs behaviors &optional header header-style drag-lock-modifier)
   "Surround CONTENT with edge-owned resize cells for EDGES.
 
 HEADER, when supplied, owns the frame's first row between the two corner
@@ -143,7 +144,8 @@ covered title row visually closed.  Without HEADER the first row belongs to
 the enabled top cells.  The text backend's hit regions are whole rows and
 columns, so each enabled side cell keeps the body rows and the bottom cells
 keep the last row.  CONTENT spans the panel's remaining body area instead of
-shrinking behind reserved handle columns."
+shrinking behind reserved handle columns.  DRAG-LOCK-MODIFIER is forwarded
+to each handle's native gesture binding."
   (let* ((left (cl-intersection edges '(left top-left bottom-left)))
          (right (cl-intersection edges '(right top-right bottom-right)))
          (bottom (cl-intersection edges '(bottom bottom-left bottom-right)))
@@ -153,7 +155,8 @@ shrinking behind reserved handle columns."
                      (etaf-ui--window-handle
                       edge on-resize (cdr (assq edge refs))
                       (cdr (assq edge behaviors))
-                      (append placement style)))))
+                      (append placement style
+                              (list :drag-lock-modifier drag-lock-modifier))))))
          (title-cell (lambda (corner placement)
                        (or (funcall handle corner placement header-style)
                            (funcall handle 'top placement header-style)))))
@@ -375,7 +378,7 @@ default slots are projected after the built-in controls."
           z-index (visible t) (min-width '(px 80)) max-width
           (min-height '(lh 2)) max-height (resizable t)
           (resize-edges etaf-ui--window-resize-edges) resize-refs resize-use
-          on-resize on-move header-style
+          on-resize on-move header-style drag-lock-modifier
           (font-size 14) font-family ref id class role use overflow)
   "Render a controlled positioned panel with optional resize handles.
 
@@ -383,6 +386,8 @@ X, Y, WIDTH, HEIGHT, Z-INDEX and visibility are passed to Ebox as geometry;
 they may be values, refs or computed values.  ON-MOVE receives a gesture plist
 from the panel root, while ON-RESIZE receives EDGE and that gesture plist.
 Callbacks must update caller-owned geometry through ETAF's reactive APIs.
+DRAG-LOCK-MODIFIER enables release-independent move and resize gestures;
+nil keeps ordinary held-button tracking.  Ebox owns confirmation and cancel.
 RESIZE-EDGES is a list of edge/corner symbols.  The `header' slot, when
 supplied, owns the panel's first row between the corner cells; HEADER-STYLE
 presents those corner cells like the header so its background and rule stay
@@ -422,6 +427,10 @@ state is retained by this Component."
                      "an edge-to-Behavior alist" 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-resize on-resize 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-move on-move 'etaf-resizable-panel)
+    (etaf-check-prop :drag-lock-modifier drag-lock-modifier
+                     (or (null drag-lock-modifier)
+                         (memq drag-lock-modifier '(shift control meta super hyper)))
+                     "nil or a supported modifier" 'etaf-resizable-panel)
     (etaf-check-prop :font-size font-size
                      (and (numberp font-size) (> font-size 0))
                      "a positive number" 'etaf-resizable-panel)
@@ -452,10 +461,11 @@ state is retained by this Component."
           :font-size font-size
           :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
           :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
-          :on-drag on-move :use use :id id
+          :on-drag on-move :use use :id id :drag-lock-modifier drag-lock-modifier
           (expr (if framed
                     (etaf-ui--panel-frame content resize-edges on-resize
-                                         resize-refs resize-use header header-style)
+                                         resize-refs resize-use header header-style
+                                         drag-lock-modifier)
                   content))))))
 
 (etaf-define-component etaf-window
@@ -475,7 +485,9 @@ state is retained by this Component."
 The shell owns only presentation.  The caller owns MODE, X/Y, WIDTH/HEIGHT,
 Z-INDEX and visibility and changes them through refs or ordinary props.  The
 title bar forwards ON-MOVE gestures; resize handles forward EDGE and gesture
-to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
+to ON-RESIZE.  DRAG-LOCK-MODIFIER applies to both the title and all resize
+handles; nil disables locking.  Action callbacks request a state transition.
+Slots are
 `header' (extra title-bar content), `actions' (extra title-bar actions),
 `default' (window body) and `footer'."
   :validate
@@ -557,7 +569,7 @@ to ON-RESIZE.  Action callbacks merely request a state transition.  Slots are
                      :max-width max-width :min-height min-height :max-height max-height
                      :resizable (and resizable (not (eq mode 'minimized)))
                      :resize-edges resize-edges :resize-refs resize-refs
-                     :resize-use resize-use
+                     :resize-use resize-use :drag-lock-modifier drag-lock-modifier
                      :header-style etaf-ui--window-title-style
                      :on-resize on-resize
                      :ref ref :id id :class (etaf-ui--class-value "etaf-window" mode class)

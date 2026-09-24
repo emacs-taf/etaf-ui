@@ -159,8 +159,12 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 `etaf-window-controls` 是可复用的 macOS 风格三色窗口按钮组件；相同的 `group`
 会让 Ebox 在一次增量发布中同时更新三个 hover 符号。`etaf-window-chrome` 组合它
 并提供受控标题栏以及最小化、最大化／恢复和关闭按钮，标题栏
-把拖拽 gesture 交给 `on-move`；初次按住 Shift 点击标题栏会启用 Ebox 锁定拖拽，
-释放后仍可移动，下一次点击结束，ESC 取消。`etaf-window` 组合这两个组件，并提供 `header`、
+把拖拽 gesture 交给 `on-move`。`etaf-window` 的 `drag-lock-modifier` 同时作用于
+标题栏和所有启用的边、角缩放手柄，默认是 `shift`；设置为 `super` 使用 Super
+修饰键，设置为 nil 禁用锁定。带修饰键首次按下后，第一次释放仍继续跟随；
+下一次主按钮按下以该位置确认结束，Escape 取消。几何恢复由回调或受控 Behavior
+负责。独立 `etaf-resizable-panel` 也接受此属性，但默认是 nil。
+`etaf-window` 组合这两个组件，并提供 `header`、
 `actions`、`default`、`footer` 四个 slot：
 
 ```elisp

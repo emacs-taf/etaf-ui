@@ -39,6 +39,10 @@
       "file": "tests/etaf-ui-window-tests.el",
       "purpose": "Title-bar and resize-handle gestures reach caller callbacks with their edge and phase payloads."
     },
+    {"name": "etaf-ui-resize-lock-confirms-every-edge-and-corner", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "All eight Window and standalone Panel handles accept locked resize at the confirming press and ignore subsequent motion and release positions."},
+    {"name": "etaf-ui-resize-lock-cancels-and-releases-active-targets", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "Escape cancels each locked resize handle once, clears active state and preserves the following command."},
+    {"name": "etaf-ui-resize-lock-nil-keeps-ordinary-release", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "Explicit nil and the standalone Panel default keep resize gestures ending at the first release."},
+    {"name": "etaf-ui-resize-lock-rejects-invalid-modifier", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "Invalid lock modifiers are rejected through the public Component validation contract."},
     {
       "name": "etaf-ui-resizable-panel-rejects-unknown-edge",
       "file": "tests/etaf-ui-window-tests.el",

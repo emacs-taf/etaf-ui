@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- `etaf-window` forwards `drag-lock-modifier` to every edge and corner resize
+  handle as well as its title. Modified resize gestures can continue after
+  release, confirm on the next press, or cancel through the existing Ebox
+  gesture contract. Standalone `etaf-resizable-panel` supports the same
+  property with locking disabled by default; explicit nil disables locking.
+
 - Workspace status uses a clipped single-row region; layout and settings
   actions stay at the right edge when status length changes. Long titles no
   longer push these controls out of the bar.

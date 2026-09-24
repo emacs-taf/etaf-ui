@@ -191,10 +191,15 @@ on every geometry change.
 Pass the same `group` to related instances to make Ebox update every hover
 glyph in one incremental batch. `etaf-window-chrome` composes that component
 with a centered title and controlled minimize,
-maximize/restore, and close buttons.  The title bar forwards `on-move`
-gestures; holding Shift for the initial title press enables Ebox's optional
-locked-drag mode, where the first release keeps moving until the next click
-or Escape.  Its action callbacks only request a state transition.  `etaf-window`
+maximize/restore, and close buttons. The title bar forwards `on-move`
+gestures. `etaf-window` forwards its `drag-lock-modifier` to both the title
+and all enabled edge/corner resize handles. The default is `shift`; set
+`:drag-lock-modifier 'super` for Super-modified input, or nil to disable
+locking. The initial modified press starts the gesture; the first release
+keeps tracking, the next primary-button press confirms its own position,
+and Escape cancels. Callbacks or controlled Behaviors own geometry rollback.
+Standalone `etaf-resizable-panel` accepts the same property, defaulting to nil.
+Its action callbacks only request a state transition.  `etaf-window`
 composes both Components and provides `header`, `actions`, `default`, and
 `footer` slots:
 

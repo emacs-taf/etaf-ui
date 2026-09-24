@@ -164,10 +164,14 @@
 ;; Render a titled Panel with named header and default slots.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
 
-;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style ref id class role use overflow)
+;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier ref id class role use overflow)
 ;; Render a controlled positioned panel and optional edge/corner resize handles.
 ;; Geometry props are passed to Ebox and may be values, refs or computed values.
 ;; ON-MOVE receives a gesture plist; ON-RESIZE receives EDGE and that gesture.
+;; DRAG-LOCK-MODIFIER defaults to nil; a supported modifier enables Ebox's
+;; release-independent gestures on the panel and all enabled resize handles.
+;; A second primary-button press confirms; Escape cancels through the same
+;; callbacks.  Geometry restoration remains the caller's responsibility.
 ;; The `header' slot owns the first row between the corner cells, HEADER-STYLE
 ;; presents those cells like the header, and the default slot fills the body
 ;; area, so a caller's title bar reaches both panel borders.
@@ -194,7 +198,9 @@
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
 ;; minimizing never changes geometry or global focus/z-order policy.  ON-FOCUS
 ;; runs for body activation and through ETAF's explicit ancestor capture hook
-;; when a nested body control is pressed.
+;; when a nested body control is pressed.  DRAG-LOCK-MODIFIER defaults to shift
+;; and applies to both the title bar and all resize handles.  Set it to super
+;; for a Super-modified press or nil to disable locking everywhere.
 ;;
 ;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label accent-color class)
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
