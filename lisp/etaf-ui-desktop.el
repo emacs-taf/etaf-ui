@@ -132,6 +132,20 @@ TASKBAR selects window-state presentation."
                                    "a string or nil" 'etaf-workspace-bar)
                   (or value ""))))))
 
+(defconst etaf-ui--desktop-layout-label-width 13
+  "Character width reserved by the workspace bar's layout control.
+It holds labels up to eight characters plus the control's padding.")
+
+(etaf-define-component etaf-ui--desktop-layout-label (&key label)
+  "Render the workspace bar's layout control LABEL as one reactive Text payload.
+The control keeps a fixed width so a changed label publishes as a prepared
+Text update instead of re-rendering the bar."
+  :view
+  (text (expr (let ((value (etaf-ui--reactive-value label)))
+                (etaf-check-prop :layout-label value (stringp value)
+                                 "a string" 'etaf-workspace-bar)
+                value))))
+
 (etaf-define-component etaf-taskbar
     (&key items active on-select on-launch (launcher-label "Applications")
           class)
@@ -217,7 +231,9 @@ remaining bar width and clips excess text, keeping trailing actions at the
 right edge.  ON-SELECT receives a key; ON-ADD and ON-CLOSE are optional
 caller-owned policy actions.
 LAYOUT-LABEL and LAYOUT-ACTION render the trailing control that reports and
-switches the workspace's window-management mode.  SETTINGS-LABEL and
+switches the workspace's window-management mode.  LAYOUT-LABEL is a string,
+ref or computed of one; the control keeps a fixed width so a changed label
+publishes as a retained Text update.  SETTINGS-LABEL and
 SETTINGS-ACTION optionally add a trailing caller-owned settings action.  No
 workspace is created, removed or persisted by this Component.  Colors come
 from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
@@ -250,8 +266,10 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                          (etaf-ref-p status) (etaf-computed-p status))
                      "a string, nil, ref or computed" 'etaf-workspace-bar)
     (etaf-check-prop :layout-label layout-label
-                     (or (null layout-label) (stringp layout-label))
-                     "a string or nil" 'etaf-workspace-bar)
+                     (or (null layout-label) (stringp layout-label)
+                         (etaf-ref-p layout-label)
+                         (etaf-computed-p layout-label))
+                     "a string, nil, ref or computed" 'etaf-workspace-bar)
     (etaf-check-prop :layout-action layout-action
                      (or (null layout-action) (functionp layout-action))
                      "a function or nil" 'etaf-workspace-bar)
@@ -306,12 +324,17 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
         (list (etaf-node 'etaf-ui--desktop-status (list :status status) nil)))
       (when layout-label
         (list (etaf-node 'etaf-button
-                         (list :label layout-label
-                               :aria-label layout-label
+                         (list :label (if (stringp layout-label)
+                                          layout-label "Window layout")
+                               :aria-label (if (stringp layout-label)
+                                               layout-label "Window layout")
                                :ref 'etaf-workspace-layout
                                :variant 'ghost
                                :class "etaf-workspace-layout"
-                               :flex-shrink 0 :min-width 'max-content
+                               ;; A fixed allocation lets a reactive label
+                               ;; change as a prepared Text update.
+                               :width (list 'ch etaf-ui--desktop-layout-label-width)
+                               :flex-shrink 0 :overflow 'hidden
                                :color (plist-get shell :ui-accent)
                                :bgcolor (plist-get shell :ui-accent-soft-bg)
                                :border (etaf-ui--style-border
@@ -319,7 +342,8 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                                :padding '((lh 0) (ch 1))
                                :pointer 'hand
                                :on-press layout-action)
-                         nil)))
+                         (list (etaf-node 'etaf-ui--desktop-layout-label
+                                          (list :label layout-label) nil)))))
       (when (and settings-label settings-action)
         (list (etaf-node 'etaf-button
                          (list :label settings-label

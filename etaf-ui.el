@@ -226,10 +226,13 @@
 ;; this Component creates no workspace state.  LAYOUT-LABEL/LAYOUT-ACTION and
 ;; SETTINGS-LABEL/SETTINGS-ACTION optionally add trailing caller-owned controls.
 ;; ACTIVE accepts a scalar key, nil, ref or computed.  STATUS accepts a string,
-;; nil, ref or computed; nil clears status text.  Reactive sources remain
-;; caller-owned and are read at their retained Host properties or Text payload.
-;; Status occupies the remaining single-row space and clips excess text;
-;; layout and settings actions stay at the right edge as status length changes.
+;; nil, ref or computed; nil clears status text.  LAYOUT-LABEL accepts a
+;; string, ref or computed of strings; the layout control keeps a fixed width
+;; so a changed label publishes as a prepared Text update.  Reactive sources
+;; remain caller-owned and are read at their retained Host properties or Text
+;; payload.  Status occupies the remaining single-row space and clips excess
+;; text; layout and settings actions stay at the right edge as status length
+;; changes.
 ;;
 ;; Desktop Theme tokens.  The desktop Components (`etaf-taskbar',
 ;; `etaf-workspace-bar', `etaf-window', `etaf-splitter', `etaf-launcher',

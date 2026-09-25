@@ -15,6 +15,9 @@
   `:overlay-rect` (and its entries), `:z-index`, `:divider-content` and the
   new `:visible` property. A layout policy repositions, relabels or hides
   dividers through retained cells without re-rendering the tree.
+- `etaf-workspace-bar` `:layout-label` accepts a ref or computed. The layout
+  control reserves a fixed width so a changed label publishes as a prepared
+  Text update instead of re-rendering the bar.
 
 ### Removed
 

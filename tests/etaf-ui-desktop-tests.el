@@ -210,6 +210,51 @@
             (should (= settings 5))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
+(ert-deftest etaf-ui-workspace-layout-label-updates-as-prepared-text ()
+  "A reactive layout label changes its text inside a fixed control without re-rendering."
+  (let ((buffer (generate-new-buffer " *etaf-ui-workspace-layout*"))
+        (label (etaf-ref "Floating"))
+        (layouts 0))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (column :width '(ch 80) :height '(lh 6) :item-gap '(lh 0)
+              (etaf-workspace-bar
+               :workspaces '(main dev) :status "Ready"
+               :layout-label label :layout-action (lambda () (cl-incf layouts))
+               :settings-label "Settings" :settings-action #'ignore)
+              (box :position 'relative :width 'stretch :height '(lh 4)
+                (box :ref 'panel :position 'absolute :left '(ch 1) :top '(lh 1)
+                     :width '(ch 20) :height '(lh 2) :z-index 1
+                  (text "Panel"))))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (generation (etaf-runtime-current-generation runtime))
+                 (refs '(etaf-workspace-layout etaf-workspace-settings panel))
+                 (geometry
+                  (mapcar (lambda (ref)
+                            (etaf-ui-desktop-test--host-geometry runtime buffer ref)) refs)))
+            (dolist (value '("Tiled" "Floating" "Tiled"))
+              (etaf-set-value label value)
+              (should (eq generation (etaf-runtime-current-generation runtime)))
+              (should (equal geometry
+                             (mapcar (lambda (ref)
+                                       (etaf-ui-desktop-test--host-geometry runtime buffer ref))
+                                     refs)))
+              (with-current-buffer buffer
+                (should (string-match-p (concat "Ready.*" value ".*Settings") (buffer-string)))
+                (should-not (string-match-p (if (equal value "Tiled") "Floating" "Tiled")
+                                            (buffer-string)))))
+            (etaf-dispatch-event runtime 'etaf-workspace-layout 'press)
+            (should (= layouts 1))
+            (should-error
+             (etaf-render
+              (etaf-view (etaf-workspace-bar :workspaces '(main) :layout-label 'tiled
+                                             :layout-action #'ignore)))
+             :type 'etaf-component-call-error)))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
 (ert-deftest etaf-ui-launcher-and-switcher-remain-controlled ()
   "Picker Components render only when OPEN is true and delegate selection."
   (let ((buffer (generate-new-buffer "*etaf-ui-desktop-pickers*"))
