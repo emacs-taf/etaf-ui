@@ -229,8 +229,10 @@ to each handle's native gesture binding."
 GROUP is shared by the three buttons so Ebox updates all hover glyphs in one
 incremental batch.  ACTIVE selects the macOS presentation: an inactive window
 renders all three lights in one gray, while the active window keeps the red,
-yellow and green lights.  The component owns no window policy; callbacks
-request caller-owned transitions."
+yellow and green lights.  The green Zoom light calls ON-RESTORE while MODE is
+`maximized' and ON-MAXIMIZE otherwise, reading a reactive MODE when pressed so
+a mode change never rebuilds the controls.  The component owns no window
+policy; callbacks request caller-owned transitions."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -251,7 +253,11 @@ request caller-owned transitions."
       (etaf-ui--window-callback (car entry) (cdr entry)
                                 'etaf-window-controls)))
   :render
-  (let* ((mode (etaf-ui--window-mode mode))
+  (let* ((zoom (and (or on-maximize on-restore)
+                    (lambda ()
+                      (let ((callback (if (eq (etaf-ui--window-mode mode) 'maximized)
+                                          on-restore on-maximize)))
+                        (when callback (funcall callback))))))
          (actions
           (append
            (when show-close
@@ -261,12 +267,8 @@ request caller-owned transitions."
              (list (etaf-ui--window-action
                     active "Minimize" on-minimize "#FEBC2E" "⊖" group)))
            (when show-maximize
-             (list
-              (if (eq mode 'maximized)
-                  (etaf-ui--window-action
-                   active "Restore" on-restore "#28C840" "⊕" group)
-                (etaf-ui--window-action
-                 active "Maximize" on-maximize "#28C840" "⊕" group)))))))
+             (list (etaf-ui--window-action
+                    active "Zoom" zoom "#28C840" "⊕" group))))))
     (etaf-node 'flex
                (list :class (etaf-ui--class-value
                              "etaf-window-controls" nil class)
@@ -292,8 +294,9 @@ background and bottom rule across the window's outer columns.")
 
 ON-MOVE receives Ebox's gesture plist from the title bar.  The component does
 not change geometry; callers update their X/Y refs (or use an ETAF Behavior).
-MODE only selects the visible maximize/restore action.  Named `actions' and
-default slots are projected after the built-in controls."
+MODE selects the Zoom action's transition and the chrome's mode class; a
+reactive MODE updates both without rebuilding the title bar.  Named `actions'
+and default slots are projected after the built-in controls."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -325,8 +328,7 @@ default slots are projected after the built-in controls."
                      (or (symbolp group) (stringp group) (numberp group))
                      "a scalar hover group key" 'etaf-window-chrome))
   :render
-  (let* ((mode (etaf-ui--window-mode mode))
-         (group (or group ref 'etaf-window-controls))
+  (let* ((group (or group ref 'etaf-window-controls))
          (extra-actions (append (etaf-current-slot 'actions)
                                 (etaf-current-slot 'default)))
          (left-actions
@@ -357,21 +359,25 @@ default slots are projected after the built-in controls."
                      (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
                            :align-items 'center :justify-content 'end)
                      extra-actions))
-         )
-    (etaf-node 'flex
-               (append
-                (list :class (etaf-ui--class-value "etaf-window-chrome" mode class)
-                      :role 'heading :ref ref
-                      :width 'stretch
-                      :height '(lh 1) :z-index 30
-                      :pointer 'hand :drag-lock-modifier drag-lock-modifier
-                      :align-items 'center :justify-content 'center
-                      :padding '((lh 0) (ch 0)))
-                etaf-ui--window-title-style
-                (when on-move (list :on-drag on-move))
-                (when use (list :use use)))
-               (list (etaf-node 'text nil (list " "))
-                     left-actions title-node right-actions))))
+         (children (list (etaf-node 'text nil (list " "))
+                         left-actions title-node right-actions)))
+    ;; The mode class is read inside the Host property so a reactive MODE
+    ;; becomes one retained class binding instead of a title-bar re-render.
+    (etaf-view
+     (flex :class (etaf-ui--class-value "etaf-window-chrome"
+                                        (etaf-ui--window-mode mode) class)
+           :role 'heading :ref ref
+           :width 'stretch
+           :height '(lh 1) :z-index 30
+           :pointer 'hand :drag-lock-modifier drag-lock-modifier
+           :align-items 'center :justify-content 'center
+           :padding '((lh 0) (ch 0))
+           :background-color (plist-get etaf-ui--window-title-style :background-color)
+           :color (plist-get etaf-ui--window-title-style :color)
+           :border-bottom (plist-get etaf-ui--window-title-style :border-bottom)
+           :on-drag on-move
+           :use use
+           (expr children)))))
 
 (etaf-define-component etaf-resizable-panel
     (&key (x '(px 0)) (y '(lh 0)) width height (position 'absolute)
@@ -382,9 +388,10 @@ default slots are projected after the built-in controls."
           (font-size 14) font-family ref id class role use overflow)
   "Render a controlled positioned panel with optional resize handles.
 
-X, Y, WIDTH, HEIGHT, Z-INDEX and visibility are passed to Ebox as geometry;
-they may be values, refs or computed values.  ON-MOVE receives a gesture plist
-from the panel root, while ON-RESIZE receives EDGE and that gesture plist.
+X, Y, WIDTH, HEIGHT, Z-INDEX, visibility and CLASS are passed to Ebox as
+Host properties; they may be values, refs or computed values.  ON-MOVE
+receives a gesture plist from the panel root, while ON-RESIZE receives EDGE
+and that gesture plist.
 Callbacks must update caller-owned geometry through ETAF's reactive APIs.
 DRAG-LOCK-MODIFIER enables release-independent move and resize gestures;
 nil keeps ordinary held-button tracking.  Ebox owns confirmation and cancel.
@@ -441,11 +448,13 @@ state is retained by this Component."
   (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
          (content (etaf-current-slot 'default))
          (header (etaf-current-slot 'header))
-         (framed (and resizable resize-edges (or on-resize resize-use))))
+         (edges (and resizable (or on-resize resize-use) resize-edges))
+         (framed (or header edges)))
     ;; Keep reactive geometry reads on Host properties.  The retained panel
     ;; frame, slots and gesture routes do not depend on each pointer position.
     (etaf-view
-     (box :class (etaf-ui--class-value "etaf-resizable-panel" nil class)
+     (box :class (etaf-ui--class-value "etaf-resizable-panel" nil
+                                       (etaf-ui--reactive-value class))
           :position position :left (etaf-ui--reactive-value x)
           :top (etaf-ui--reactive-value y)
           :width (etaf-ui--reactive-value width)
@@ -463,7 +472,7 @@ state is retained by this Component."
           :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
           :on-drag on-move :use use :id id :drag-lock-modifier drag-lock-modifier
           (expr (if framed
-                    (etaf-ui--panel-frame content resize-edges on-resize
+                    (etaf-ui--panel-frame content edges on-resize
                                          resize-refs resize-use header header-style
                                          drag-lock-modifier)
                   content))))))
@@ -483,7 +492,10 @@ state is retained by this Component."
   "Render a controlled window shell from `etaf-resizable-panel'.
 
 The shell owns only presentation.  The caller owns MODE, X/Y, WIDTH/HEIGHT,
-Z-INDEX and visibility and changes them through refs or ordinary props.  The
+Z-INDEX and visibility and changes them through refs or ordinary props.  A
+reactive MODE or VISIBLE updates the shell's mode classes, Zoom action and
+content collapse as retained Host bindings without rebuilding the window; a
+`minimized' window that stays visible collapses to its title bar.  The
 title bar forwards ON-MOVE gestures; resize handles forward EDGE and gesture
 to ON-RESIZE.  DRAG-LOCK-MODIFIER applies to both the title and all resize
 handles; nil disables locking.  Action callbacks request a state transition.
@@ -520,43 +532,60 @@ Slots are
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-window))
+  :bindings
+  ;; Mode-dependent output is derived once per instance and read only inside
+  ;; Host property expressions, so a reactive MODE publishes through retained
+  ;; class, height and visibility bindings instead of re-rendering the shell.
+  ((mode-input (etaf-prop 'mode))
+   (visible-input (etaf-prop 'visible))
+   (class-input (etaf-prop 'class))
+   (live-mode (etaf-computed
+               (lambda () (etaf-ui--window-mode (etaf-value mode-input)))))
+   (collapsed (etaf-computed
+               (lambda ()
+                 (and (eq (etaf-value live-mode) 'minimized)
+                      (etaf-ui--reactive-value (etaf-value visible-input))
+                      t))))
+   (panel-class (etaf-computed
+                 (lambda ()
+                   (etaf-ui--class-value "etaf-window" (etaf-value live-mode)
+                                         (etaf-value class-input))))))
   :render
-  (let* ((mode (etaf-ui--window-mode mode))
-         (body (etaf-current-slot 'default))
+  (let* ((body (etaf-current-slot 'default))
          (header (etaf-current-slot 'header))
          (actions (etaf-current-slot 'actions))
          (footer (etaf-current-slot 'footer))
+         (children
+          (append body
+                  (when footer
+                    (list (etaf-node 'row
+                                     (list :class "etaf-window-footer"
+                                           :width 'stretch)
+                                     footer)))))
          (content
-          (etaf-node 'column
-                     (append
-                      (list :class "etaf-window-content" :width 'stretch
-                            :height (if (eq mode 'minimized) '(lh 0) 'stretch)
-                            :visibility (if (eq mode 'minimized) 'hidden 'visible)
-                            :font-size content-font-size
-                            :font-family font-family
-                            :overflow 'hidden
-                            :padding '((lh 1) (ch 1)))
-                      (when on-focus
-                        (list :on-press on-focus
-                              :on-press-capture on-focus)))
-                     (append body
-                             (when footer
-                               (list (etaf-node 'row
-                                                (list :class "etaf-window-footer"
-                                                      :width 'stretch)
-                                                footer))))))
+          (etaf-view
+           (column :class "etaf-window-content" :width 'stretch
+                   :height (if (etaf-value collapsed) '(lh 0) 'stretch)
+                   :visibility (if (etaf-value collapsed) 'hidden 'visible)
+                   :font-size content-font-size
+                   :font-family font-family
+                   :overflow 'hidden
+                   :padding '((lh 1) (ch 1))
+                   :on-press on-focus
+                   :on-press-capture on-focus
+                   (expr children))))
          (chrome
           (etaf-node 'etaf-window-chrome
-                     (append (list :title title :mode mode :active controls-active
+                     (append (list :title title :mode live-mode :active controls-active
                                    :show-minimize show-minimize
-                           :show-maximize show-maximize :show-close show-close
-                           :on-minimize on-minimize :on-maximize on-maximize
+                                   :show-maximize show-maximize :show-close show-close
+                                   :on-minimize on-minimize :on-maximize on-maximize
                                    :on-restore on-restore :on-close on-close
                                    :title-font-size title-font-size
                                    :font-family font-family
-                           :drag-lock-modifier drag-lock-modifier
-                           :group controls-group
-                           :ref chrome-ref)
+                                   :drag-lock-modifier drag-lock-modifier
+                                   :group controls-group
+                                   :ref chrome-ref)
                              (when on-move (list :on-move on-move))
                              (when move-use (list :use move-use)))
                      header
@@ -567,12 +596,12 @@ Slots are
                      :font-family font-family
                      :z-index z-index :visible visible :min-width min-width
                      :max-width max-width :min-height min-height :max-height max-height
-                     :resizable (and resizable (not (eq mode 'minimized)))
+                     :resizable resizable
                      :resize-edges resize-edges :resize-refs resize-refs
                      :resize-use resize-use :drag-lock-modifier drag-lock-modifier
                      :header-style etaf-ui--window-title-style
                      :on-resize on-resize
-                     :ref ref :id id :class (etaf-ui--class-value "etaf-window" mode class)
+                     :ref ref :id id :class panel-class
                      :role 'dialog :use use :overflow overflow)
                (list content)
                (list (cons 'header (list chrome))))))

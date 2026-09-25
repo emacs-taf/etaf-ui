@@ -103,7 +103,7 @@ SCALAR-CONTROLS resolves the controlled inputs before passing Component props."
              (lambda (label)
                (etaf-ui-prepared-focus-test--properties
                 (etaf-ui-prepared-focus-test--light runtime group label)))
-             '("Close" "Minimize" "Maximize")))
+             '("Close" "Minimize" "Zoom")))
    :output
    (etaf-ui-prepared-focus-test--appearance
     (with-current-buffer buffer (buffer-string)))
@@ -123,7 +123,7 @@ SCALAR-CONTROLS resolves the controlled inputs before passing Component props."
       (should (equal (if active '((px 1) solid "#68809A")
                        '((px 1) solid "#DCE6F0"))
                      (plist-get props :border)))
-      (cl-loop for label in '("Close" "Minimize" "Maximize")
+      (cl-loop for label in '("Close" "Minimize" "Zoom")
                for color in '("#FF5F57" "#FEBC2E" "#28C840")
                for glyph in '("⊗" "⊖" "⊕")
                do

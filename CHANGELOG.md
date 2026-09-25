@@ -50,6 +50,18 @@
   unavailable during key lookup and mount settling instead of failing the
   activation that is already mid-flight.
 
+### Changed
+
+- `etaf-window`, `etaf-window-chrome` and `etaf-window-controls` publish a
+  reactive `:mode` or `:visible` change as retained Host property bindings
+  (mode classes, panel visibility and the collapsed content column) instead
+  of re-rendering the shell. The green traffic light is one stable "Zoom"
+  control that restores a maximized window and maximizes any other; the
+  separate "Maximize"/"Restore" labels are gone. `etaf-resizable-panel`
+  accepts a ref or computed `:class`, and `etaf-taskbar` item `:state`
+  values may be refs or computed. Desktop bar item tones read their active
+  and state sources unconditionally so their bindings stay prepared.
+
 ### Added
 
 - `etaf-workspace-bar` accepts a caller-owned ref or computed `:status` value;

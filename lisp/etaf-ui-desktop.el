@@ -53,6 +53,16 @@ caption free of marker glyphs avoids a noisy taskbar and leaves the text width
 stable as focus changes."
   (plist-get item title-key))
 
+(defun etaf-ui--desktop-bar-item-tone (item-key active state)
+  "Return ITEM-KEY's presentation tone from ACTIVE and STATE sources.
+Both sources are read unconditionally so a Host property binding keeps one
+stable dependency set whichever tone currently wins."
+  (let ((active-key (etaf-ui--reactive-value active))
+        (state (etaf-ui--reactive-value state)))
+    (cond ((equal item-key active-key) 'active)
+          ((eq state 'minimized) 'minimized)
+          (t 'plain))))
+
 (etaf-define-component etaf-ui--desktop-bar-item
     (&key item-key label ref active disabled callback state class active-class
           minimized-class accent-color active-border bold-active)
@@ -62,21 +72,27 @@ stable as focus changes."
        :width 'max-content :disabled disabled
        :tab-index (unless disabled 0) :pointer (unless disabled 'arrow)
        :on-press callback :padding '((lh 0) (ch 0.75))
-       :class (cond ((equal item-key (etaf-ui--reactive-value active)) active-class)
-                    ((eq state 'minimized) minimized-class)
-                    (t class))
-       :color (cond ((equal item-key (etaf-ui--reactive-value active)) "#334155")
-                    ((eq state 'minimized) "#94A3B8")
-                    (t "#64748B"))
+       :class (pcase (etaf-ui--desktop-bar-item-tone item-key active state)
+                ('active active-class)
+                ('minimized minimized-class)
+                (_ class))
+       :color (pcase (etaf-ui--desktop-bar-item-tone item-key active state)
+                ('active "#334155")
+                ('minimized "#94A3B8")
+                (_ "#64748B"))
        :background-color
-       (cond ((equal item-key (etaf-ui--reactive-value active)) accent-color)
-             ((eq state 'minimized) "#E7EDF3")
-             (t "#DCE6F0"))
-       :border (cond ((equal item-key (etaf-ui--reactive-value active)) active-border)
-                     ((eq state 'minimized) '((px 1) solid "#B8C4CF"))
-                     (t '((px 1) solid "#DCE6F0")))
+       (pcase (etaf-ui--desktop-bar-item-tone item-key active state)
+         ('active accent-color)
+         ('minimized "#E7EDF3")
+         (_ "#DCE6F0"))
+       :border (pcase (etaf-ui--desktop-bar-item-tone item-key active state)
+                 ('active active-border)
+                 ('minimized '((px 1) solid "#B8C4CF"))
+                 (_ '((px 1) solid "#DCE6F0")))
        :font-weight (if (and bold-active
-                             (equal item-key (etaf-ui--reactive-value active)))
+                             (eq (etaf-ui--desktop-bar-item-tone
+                                  item-key active state)
+                                 'active))
                         'bold 'normal)
        (text (expr label))))
 
@@ -126,10 +142,11 @@ TASKBAR selects window-state presentation; ACCENT-COLOR marks selection."
   "Render a controlled TASKBAR for desktop windows.
 
 ITEMS are plists with scalar :key and nonempty string :label.  Optional
-:state is `active', `minimized', `error' or nil and :disabled suppresses
-activation.  ACTIVE may be a scalar key, nil, ref or computed and marks the
-focused item.  The caller owns all window state.  ON-SELECT receives an item
-key; ON-LAUNCH, when supplied, opens the caller's launcher."
+:state is `active', `minimized', `error' or nil, or a ref or computed of
+one, and :disabled suppresses activation.  ACTIVE may be a scalar key, nil,
+ref or computed and marks the focused item.  The caller owns all window
+state.  ON-SELECT receives an item key; ON-LAUNCH, when supplied, opens the
+caller's launcher."
   :validate
   (progn
     (etaf-ui--desktop-items items 'etaf-taskbar)
@@ -137,9 +154,12 @@ key; ON-LAUNCH, when supplied, opens the caller's launcher."
       (etaf-check-prop :disabled (plist-get item :disabled)
                        (booleanp (plist-get item :disabled)) "a boolean"
                        'etaf-taskbar)
-      (etaf-check-prop :state (plist-get item :state)
-                       (memq (plist-get item :state) '(nil active minimized error))
-                       "nil, active, minimized or error" 'etaf-taskbar))
+      (let ((state (plist-get item :state)))
+        (etaf-check-prop :state state
+                         (or (etaf-ref-p state) (etaf-computed-p state)
+                             (memq state '(nil active minimized error)))
+                         "nil, active, minimized, error, ref or computed"
+                         'etaf-taskbar)))
     (etaf-check-prop :active active
                      (or (etaf-ref-p active) (etaf-computed-p active)
                          (etaf-ui--desktop-scalar-key-p active))

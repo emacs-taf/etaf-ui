@@ -166,7 +166,10 @@
 
 ;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier ref id class role use overflow)
 ;; Render a controlled positioned panel and optional edge/corner resize handles.
-;; Geometry props are passed to Ebox and may be values, refs or computed values.
+;; Geometry props are passed to Ebox and may be values, refs or computed values;
+;; CLASS may also be a ref or computed so a caller's mode class changes stay a
+;; Host property binding.  A panel with a `header' slot is always framed so the
+;; header row reaches both borders even when resizing is disabled.
 ;; ON-MOVE receives a gesture plist; ON-RESIZE receives EDGE and that gesture.
 ;; DRAG-LOCK-MODIFIER defaults to nil; a supported modifier enables Ebox's
 ;; release-independent gestures on the panel and all enabled resize handles.
@@ -182,11 +185,14 @@
 ;; Render reusable macOS-style traffic-light controls.  GROUP is forwarded to
 ;; Ebox hover grouping so all controls update in one incremental batch.  ACTIVE
 ;; selects the macOS presentation: an inactive window shows one gray for all
-;; three lights and the active window keeps red, yellow and green.
+;; three lights and the active window keeps red, yellow and green.  The green
+;; "Zoom" control has one stable target: it calls ON-RESTORE while MODE is
+;; `maximized' and ON-MAXIMIZE otherwise.  MODE and ACTIVE may be scalars,
+;; refs or computed values; the rendered structure never depends on them.
 ;;
 ;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close on-move drag-lock-modifier group ref class use)
-;; Render a controlled title bar with minimize, maximize/restore and close
-;; action buttons.  The title bar forwards drag gestures to ON-MOVE; its
+;; Render a controlled title bar with minimize, zoom and close action
+;; buttons; MODE may be a scalar, ref or computed and only changes classes.  The title bar forwards drag gestures to ON-MOVE; its
 ;; `drag-lock-modifier' defaults to `shift' for a release-independent drag.
 ;; Actions
 ;; only request caller-owned state transitions; `actions' and default slots
@@ -196,7 +202,11 @@
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
-;; minimizing never changes geometry or global focus/z-order policy.  ON-FOCUS
+;; minimizing never changes geometry or global focus/z-order policy.  MODE and
+;; VISIBLE may be refs or computed values: their changes publish as Host
+;; property bindings (mode classes, panel visibility and the collapsed content
+;; column) without re-rendering the shell, so the Component is stateful and
+;; requires a mounted Runtime rather than `etaf-render'.  ON-FOCUS
 ;; runs for body activation and through ETAF's explicit ancestor capture hook
 ;; when a nested body control is pressed.  DRAG-LOCK-MODIFIER defaults to shift
 ;; and applies to both the title bar and all resize handles.  Set it to super
@@ -204,8 +214,8 @@
 ;;
 ;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label accent-color class)
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
-;; string :label, with optional :state (`active', `minimized' or `error') and
-;; :disabled.  Callers own window state; ON-SELECT receives a key and
+;; string :label, with optional :state (`active', `minimized' or `error', or a
+;; ref or computed of one) and :disabled.  Callers own window state; ON-SELECT receives a key and
 ;; ON-LAUNCH opens a caller-owned application launcher.  ACTIVE accepts a
 ;; scalar key, nil, ref or computed; matching items show selection.
 ;;

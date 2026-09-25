@@ -72,6 +72,14 @@
             (should (string-match-p "Body"
                                     (with-current-buffer buffer-name
                                       (buffer-string))))
+            (setf (etaf-value mode) 'maximized)
+            (should (string-match-p
+                     "etaf-window maximized"
+                     (plist-get (etaf-runtime-host-props-for runtime 'window) :class)))
+            (should (string-match-p
+                     "etaf-window-chrome maximized"
+                     (plist-get (etaf-runtime-host-props-for runtime 'window-chrome)
+                                :class)))
             (setf (etaf-value mode) 'minimized)
             (should-not (string-match-p "Body"
                                         (with-current-buffer buffer-name

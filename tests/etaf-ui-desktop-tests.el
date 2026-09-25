@@ -308,7 +308,7 @@
                   (cl-remove-if-not
                    (lambda (entry)
                      (member (plist-get (cdr entry) :aria-label)
-                             '("Close" "Minimize" "Maximize" "Restore")))
+                             '("Close" "Minimize" "Zoom")))
                    (etaf-runtime-host-props-entries runtime))))
             (let ((labels (mapcar (lambda (entry)
                                     (plist-get (cdr entry) :aria-label)) controls))
@@ -318,7 +318,7 @@
                                           (substring-no-properties
                                            (plist-get (cdr entry) :hover-content)))
                                         controls)))
-            (should (equal '("Close" "Minimize" "Maximize") labels))
+            (should (equal '("Close" "Minimize" "Zoom") labels))
             (should (equal '("#FF5F57" "#FEBC2E" "#28C840") colors))
             (should (equal '("⊗" "⊖" "⊕") hover-labels))
             (dolist (entry controls)
@@ -342,24 +342,26 @@
               (etaf-render
                (etaf-view (etaf-window-chrome :title "Pure title" :active active)))))))
   (let ((buffer (generate-new-buffer " *window-active-paint*"))
-        (active (etaf-ref t)) (closed 0) (minimized 0) (maximized 0))
+        (active (etaf-ref t)) (mode (etaf-ref 'normal))
+        (closed 0) (minimized 0) (maximized 0) (restored 0))
     (unwind-protect
         (progn
           (etaf-mount
            buffer
            (etaf-view
-            (etaf-window-controls :active active :group 'lights
+            (etaf-window-controls :active active :group 'lights :mode mode
                                   :on-close (lambda () (cl-incf closed))
                                   :on-minimize (lambda () (cl-incf minimized))
-                                  :on-maximize (lambda () (cl-incf maximized)))))
+                                  :on-maximize (lambda () (cl-incf maximized))
+                                  :on-restore (lambda () (cl-incf restored)))))
           (let* ((runtime (etaf-runtime-for-buffer buffer))
                  (controls
                   (cl-remove-if-not
                    (lambda (entry)
                      (member (plist-get (cdr entry) :aria-label)
-                             '("Close" "Minimize" "Maximize")))
+                             '("Close" "Minimize" "Zoom")))
                    (etaf-runtime-host-props-entries runtime)))
-                 (labels '("Close" "Minimize" "Maximize"))
+                 (labels '("Close" "Minimize" "Zoom"))
                  ;; Contribution enumeration is not visual or semantic order.
                  ;; Retain each action's original target by its public label.
                  (refs (mapcar
@@ -391,7 +393,15 @@
             (etaf-dispatch-event runtime (nth 1 refs) 'press)
             (should (equal '(1 1 0) (list closed minimized maximized)))
             (etaf-dispatch-event runtime (nth 2 refs) 'press)
-            (should (equal '(1 1 1) (list closed minimized maximized)))))
+            (should (equal '(1 1 1) (list closed minimized maximized)))
+            ;; Zoom follows the live mode: a maximized window restores, and
+            ;; the mode change keeps the same retained control target.
+            (let ((revision (ebox-surface-buffer-revision buffer)))
+              (etaf-set-value mode 'maximized)
+              (should (= revision (ebox-surface-buffer-revision buffer)))
+              (should (etaf-host-ref-position runtime (nth 2 refs)))
+              (etaf-dispatch-event runtime (nth 2 refs) 'press)
+              (should (equal '(1 1 1 1) (list closed minimized maximized restored))))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
 (ert-deftest etaf-ui-window-controls-is-reusable-and-grouped ()
@@ -412,7 +422,7 @@
                   (cl-remove-if-not
                    (lambda (entry)
                      (member (plist-get (cdr entry) :aria-label)
-                             '("Close" "Minimize" "Maximize")))
+                             '("Close" "Minimize" "Zoom")))
                    (etaf-runtime-host-props-entries runtime))))
             (should (= 3 (length controls)))
             (should (equal '("probe-controls" "probe-controls" "probe-controls")
