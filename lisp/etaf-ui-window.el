@@ -68,8 +68,15 @@ not allocate a compound key or copy the already prepared string."
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
+(defconst etaf-ui--window-control-inactive-icon-color "#B7BDC6"
+  "Neutral gray filling the SVG traffic lights of an inactive window.
+The glyph is rasterized when its Text value is built, so this must be a
+concrete color rather than a deferred Theme token; the gray reads on both
+light and dark title bars.  The textual fallback glyph keeps following the
+Theme through the Host `:color' token.")
+
 (defun etaf-ui--window-control-inactive-color ()
-  "Return the Theme token painting the traffic lights of an inactive window."
+  "Return the Theme token painting the textual traffic lights when inactive."
   (etaf-ui--style-token :ui-window-title-fg))
 
 (etaf-define-component etaf-ui--window-control-surface
@@ -90,10 +97,10 @@ This stateless surface also supports pure rendering."
        :hover-group group
        :hover-content (etaf-ui--window-hover-icon
                        hover-label (if (etaf-ui--reactive-value active)
-                                       color (etaf-ui--window-control-inactive-color)))
+                                       color etaf-ui--window-control-inactive-icon-color))
        (text (expr (etaf-ui--window-hover-icon
                     "⬤" (if (etaf-ui--reactive-value active)
-                            color (etaf-ui--window-control-inactive-color)))))))
+                            color etaf-ui--window-control-inactive-icon-color))))))
 
 (defun etaf-ui--window-action (active aria-label callback color hover-label group)
   "Construct a controlled traffic light with caller-owned ACTIVE state."

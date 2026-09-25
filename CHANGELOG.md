@@ -27,6 +27,9 @@
 
 ### Fixed
 
+- Inactive window traffic lights are gray again in graphical Emacs. The SVG
+  glyph received a deferred Theme token instead of a color, which made every
+  inactive control render as a black circle.
 - `etaf-workspace-bar` renders a single space when its `:status` is nil or
   empty, so the status Text keeps owning its row. An empty string made Ebox
   paint the blank as box-owned pixels, which rejected the retained
