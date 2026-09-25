@@ -259,4 +259,176 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
                         (when (etaf-runtime-for-buffer buffer) (etaf-unmount runtime))
                         (kill-buffer buffer)))))))
 
+;; Single catalog window resize workloads compare direct Ebox geometry
+;; publication with mounted ETAF reactive state.  The body has fixed
+;; dimensions and does not reflow; the real window frame, chrome and all
+;; resize handles remain.  A passing small sample is not desktop acceptance.
+
+(defun etaf-ui-resize-benchmark--view (width height)
+  "Build a fixed-content catalog window with WIDTH and HEIGHT inputs."
+  (etaf-view
+   (box :width '(px 720) :height '(lh 30) :position 'relative
+        :background-color "#EAF0F6"
+     (etaf-window :id "resize-window" :ref 'resize-window
+                  :chrome-ref 'resize-title :title "Fixed content"
+                  :x '(px 16) :y '(lh 2) :width width :height height
+                  :resize-refs '((left . resize-left) (right . resize-right)
+                                 (top . resize-top) (bottom . resize-bottom)
+                                 (top-left . resize-top-left)
+                                 (top-right . resize-top-right)
+                                 (bottom-left . resize-bottom-left)
+                                 (bottom-right . resize-bottom-right))
+                  :on-resize (lambda (_edge _gesture) nil)
+       (box :id "resize-body" :ref 'resize-body
+            :width '(px 480) :height '(lh 6) :wrap-mode 'none
+            :overflow 'hidden
+         (text "Retained body: 0123456789 abcdefghijklmnopqrstuvwxyz\nSecond line stays unchanged."))))))
+
+(defun etaf-ui-resize-benchmark--fresh-p (buffer)
+  "Check BUFFER text and public display properties against a fresh render."
+  (with-current-buffer buffer
+    (let* ((actual (buffer-string))
+           (input (plist-get (ebox-surface-buffer-snapshot buffer) :input))
+           (expected (ebox-render input))
+           (valid (equal (substring-no-properties actual)
+                         (substring-no-properties expected)))
+           (position 0))
+      (while (and valid (< position (length actual)))
+        (dolist (property '(face display font-lock-face pointer help-echo mouse-face))
+          (unless (equal (get-text-property position property actual)
+                         (get-text-property position property expected))
+            (setq valid nil)))
+        (setq position (1+ position)))
+      valid)))
+
+(defun etaf-ui-resize-benchmark--fixture (route axis)
+  "Build one fixed-window fixture for publication ROUTE and resize AXIS."
+  (let* ((buffer (generate-new-buffer " *ETAF fixed window resize*"))
+         (width (etaf-ref '(px 320) :test #'equal))
+         (height (etaf-ref '(lh 12) :test #'equal))
+         (step 0) expected revision runtime)
+    (if (eq route 'runtime)
+        (progn
+          (etaf-mount buffer (etaf-ui-resize-benchmark--view width height))
+          (setq runtime (etaf-runtime-for-buffer buffer)))
+      (ebox-render-to-buffer
+       buffer (etaf-render (etaf-ui-resize-benchmark--view '(px 320) '(lh 12)))))
+    (list
+     :buffer buffer
+     :environment (lambda () (list :route (symbol-name route)
+                                   :body-reflow :false :window-count 1
+                                   :canvas-width 720 :canvas-height 30))
+     :prepare
+     (lambda ()
+       (setq step (1+ step)
+             expected (if (cl-oddp step)
+                          (list (if (eq axis 'height) 320 328)
+                                (if (eq axis 'width) 12 13))
+                        '(320 12))
+             revision (ebox-surface-buffer-revision buffer)))
+     :invoke
+     (lambda (_sample)
+       (if runtime
+           (progn
+             (etaf-call-with-batch
+              (lambda ()
+                (etaf-set-value width (list 'px (car expected)))
+                (etaf-set-value height (list 'lh (cadr expected)))))
+             (etaf-runtime-flush runtime))
+         (with-current-buffer buffer
+           (ebox-region-update-geometry
+            "resize-window" :width (list 'px (car expected))
+            :height (list 'lh (cadr expected))))))
+     :verify
+     (lambda ()
+       (with-current-buffer buffer
+         (let ((geometry (ebox-region-geometry "resize-window")))
+           (and (> (ebox-surface-buffer-revision buffer) revision)
+                (equal (plist-get geometry :width) (list 'px (car expected)))
+                (equal (plist-get geometry :height) (list 'lh (cadr expected)))
+                (or (null runtime)
+                    (and (etaf-host-ref-position runtime 'resize-title)
+                         (etaf-host-ref-position runtime 'resize-right)
+                         (etaf-host-ref-position runtime 'resize-bottom-right)
+                         (equal (plist-get (etaf-runtime-host-props-for runtime 'resize-window) :width)
+                                (etaf-value width))))
+                (etaf-ui-resize-benchmark--fresh-p buffer)))))
+     :outcome
+     (lambda ()
+       (list :route (symbol-name route) :rectangle (vconcat expected)
+             :publication-before revision
+             :publication-after (ebox-surface-buffer-revision buffer)
+             :projection-kind (format "%s" (plist-get (ebox-buffer-update-report buffer) :projection-kind))))
+     :observe
+     (lambda (sink)
+       (ebox-buffer-set-observer buffer sink)
+       (lambda () (ebox-buffer-set-observer buffer nil)))
+     :cleanup
+     (lambda ()
+       (when runtime (etaf-unmount runtime))
+       (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(dolist (route '(provider runtime))
+  (dolist (axis '(width height corner))
+    (let ((selected-route route) (selected-axis axis))
+      (taf-benchmark-register
+       (format "window.resize.%s.%s" route axis)
+       :version 1 :modes '(batch gui) :isolation 'series
+       :required-providers '(ebox) :budget-ms 10 :impact 'mixed
+       :description (format "Single real etaf-window %s resize via %s; fixed body, live chrome/handles" axis route)
+       :setup (lambda (_mode)
+                (etaf-ui-resize-benchmark--fixture selected-route selected-axis))))))
+
+(defun etaf-ui-resize-benchmark--native-fixture ()
+  "Use real native down, movement and release events on the catalog example."
+  (let* ((buffer (etaf-ui-window-resize-open
+                  (generate-new-buffer " *ETAF native window resize*")))
+         (runtime (etaf-runtime-for-buffer buffer))
+         (step 0) events expected)
+    (list
+     :buffer buffer
+     :environment (lambda () (list :input-route "native-keymap" :motion-queue "prequeued"
+                                   :motion-count 1 :body-reflow :false
+                                   :physical-pointer-latency-certified :false))
+     :prepare
+     (lambda ()
+       (redisplay t)
+       (let* ((window (get-buffer-window buffer t))
+              (position (etaf-host-ref-position runtime 'resize-bottom-right))
+              (start (and position (posn-at-point position window)))
+              (xy (and start (posn-x-y start)))
+              (sign (if (cl-oddp (cl-incf step)) 1 -1))
+              (props (etaf-runtime-host-props-for runtime 'resize-window))
+              (dx (* sign 8)) (dy (* sign (frame-char-height (window-frame window)))))
+         (unless (and (eq window (selected-window)) (consp xy)
+                      (pos-visible-in-window-p position window))
+           (error "Window corner is not visible in the selected native window"))
+         (setq expected (list (+ (cadr (plist-get props :width)) dx)
+                              (+ (cadr (plist-get props :height)) sign)))
+         (let ((end (list window position (cons (+ (car xy) dx) (+ (cdr xy) dy)) 2)))
+           (setq events (vector (list 'down-mouse-1 start)
+                                (list 'mouse-movement end) (list 'drag-mouse-1 start end))))))
+     :invoke (lambda (_sample) (execute-kbd-macro events) (etaf-runtime-flush runtime))
+     :verify
+     (lambda ()
+       (let ((props (etaf-runtime-host-props-for runtime 'resize-window)))
+         (and (equal expected (list (cadr (plist-get props :width))
+                                    (cadr (plist-get props :height))))
+              (etaf-host-ref-position runtime 'resize-bottom-right)
+              (not (ebox-selector-query-buffer buffer ":active"))
+              (etaf-ui-resize-benchmark--fresh-p buffer))))
+     :outcome (lambda () (list :size (vconcat expected)
+                               :projection (format "%s" (plist-get (ebox-buffer-update-report buffer)
+                                                                   :projection-kind))))
+     :observe (lambda (sink) (ebox-buffer-set-observer buffer sink)
+                (lambda () (ebox-buffer-set-observer buffer nil)))
+     :cleanup (lambda () (etaf-unmount runtime)
+                (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(taf-benchmark-register
+ "window.resize.native.corner" :version 1 :modes '(gui) :isolation 'series
+ :required-providers '(ebox) :budget-ms 10 :impact 'mixed
+ :description "Real catalog window corner through native press, movement and release"
+ :setup (lambda (_mode) (etaf-ui-resize-benchmark--native-fixture)))
+
 ;;; performance-scenarios.el ends here

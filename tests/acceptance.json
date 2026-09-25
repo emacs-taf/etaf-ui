@@ -13,6 +13,8 @@
   ],
   "support": [],
   "cases": [
+    {"name": "etaf-ui-prepared-resize-keeps-window-chrome-and-input", "file": "tests/etaf-ui-prepared-resize-tests.el", "purpose": "Controlled catalog window sizes retain title, eight handles, button targets, source snapshots and fresh-render output through prepared publication."},
+    {"name": "etaf-ui-window-resize-example-uses-controlled-handles", "file": "tests/etaf-ui-prepared-resize-tests.el", "purpose": "The public catalog resize example updates controlled geometry and restores the original rectangle on cancellation."},
     {
       "name": "etaf-ui-window-chrome-uses-macos-traffic-lights",
       "file": "tests/etaf-ui-desktop-tests.el",

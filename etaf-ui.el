@@ -477,6 +477,14 @@
 ;; layout, feedback, navigation, input, data and floating Components.  An
 ;; explicit name allows independent mounts; interactive calls display it.
 ;;
+;; Function: etaf-ui-window-resize-open (&optional buffer-or-name)
+;;;###autoload (autoload 'etaf-ui-window-resize-open "etaf-ui" nil t)
+;; Mount a controlled catalog window with a fixed body and independent peer.
+;; Interactive calls show the buffer. The title moves; eight native handles
+;; resize; Shift locks and Escape restores the starting rectangle. Reopening
+;; replaces only an existing example mount. Unmount or kill it to dispose.
+;; This example is a GUI workload, not a performance certification.
+;;
 ;;; Code:
 
 ;;;###autoload
@@ -502,6 +510,7 @@
 
 (autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
 (autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)
+(autoload 'etaf-ui-window-resize-open "examples/etaf-ui-window-resize" nil t)
 
 (provide 'etaf-ui)
 ;;; etaf-ui.el ends here

@@ -4,6 +4,12 @@
 
 ### Added
 
+- `etaf-ui-window-resize-open` mounts a runnable catalog window whose title
+  moves and whose eight handles resize through controlled Behaviors, with
+  Shift-locked gestures and Escape restoring the starting rectangle.
+  `benchmarks/performance-scenarios.el` registers `window.resize.*`
+  workloads comparing direct Ebox geometry publication with mounted
+  reactive state, plus the native corner gesture.
 - `etaf-ui-dismiss-outside-press` closes every mounted floating surface whose
   panel the current press missed. A shell root calls it from `:on-press` and
   `:on-press-capture` to give unpainted modals and popovers click-outside

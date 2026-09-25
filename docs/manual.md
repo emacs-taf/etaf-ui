@@ -250,8 +250,12 @@ composes both Components and provides `header`, `actions`, `default`, and
 ```
 
 The callbacks in a real application convert the gesture into geometry writes,
-or can be supplied by an ETAF Behavior.  The catalog only supplies the gesture
-targets and visual composition.  A
+or can be supplied by an ETAF Behavior.  Run `M-x etaf-ui-window-resize-open`
+for the complete [controlled window example](../examples/etaf-ui-window-resize.el):
+`etaf-draggable-controlled` moves the title and `etaf-resizable-controlled`
+resizes every handle through `move-use` and `resize-use`, with Shift-locked
+gestures and Escape restoring the starting rectangle.  The catalog only
+supplies the gesture targets and visual composition.  A
 maximized or minimized mode does not change geometry, z-order, focus policy,
 or workspace membership.  Minimizing hides the body while retaining it in the
 Component tree, so caller-owned child state remains mounted.  Build those
