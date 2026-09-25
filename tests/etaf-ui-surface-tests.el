@@ -143,6 +143,44 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-dismisses-surfaces-on-presses-outside-their-panel ()
+  "A root press capture closes open surfaces the press missed, keeping the hit one."
+  (with-temp-buffer
+    (let ((open (etaf-ref nil)) (value (etaf-ref nil)) (background 0)
+          (dismissed nil))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :ref 'root :width '(ch 80) :height '(lh 25)
+                      :on-press-capture
+                      (lambda () (push (etaf-ui-dismiss-outside-press) dismissed))
+                (etaf-button :ref 'entry :label "Open dialog"
+                             :on-press (lambda () (setf (etaf-value open) t)))
+                (etaf-button :ref 'background :label "Background"
+                             :on-press (lambda () (cl-incf background)))
+                (etaf-dialog :open open :title "Preferences" :backdrop nil
+                             :on-close (lambda () (setf (etaf-value open) nil))
+                  (etaf-checkbox :ref 'enabled :bind value :label "Enabled")))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (etaf-dispatch-event runtime 'entry 'press)
+              (should (etaf-value open))
+              (should (string-match-p "Preferences" (buffer-string)))
+              (etaf-dispatch-event runtime 'enabled 'press)
+              (should (etaf-value value))
+              (should (etaf-value open))
+              (etaf-dispatch-event runtime 'background 'press)
+              (should (= background 1))
+              (should-not (etaf-value open))
+              (should-not (string-match-p "Preferences" (buffer-string)))
+              (etaf-dispatch-event runtime 'background 'press)
+              (should (equal dismissed '(0 1 0 0)))
+              (should-error (etaf-ui-dismiss-outside-press)
+                            :type 'etaf-event-error)))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-dialog-compact-height-keeps-one-row-header ()
   "A compact dialog uses the requested height and no extra header gap."
   (with-temp-buffer

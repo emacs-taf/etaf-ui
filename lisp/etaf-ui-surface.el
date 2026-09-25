@@ -17,6 +17,37 @@
 (defvar-local etaf-ui--surface-return-stack nil
   "Saved return routes for open surfaces, newest first; not current focus.")
 
+(defvar etaf-ui--open-surfaces nil
+  "Mounted floating panels as (RUNTIME . PANEL) entries, newest first.")
+
+;;;###autoload
+(defun etaf-ui-dismiss-outside-press ()
+  "Dismiss every mounted floating surface the current press did not land in.
+Call from the `:on-press' or `:on-press-capture' callback of a Host enclosing
+the application, such as a shell root.  Each dialog, launcher, switcher,
+popover, menu or drawer mounted in the event's Runtime whose panel does not
+contain the pressed Host receives its dismissal, which requests its
+`:on-close'.  A surface opened by the press being handled is not mounted yet
+and stays open.  Return the number of surfaces dismissed.  Outside an event
+callback signal `etaf-event-error'."
+  (let ((runtime (etaf-current-runtime))
+        (dismissed 0))
+    (unless runtime
+      (signal 'etaf-event-error
+              (list "Dismissing surfaces requires a Host event callback")))
+    (dolist (entry (copy-sequence etaf-ui--open-surfaces))
+      (when (and (eq (car entry) runtime)
+                 (memq entry etaf-ui--open-surfaces)
+                 (not (etaf-event-target-within-p (cdr entry))))
+        (condition-case nil
+            (progn
+              (etaf-dispatch-event runtime (cdr entry) 'dismiss)
+              (cl-incf dismissed))
+          ;; A surface without `:on-close' or one already removed by an
+          ;; earlier dismissal has nothing left to request.
+          (etaf-event-error nil))))
+    dismissed))
+
 (defun etaf-ui--surface-keys (buffer panel tag return-targets)
   "Install BUFFER-local shortcuts for committed PANEL under unique TAG.
 Retain RETURN-TARGETS for nested handoff and return cleanup.
@@ -84,13 +115,18 @@ Target selection and navigation stay with the public Runtime."
                        (etaf-focused-host-ref runtime))
                      (copy-sequence (cdar etaf-ui--surface-return-stack))))))
    (tag (make-symbol "etaf-ui-surface-keys"))
-   (cleanup nil))
+   (cleanup nil)
+   (registration nil))
   :setup
   (progn
     (etaf-on-mounted
      (lambda ()
        (setq cleanup (etaf-ui--surface-keys buffer panel tag return-focus))
-       (let ((runtime (etaf-runtime-for-buffer buffer)))
+       (let ((runtime (or (etaf-current-runtime)
+                          (etaf-runtime-for-buffer buffer))))
+         (when runtime
+           (setq registration (cons runtime panel))
+           (push registration etaf-ui--open-surfaces))
          ;; A surface closed before its mount hook settles leaves PANEL
          ;; unresolved; an unknown position is simply nothing to focus.
            (when (and runtime
@@ -103,6 +139,9 @@ Target selection and navigation stay with the public Runtime."
     (etaf-on-unmounted
      (lambda ()
        (when cleanup (funcall cleanup))
+       (when registration
+         (setq etaf-ui--open-surfaces (delq registration etaf-ui--open-surfaces)
+               registration nil))
        (when-let* ((runtime (etaf-runtime-for-buffer buffer))
                    ((etaf-runtime-mounted-p runtime)))
          (catch 'restored

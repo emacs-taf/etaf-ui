@@ -4,6 +4,10 @@
 
 ### Added
 
+- `etaf-ui-dismiss-outside-press` closes every mounted floating surface whose
+  panel the current press missed. A shell root calls it from `:on-press` and
+  `:on-press-capture` to give unpainted modals and popovers click-outside
+  dismissal; a surface opened by the same press stays open.
 - Desktop Components read their colors from Desktop Theme tokens
   (`:ui-shell-*`, `:ui-accent*`, `:ui-window-*`, `:ui-divider-bg`,
   `:ui-picker-item-*`) inside retained Host properties, so a Theme provided

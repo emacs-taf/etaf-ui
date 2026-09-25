@@ -319,7 +319,9 @@
 ;; CLOSE-LABEL button (default "Close")
 ;; requests ON-CLOSE.
 ;; The opaque backdrop covers the root canvas, blocking covered controls and
-;; their focus targets. It does not close on a backdrop click. Keyboard
+;; their focus targets. It does not close on a backdrop click; a shell root
+;; may call `etaf-ui-dismiss-outside-press' from its press callbacks to close
+;; surfaces on outside presses. Keyboard
 ;; navigation, dismissal and focus return follow Popover. The backdrop uses
 ;; solid paint; Ebox does not provide alpha blending. Set BACKDROP nil for an
 ;; application-owned unpainted modal projection when the underlying surface
@@ -430,6 +432,17 @@
 ;; PLACEMENT defaults to right, WIDTH to (ch 42), and MODAL to t. Width is
 ;; constrained to the root canvas. OPEN accepts a value/ref/computed; ON-CLOSE
 ;; must be a function. Focus, dismissal, return and disposal follow Dialog.
+;;
+;; Function: etaf-ui-dismiss-outside-press ()
+;;;###autoload (autoload 'etaf-ui-dismiss-outside-press "etaf-ui")
+;; Dismiss every mounted floating surface (dialog, launcher, switcher,
+;; popover, menu or drawer) in the current event's Runtime whose panel does
+;; not contain the pressed Host, requesting each one's ON-CLOSE, and return
+;; the number dismissed.  Call it from the `:on-press' or `:on-press-capture'
+;; callback of a Host enclosing the application, such as a shell root, to give
+;; unpainted (`:backdrop' nil) modals and popovers click-outside dismissal.
+;; A surface opened by the press being handled is not mounted yet and stays
+;; open.  Outside a Host event callback it signals `etaf-event-error'.
 ;;
 ;; Function: etaf-ui-surfaces-open ()
 ;;;###autoload (autoload 'etaf-ui-surfaces-open "etaf-ui" nil t)

@@ -270,6 +270,11 @@
       "purpose": "The modal canvas covers background targets and returns focus after closing."
     },
     {
+      "name": "etaf-ui-dismisses-surfaces-on-presses-outside-their-panel",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A root press capture calling etaf-ui-dismiss-outside-press closes open surfaces the press missed, keeps the pressed panel open and leaves a surface opened by the same press mounted."
+    },
+    {
       "name": "etaf-ui-dialog-compact-height-keeps-one-row-header",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "A bounded compact dialog keeps its title to one row while preserving background content."

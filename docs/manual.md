@@ -146,9 +146,29 @@ Opening focuses the first eligible control. Tab/Shift-Tab and Up/Down cycle
 within the panel through ETAF's Ebox focus adapter; Escape/C-g call `on-close`.
 The application accepts closing by changing `open`. A dropdown manages only
 its own open state and calls `on-select` with an enabled item's key. Popovers
-leave outside controls mouse-accessible; outside clicks do not dismiss them.
-Dialog backdrops do not dismiss on click. Native Emacs commands remain
-available, and this modal interaction policy is not an access-control boundary.
+leave outside controls mouse-accessible; outside clicks do not dismiss them,
+and dialog backdrops do not dismiss on click, unless the application opts in.
+Native Emacs commands remain available, and this modal interaction policy is
+not an access-control boundary.
+
+To dismiss surfaces on outside presses, give the Host enclosing the
+application (typically the shell root) an `:on-press` callback, which also
+receives presses on non-interactive background, and an `:on-press-capture`
+callback, which runs after every successful descendant press; both call
+`etaf-ui-dismiss-outside-press`:
+
+```elisp
+(column :on-press #'etaf-ui-dismiss-outside-press
+        :on-press-capture #'etaf-ui-dismiss-outside-press
+  ...)
+```
+
+The helper closes each mounted surface whose panel does not contain the
+pressed Host by requesting its `on-close`, keeps the surface the press landed
+in, and returns the number dismissed. A surface opened by the very press being
+handled is not mounted yet, so a launcher toggle button both closes the other
+surfaces and opens its own. Surfaces with an opaque backdrop cover outside
+controls, so the helper mainly serves `:backdrop nil` modals and popovers.
 
 Closing or unmounting removes buffer-local shortcuts. Nested panels restore
 the enclosing panel's shortcuts and a valid prior target; a menu handing off
