@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- `etaf-workspace-bar` renders a single space when its `:status` is nil or
+  empty, so the status Text keeps owning its row. An empty string made Ebox
+  paint the blank as box-owned pixels, which rejected the retained
+  publication of every later status change and fell back to a structural
+  re-render on each workspace switch.
 - `etaf-launcher` and `etaf-switcher` items show their caption above the
   optional description instead of replacing it, and their Dialog is sized to
   the item list and centered. Modal Dialogs without an explicit `:height`

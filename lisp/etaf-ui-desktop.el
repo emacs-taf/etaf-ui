@@ -119,7 +119,10 @@ TASKBAR selects window-state presentation."
      nil)))
 
 (etaf-define-component etaf-ui--desktop-status (&key status)
-  "Render STATUS in the workspace bar's remaining single-row space."
+  "Render STATUS in the workspace bar's remaining single-row space.
+An absent or empty STATUS paints one blank character so the Text keeps
+owning the row's pixels: a status that becomes empty then publishes as a
+retained Text update instead of re-rendering the bar."
   :view
   (box :class "etaf-workspace-status"
        :flex-grow 1 :flex-basis '(px 0)
@@ -130,7 +133,7 @@ TASKBAR selects window-state presentation."
                   (etaf-check-prop :status value
                                    (or (null value) (stringp value))
                                    "a string or nil" 'etaf-workspace-bar)
-                  (or value ""))))))
+                  (if (or (null value) (string-empty-p value)) " " value))))))
 
 (defconst etaf-ui--desktop-layout-label-width 13
   "Character width reserved by the workspace bar's layout control.
