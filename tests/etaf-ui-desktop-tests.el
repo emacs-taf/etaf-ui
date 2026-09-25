@@ -63,10 +63,12 @@
                   (settings-props
                    (etaf-runtime-host-props-for
                     runtime 'etaf-workspace-settings)))
-              (should (equal "#C5D4E2" (plist-get active-props :background-color)))
-              (should (equal "#E7EDF3" (plist-get minimized-props :background-color)))
-              (should (equal '((px 1) solid "#B8C4CF")
-                             (plist-get minimized-props :border)))
+              ;; Bar items paint the fallback Desktop Theme tokens: the
+              ;; active item sits on the soft accent tint, the others on
+              ;; the shell background without a border.
+              (should (equal "#DCE7FA" (plist-get active-props :background-color)))
+              (should (equal "#E3E9F0" (plist-get minimized-props :background-color)))
+              (should-not (plist-get minimized-props :border))
               (should (equal "Settings" (plist-get settings-props :aria-label))))
             (etaf-dispatch-event runtime
                                  (etaf-ui-desktop-test--ref runtime "Files") 'press)
@@ -119,13 +121,13 @@
               (etaf-set-value active 'files)
               (etaf-set-value workspace 'dev)
               (etaf-set-value status "Files focused"))
-            (should (equal "#C5D4E2"
+            (should (equal "#DCE7FA"
                            (plist-get (etaf-runtime-host-props-for runtime 'files-button)
                                       :background-color)))
-            (should (equal "#DCE6F0"
+            (should (equal "#E3E9F0"
                            (plist-get (etaf-runtime-host-props-for runtime 'notes-button)
                                       :background-color)))
-            (should (equal "#C5D4E2"
+            (should (equal "#DCE7FA"
                            (plist-get (etaf-runtime-host-props-for runtime 'etaf-workspace-dev)
                                       :background-color)))
             (should (equal notes-position (etaf-host-ref-position runtime 'notes-button)))
@@ -137,7 +139,7 @@
                           :type 'etaf-event-error)
             (should (eq selected 'files))
             (etaf-batch (etaf-set-value active nil) (etaf-set-value status nil))
-            (should (equal "#E7EDF3"
+            (should (equal "#E3E9F0"
                            (plist-get (etaf-runtime-host-props-for runtime 'files-button)
                                       :background-color)))
             (should-not (string-match-p "Files focused" (with-current-buffer buffer (buffer-string))))
@@ -324,9 +326,8 @@
             (dolist (entry controls)
               (let ((props (cdr entry)))
                 (should (eq 'arrow (plist-get props :pointer)))
-                (should (equal "#F3F4F6" (plist-get props :background-color)))
-                (should (equal '((px 0) solid "#F3F4F6")
-                               (plist-get props :border)))))
+                (should (equal "#F7F9FC" (plist-get props :background-color)))
+                (should-not (plist-get props :border))))
             (with-current-buffer buffer
                 (should (string-match-p "D" (buffer-string)))))))
       (etaf-ui-desktop-test--cleanup buffer))))
@@ -383,7 +384,7 @@
                                                   :aria-label))
                                      refs)))
               (should (equal (if value '("#FF5F57" "#FEBC2E" "#28C840")
-                               '("#B7BDC6" "#B7BDC6" "#B7BDC6"))
+                               '("#7B8794" "#7B8794" "#7B8794"))
                              (mapcar (lambda (ref)
                                        (plist-get (etaf-runtime-host-props-for runtime ref)
                                                   :color))

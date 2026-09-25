@@ -120,15 +120,17 @@ SCALAR-CONTROLS resolves the controlled inputs before passing Component props."
            (props (etaf-runtime-host-props-for runtime ref)))
       (should (eq active (and (member "active" (split-string (plist-get props :class))) t)))
       (should (eq (if active 'bold 'normal) (plist-get props :font-weight)))
-      (should (equal (if active '((px 1) solid "#68809A")
-                       '((px 1) solid "#DCE6F0"))
-                     (plist-get props :border)))
+      ;; Selection paints the fallback Desktop Theme tokens: the accent on
+      ;; a soft accent tint for the active item, shell colors otherwise.
+      (should (equal (if active "#2F6FE4" "#4A5664") (plist-get props :color)))
+      (should (equal (if active "#DCE7FA" "#E3E9F0")
+                     (plist-get props :background-color)))
       (cl-loop for label in '("Close" "Minimize" "Zoom")
                for color in '("#FF5F57" "#FEBC2E" "#28C840")
                for glyph in '("⊗" "⊖" "⊕")
                do
                (let ((light (etaf-ui-prepared-focus-test--light runtime group label)))
-                 (should (equal (if active color "#B7BDC6") (plist-get light :color)))
+                 (should (equal (if active color "#7B8794") (plist-get light :color)))
                  (should (equal glyph (substring-no-properties (plist-get light :hover-content)))))))))
 
 (defun etaf-ui-prepared-focus-test--assert-fresh

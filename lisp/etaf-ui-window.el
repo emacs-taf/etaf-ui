@@ -68,8 +68,9 @@ not allocate a compound key or copy the already prepared string."
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defconst etaf-ui--window-control-inactive-color "#B7BDC6"
-  "Traffic-light color for a window that is not the active one.")
+(defun etaf-ui--window-control-inactive-color ()
+  "Return the Theme token painting the traffic lights of an inactive window."
+  (etaf-ui--style-token :ui-window-title-fg))
 
 (etaf-define-component etaf-ui--window-control-surface
     (&key active color hover-label aria-label callback group)
@@ -83,16 +84,16 @@ This stateless surface also supports pure rendering."
        :pointer 'arrow :disabled (null callback)
        :tab-index (when callback 0) :on-press callback
        :color (if (etaf-ui--reactive-value active)
-                  color etaf-ui--window-control-inactive-color)
-       :background-color "#F3F4F6" :border '((px 0) solid "#F3F4F6")
+                  color (etaf-ui--window-control-inactive-color))
+       :background-color (etaf-ui--style-token :ui-window-title-bg)
        :padding '((lh 0) (ch 0.30)) :font-size 14 :font-weight 'bold
        :hover-group group
        :hover-content (etaf-ui--window-hover-icon
                        hover-label (if (etaf-ui--reactive-value active)
-                                       color etaf-ui--window-control-inactive-color))
+                                       color (etaf-ui--window-control-inactive-color)))
        (text (expr (etaf-ui--window-hover-icon
                     "⬤" (if (etaf-ui--reactive-value active)
-                            color etaf-ui--window-control-inactive-color))))))
+                            color (etaf-ui--window-control-inactive-color)))))))
 
 (defun etaf-ui--window-action (active aria-label callback color hover-label group)
   "Construct a controlled traffic light with caller-owned ACTIVE state."
@@ -277,12 +278,32 @@ policy; callbacks request caller-owned transitions."
                      :align-items 'center :column-gap '(ch 0.15))
                actions)))
 
-(defconst etaf-ui--window-title-style
-  (list :background-color "#F8FAFC" :color "#1F2937"
-        :border-bottom '((px 1) solid "#CBD5E1"))
-  "Presentation shared by a window title bar and its corner resize cells.
-The panel copies these properties so the title row keeps one continuous
-background and bottom rule across the window's outer columns.")
+(etaf-define-component etaf-ui--window-title-surface
+    (&key title active title-font-size font-family)
+  "Center TITLE and bind its tone to the window's reactive ACTIVE state.
+The tone is read inside a Host property so focus changes stay retained paint
+updates rather than title-bar re-renders."
+  :view
+  ;; Equal fixed side columns keep the title at the geometric center without
+  ;; a positioned child, preserving Ebox's host line-height invariant.
+  (box :width 'stretch :height '(lh 1)
+       :flex-grow 1 :flex-basis '(px 0)
+       :min-width '(px 0) :text-align 'center
+       :font-weight 'bold
+       :color (if (etaf-ui--reactive-value active)
+                  (etaf-ui--style-token :ui-window-title-active-fg)
+                (etaf-ui--style-token :ui-window-title-fg))
+       (text :font-size title-font-size :font-family font-family
+             (expr title))))
+
+(defun etaf-ui--window-title-style ()
+  "Return the presentation shared by a title bar and its corner resize cells.
+The panel copies these Theme-token properties so the title row keeps one
+continuous background and bottom rule across the window's outer columns."
+  (list :background-color (etaf-ui--style-token :ui-window-title-bg)
+        :color (etaf-ui--style-token :ui-window-title-fg)
+        :border-bottom (etaf-ui--style-border
+                        (etaf-ui--style-token :ui-window-border))))
 
 (etaf-define-component etaf-window-chrome
     (&key title (mode 'normal) (show-minimize t) (show-maximize t)
@@ -329,6 +350,7 @@ and default slots are projected after the built-in controls."
                      "a scalar hover group key" 'etaf-window-chrome))
   :render
   (let* ((group (or group ref 'etaf-window-controls))
+         (title-style (etaf-ui--window-title-style))
          (extra-actions (append (etaf-current-slot 'actions)
                                 (etaf-current-slot 'default)))
          (left-actions
@@ -341,19 +363,11 @@ and default slots are projected after the built-in controls."
                            :group group)
                      nil))
          (title-node
-          (etaf-node 'box
-                     ;; Equal fixed side columns keep the title at the
-                     ;; geometric center without a positioned child.  This
-                     ;; also preserves Ebox's host line-height invariant.
-                     (list :width 'stretch :height '(lh 1)
-                           :flex-grow 1 :flex-basis '(px 0)
-                           :min-width '(px 0) :text-align 'center
-                           :font-weight 'bold :color "#334155")
-                     (list (etaf-node 'text
-                                      (append (list :font-size title-font-size)
-                                              (when font-family
-                                                (list :font-family font-family)))
-                                      (list title)))))
+          (etaf-node 'etaf-ui--window-title-surface
+                     (list :title title :active active
+                           :title-font-size title-font-size
+                           :font-family font-family)
+                     nil))
          (right-actions
           (etaf-node 'flex
                      (list :width '(ch 10) :height '(lh 1) :flex-shrink 0
@@ -372,9 +386,9 @@ and default slots are projected after the built-in controls."
            :pointer 'hand :drag-lock-modifier drag-lock-modifier
            :align-items 'center :justify-content 'center
            :padding '((lh 0) (ch 0))
-           :background-color (plist-get etaf-ui--window-title-style :background-color)
-           :color (plist-get etaf-ui--window-title-style :color)
-           :border-bottom (plist-get etaf-ui--window-title-style :border-bottom)
+           :background-color (plist-get title-style :background-color)
+           :color (plist-get title-style :color)
+           :border-bottom (plist-get title-style :border-bottom)
            :on-drag on-move
            :use use
            (expr children)))))
@@ -445,7 +459,7 @@ state is retained by this Component."
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-resizable-panel))
   :render
-  (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
+  (let* ((theme (etaf-ui--style-tokens :ui-window-fg :ui-window-bg :ui-window-border))
          (content (etaf-current-slot 'default))
          (header (etaf-current-slot 'header))
          (edges (and resizable (or on-resize resize-use) resize-edges))
@@ -465,10 +479,10 @@ state is retained by this Component."
           :max-width (etaf-ui--reactive-value max-width)
           :min-height (etaf-ui--reactive-value min-height)
           :max-height (etaf-ui--reactive-value max-height)
-          :color (plist-get theme :ui-panel-fg)
-          :background-color (plist-get theme :ui-panel-bg)
+          :color (plist-get theme :ui-window-fg)
+          :background-color (plist-get theme :ui-window-bg)
           :font-size font-size
-          :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
+          :border (etaf-ui--style-border (plist-get theme :ui-window-border))
           :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
           :on-drag on-move :use use :id id :drag-lock-modifier drag-lock-modifier
           (expr (if framed
@@ -599,7 +613,7 @@ Slots are
                      :resizable resizable
                      :resize-edges resize-edges :resize-refs resize-refs
                      :resize-use resize-use :drag-lock-modifier drag-lock-modifier
-                     :header-style etaf-ui--window-title-style
+                     :header-style (etaf-ui--window-title-style)
                      :on-resize on-resize
                      :ref ref :id id :class panel-class
                      :role 'dialog :use use :overflow overflow)

@@ -212,14 +212,15 @@
 ;; and applies to both the title bar and all resize handles.  Set it to super
 ;; for a Super-modified press or nil to disable locking everywhere.
 ;;
-;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label accent-color class)
+;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
 ;; string :label, with optional :state (`active', `minimized' or `error', or a
 ;; ref or computed of one) and :disabled.  Callers own window state; ON-SELECT receives a key and
 ;; ON-LAUNCH opens a caller-owned application launcher.  ACTIVE accepts a
-;; scalar key, nil, ref or computed; matching items show selection.
+;; scalar key, nil, ref or computed; matching items show selection.  Colors
+;; come from the Desktop Theme tokens below; provide a Theme to restyle.
 ;;
-;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action accent-color class)
+;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action class)
 ;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item
 ;; plists with :key/:label.  Callbacks request caller-owned workspace changes;
 ;; this Component creates no workspace state.  LAYOUT-LABEL/LAYOUT-ACTION and
@@ -229,6 +230,23 @@
 ;; caller-owned and are read at their retained Host properties or Text payload.
 ;; Status occupies the remaining single-row space and clips excess text;
 ;; layout and settings actions stay at the right edge as status length changes.
+;;
+;; Desktop Theme tokens.  The desktop Components (`etaf-taskbar',
+;; `etaf-workspace-bar', `etaf-window', `etaf-splitter', `etaf-launcher',
+;; `etaf-switcher' and their pickers) read these semantic tokens through
+;; `etaf-theme-token' inside retained Host properties, so a Theme provided
+;; with `etaf-theme-provide' (scalar, ref or computed) restyles the whole
+;; shell through paint slots without re-rendering:
+;;   `:ui-shell-bg' `:ui-shell-fg' `:ui-shell-muted-fg' `:ui-shell-item-fg'
+;;   `:ui-shell-item-minimized-fg' (bars and their items),
+;;   `:ui-accent' `:ui-accent-fg' `:ui-accent-soft-bg' (selection and the
+;;   launcher control), `:ui-window-bg' `:ui-window-fg' `:ui-window-border'
+;;   `:ui-window-title-bg' `:ui-window-title-fg' `:ui-window-title-active-fg'
+;;   (window chrome; inactive traffic lights use `:ui-window-title-fg'),
+;;   `:ui-divider-bg' (splitter dividers) and `:ui-picker-item-bg'
+;;   `:ui-picker-item-fg' `:ui-picker-item-muted-fg' (launcher and switcher
+;;   rows).  Dialogs keep using `:ui-panel-*'.  Without a provided Theme the
+;;   Components paint their light fallback colors.
 ;;
 ;; Component: etaf-launcher (&key open title items on-select on-close close-label backdrop)
 ;; Render a controlled modal application launcher from item plists.  The

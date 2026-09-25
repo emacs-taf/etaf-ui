@@ -4,10 +4,23 @@
 
 ### Added
 
+- Desktop Components read their colors from Desktop Theme tokens
+  (`:ui-shell-*`, `:ui-accent*`, `:ui-window-*`, `:ui-divider-bg`,
+  `:ui-picker-item-*`) inside retained Host properties, so a Theme provided
+  with `etaf-theme-provide`, including a reactive one, restyles bars, window
+  chrome, dividers and pickers through paint slots without re-rendering.
+  Picker rows render a bold caption above a muted description on a full-width
+  tinted row with an accent marker for the selected item.
 - `etaf-splitter` overlay dividers accept refs or computeds for
   `:overlay-rect` (and its entries), `:z-index`, `:divider-content` and the
   new `:visible` property. A layout policy repositions, relabels or hides
   dividers through retained cells without re-rendering the tree.
+
+### Removed
+
+- `etaf-taskbar` and `etaf-workspace-bar` no longer accept `:accent-color`;
+  selection paints the `:ui-accent` and `:ui-accent-soft-bg` Theme tokens.
+  Provide a Theme with those tokens to change the accent.
 
 ### Fixed
 
