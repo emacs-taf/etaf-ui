@@ -230,13 +230,18 @@
 ;; Status occupies the remaining single-row space and clips excess text;
 ;; layout and settings actions stay at the right edge as status length changes.
 ;;
-;; Component: etaf-launcher (&key open title items on-select on-close close-label)
+;; Component: etaf-launcher (&key open title items on-select on-close close-label backdrop)
 ;; Render a controlled modal application launcher from item plists.  The
 ;; caller owns the registry and OPEN state; ON-SELECT receives a selected key.
+;; Items show their :label caption with an optional muted :description below
+;; it.  The Dialog is centered and sized to its items.  BACKDROP defaults to
+;; t; nil keeps the underlying surface painted so a Desktop can dim it through
+;; its own Theme instead of covering it.
 ;;
-;; Component: etaf-switcher (&key open title items selected on-select on-close close-label)
+;; Component: etaf-switcher (&key open title items selected on-select on-close close-label backdrop)
 ;; Render a controlled modal application/window switcher.  SELECTED marks the
-;; caller-owned active item and ON-SELECT receives a key.
+;; caller-owned active item and ON-SELECT receives a key.  Presentation,
+;; sizing and BACKDROP follow `etaf-launcher'.
 ;;
 ;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class overlay z-index divider-content overlay-rect visible)
 ;; Render a controlled horizontal or vertical split with named `first' and

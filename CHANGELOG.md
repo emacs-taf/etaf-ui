@@ -11,6 +11,12 @@
 
 ### Fixed
 
+- `etaf-launcher` and `etaf-switcher` items show their caption above the
+  optional description instead of replacing it, and their Dialog is sized to
+  the item list and centered. Modal Dialogs without an explicit `:height`
+  no longer stretch to 80% of the window. Both pickers accept `:backdrop`
+  so a Desktop can keep its surface painted under the modal.
+
 - `etaf-window` forwards `drag-lock-modifier` to every edge and corner resize
   handle as well as its title. Modified resize gestures can continue after
   release, confirm on the next press, or cancel through the existing Ebox

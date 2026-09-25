@@ -356,7 +356,7 @@ CLASS names the body for styling."
              (is-selected (and selected (equal key selected)))
              (caption (etaf-ui--desktop-item-caption item :label))
              (description (plist-get item :description)))
-         (etaf-node
+        (etaf-node
          'etaf-button
          (list :key key :label (if is-selected (concat "◆ " caption) caption)
                :ref (plist-get item :ref)
@@ -365,23 +365,46 @@ CLASS names the body for styling."
                :variant (if is-selected 'secondary 'ghost)
                :on-press (and on-select (not disabled)
                               (lambda () (funcall on-select key))))
+         ;; The Button's default slot replaces its label, so a described
+         ;; item stacks the caption above its muted description.
          (when description
-           (list (etaf-node 'etaf-label
-                            (list :text description :variant 'muted) nil))))))
+           (list (etaf-node
+                  'column (list :item-gap '(lh 0))
+                  (list (etaf-node 'text nil
+                                   (list (if is-selected
+                                             (concat "◆ " caption)
+                                           caption)))
+                        (etaf-node 'etaf-label
+                                   (list :text description :variant 'muted)
+                                   nil))))))))
     items)))
+
+(defun etaf-ui--desktop-picker-height (items)
+  "Return the `(lh N)' Dialog height that fits picker ITEMS exactly.
+
+Each item occupies one caption row plus one description row when described,
+separated by one row; the title, the close button, their surrounding gaps and
+the panel padding add the remaining rows."
+  (let ((rows 0))
+    (dolist (item items)
+      (setq rows (+ rows (if (plist-get item :description) 2 1))))
+    (list 'lh (+ rows (max 0 (1- (length items))) 7))))
 
 (etaf-define-component etaf-launcher
     (&key open (title "Applications") items on-select on-close
-          (close-label "Close"))
+          (close-label "Close") (backdrop t))
   "Render a controlled application LAUNCHER in a modal Dialog.
 
 ITEMS use :key/:label and optional :description, :state and :disabled.  The
 launcher owns no registry or open state.  ON-SELECT receives the selected key;
 the caller normally closes OPEN after handling it.  ON-CLOSE is required when
-OPEN is true so Escape and the close button remain accessible."
+OPEN is true so Escape and the close button remain accessible.  BACKDROP nil
+keeps the underlying surface painted; a Desktop then dims it through its own
+Theme while the launcher is open."
   :validate
   (progn
     (etaf-ui--desktop-launcher-items items 'etaf-launcher)
+    (etaf-check-prop :backdrop backdrop (booleanp backdrop) "a boolean" 'etaf-launcher)
     (etaf-check-prop :on-select on-select (functionp on-select)
                      "a function" 'etaf-launcher)
     (etaf-check-prop :on-close on-close (functionp on-close)
@@ -393,21 +416,24 @@ OPEN is true so Escape and the close button remain accessible."
   (when (etaf-ui--reactive-value open)
     (etaf-node 'etaf-dialog
                (list :open open :title title :close-label close-label
-                     :on-close on-close :width '(ch 56))
+                     :on-close on-close :width '(ch 56) :backdrop backdrop
+                     :height (etaf-ui--desktop-picker-height items))
                (list (etaf-ui--desktop-picker-body items on-select nil
                                                    "etaf-launcher-list")))))
 
 (etaf-define-component etaf-switcher
     (&key open (title "Switch application") items selected on-select on-close
-          (close-label "Close"))
+          (close-label "Close") (backdrop t))
   "Render a controlled application/window SWITCHER in a modal Dialog.
 
 The presentation is shared with `etaf-launcher', but SELECTED marks the
 currently focused item.  ON-SELECT receives a key and the caller controls
-whether the switcher closes, changes focus or changes workspace."
+whether the switcher closes, changes focus or changes workspace.  BACKDROP
+follows `etaf-launcher'."
   :validate
   (progn
     (etaf-ui--desktop-launcher-items items 'etaf-switcher)
+    (etaf-check-prop :backdrop backdrop (booleanp backdrop) "a boolean" 'etaf-switcher)
     (let ((selected-value (etaf-ui--reactive-value selected)))
       (etaf-check-prop :selected selected-value
                        (or (null selected-value)
@@ -426,7 +452,8 @@ whether the switcher closes, changes focus or changes workspace."
     (when (etaf-ui--reactive-value open)
       (etaf-node 'etaf-dialog
                  (list :open open :title title :close-label close-label
-                       :on-close on-close :width '(ch 56))
+                       :on-close on-close :width '(ch 56) :backdrop backdrop
+                       :height (etaf-ui--desktop-picker-height items))
                  (list (etaf-ui--desktop-picker-body items on-select selected
                                                      "etaf-switcher-list"))))))
 

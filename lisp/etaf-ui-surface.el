@@ -153,12 +153,16 @@ Target selection and navigation stay with the public Runtime."
           (when bounded-width-px
             (list 'px
                   (max 0 (floor (/ (- viewport-width bounded-width-px) 2))))))
+         ;; Without a known height the panel sizes to its content, so a
+         ;; modest offset keeps a short dialog in the upper third rather than
+         ;; guessing a center for an unknown extent.
          (center-top
           (when (and center viewport-height-known)
             (list 'lh
-                  (max 0 (floor (/ (- viewport-height
-                                      (or bounded-height-rows 36))
-                                   2))))))
+                  (if bounded-height-rows
+                      (max 0 (floor (/ (- viewport-height bounded-height-rows)
+                                       2)))
+                    (max 1 (floor (/ viewport-height 5)))))))
          (content
           (etaf-node
            'column
@@ -179,8 +183,7 @@ Target selection and navigation stay with the public Runtime."
                             (t '(lh 2)))
                  :height (cond ((memq side '(left right)) '(% 100))
                                (bounded-height-rows
-                                (list 'lh bounded-height-rows))
-                               ((and modal viewport-height-known) '(% 80)))
+                                (list 'lh bounded-height-rows)))
                  :max-height (when modal
                                (if bounded-height-rows
                                    (list 'lh bounded-height-rows)
