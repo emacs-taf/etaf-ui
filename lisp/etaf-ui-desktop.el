@@ -430,24 +430,57 @@ whether the switcher closes, changes focus or changes workspace."
                  (list (etaf-ui--desktop-picker-body items on-select selected
                                                      "etaf-switcher-list"))))))
 
+(defun etaf-ui--reactive-source-p (value)
+  "Return non-nil when VALUE is an ETAF ref or computed."
+  (or (etaf-ref-p value) (etaf-computed-p value)))
+
 (defun etaf-ui--splitter-overlay-rect-p (rect)
-  "Return non-nil when RECT is a complete positioned divider rectangle."
+  "Return non-nil when RECT is a complete positioned divider rectangle.
+Each entry is a scalar unit value or a ref or computed.  Reactive entries
+are accepted by shape without being read: validation runs in the
+Component's input effect, and reading them there would make every
+rectangle change re-render the divider instead of publishing through its
+Host bindings."
   (and (proper-list-p rect)
        (= (length rect) 8)
        (cl-loop for key in '(:left :top :width :height)
                 for unit in '(px lh px lh)
                 for minimum in '(0 0 1 1)
                 always (let ((value (plist-get rect key)))
-                         (and (proper-list-p value)
-                              (= (length value) 2)
-                              (eq (car value) unit)
-                              (integerp (cadr value))
-                              (>= (cadr value) minimum))))))
+                         (or (etaf-ui--reactive-source-p value)
+                             (and (proper-list-p value)
+                                  (= (length value) 2)
+                                  (eq (car value) unit)
+                                  (integerp (cadr value))
+                                  (>= (cadr value) minimum)))))))
+
+(etaf-define-component etaf-ui--splitter-overlay-divider
+    (&key orientation rect z-index divider-content visible use on-change)
+  "Render one positioned divider whose RECT entries are Host bindings.
+RECT holds :left/:top/:width/:height scalars or reactive sources,
+DIVIDER-CONTENT is a string or a reactive source of one and VISIBLE hides the
+divider while keeping its retained node.  Every geometry, content and
+visibility read happens inside a Host property expression, so a caller-owned
+layout policy republishes the divider through prepared bindings."
+  :view
+  (box :class "etaf-splitter-divider" :role 'separator :tab-index 0
+       :aria-label (if (eq orientation 'horizontal) "Resize columns" "Resize rows")
+       :pointer (if (eq orientation 'horizontal) 'hdrag 'vdrag)
+       :use use :on-drag on-change
+       :z-index (etaf-ui--reactive-value z-index)
+       :visibility (if (etaf-ui--reactive-value visible) 'visible 'hidden)
+       :background-color (etaf-theme-token :ui-border "#687386")
+       :position 'absolute
+       :left (etaf-ui--reactive-value (plist-get rect :left))
+       :top (etaf-ui--reactive-value (plist-get rect :top))
+       :width (etaf-ui--reactive-value (plist-get rect :width))
+       :height (etaf-ui--reactive-value (plist-get rect :height))
+       (text (expr (etaf-ui--text-value divider-content)))))
 
 (etaf-define-component etaf-splitter
     (&key (orientation 'horizontal) (ratio 0.5) (min-ratio 0.1)
           (max-ratio 0.9) on-change use class overlay z-index divider-content
-          overlay-rect)
+          overlay-rect (visible t))
   "Render a controlled split layout with a keyboard-focusable divider.
 
 HORIZONTAL splits left/right; VERTICAL splits top/bottom.  RATIO is the first
@@ -459,8 +492,12 @@ DIVIDER-CONTENT supplies that divider's rendered extent (a row of characters
 for VERTICAL, one character per row for HORIZONTAL) because a positioned box
 paints only the content it has.  OVERLAY-RECT optionally supplies the exact
 caller-allocated :left/:top/:width/:height for an overlay; absent it, the
-divider uses RATIO relative to its positioned parent.  The Component never
-stores a ratio or window/layout policy."
+divider uses RATIO relative to its positioned parent.  OVERLAY-RECT entries,
+DIVIDER-CONTENT, Z-INDEX and VISIBLE may be refs or computed values; the
+allocated overlay reads them only inside Host property bindings, so a layout
+policy can move, hide or show a divider without re-rendering it.  VISIBLE
+defaults to t and applies to allocated overlays.  The Component never stores
+a ratio or window/layout policy."
   :validate
   (progn
     (etaf-check-prop :orientation orientation (memq orientation '(horizontal vertical))
@@ -479,11 +516,16 @@ stores a ratio or window/layout policy."
     (etaf-check-prop :overlay overlay (booleanp overlay)
                      "a boolean" 'etaf-splitter)
     (etaf-check-prop :z-index z-index
-                     (or (null z-index) (integerp z-index))
-                     "nil or an integer" 'etaf-splitter)
+                     (or (null z-index) (integerp z-index)
+                         (etaf-ui--reactive-source-p z-index))
+                     "nil, an integer, a ref or a computed" 'etaf-splitter)
     (etaf-check-prop :divider-content divider-content
-                     (or (null divider-content) (stringp divider-content))
-                     "nil or a string" 'etaf-splitter)
+                     (or (null divider-content) (stringp divider-content)
+                         (etaf-ui--reactive-source-p divider-content))
+                     "nil, a string, a ref or a computed" 'etaf-splitter)
+    (etaf-check-prop :visible visible
+                     (or (booleanp visible) (etaf-ui--reactive-source-p visible))
+                     "a boolean, a ref or a computed" 'etaf-splitter)
     (etaf-check-prop :overlay-rect overlay-rect
                      (or (null overlay-rect)
                          (and overlay
@@ -491,29 +533,31 @@ stores a ratio or window/layout policy."
                      "nil or an overlay (:left (px N) :top (lh N) :width (px N) :height (lh N)) rectangle"
                      'etaf-splitter))
   :render
-  (let* ((ratio (float (etaf-ui--reactive-value ratio)))
-         (first-width (list '% (round (* 100 ratio))))
-         (first (etaf-current-slot 'first))
-         (second (etaf-current-slot 'second))
-         (divider-props
-          (list :class "etaf-splitter-divider" :role 'separator :tab-index 0
-                :aria-label (if (eq orientation 'horizontal)
-                                "Resize columns" "Resize rows")
-                :pointer (if (eq orientation 'horizontal) 'hdrag 'vdrag)
-                :use use :on-drag on-change
-                :z-index z-index
-                :background-color (etaf-theme-token :ui-border "#687386")))
-         (divider
-          (if overlay
-              (etaf-node
-               'box
-               (append divider-props
-                       (if overlay-rect
-                           (list :position 'absolute
-                                 :left (plist-get overlay-rect :left)
-                                 :top (plist-get overlay-rect :top)
-                                 :width (plist-get overlay-rect :width)
-                                 :height (plist-get overlay-rect :height))
+  (if (and overlay overlay-rect)
+      ;; The allocated overlay never reads RATIO: its rectangle and content
+      ;; are retained bindings owned by the caller's layout policy.
+      (etaf-node 'etaf-ui--splitter-overlay-divider
+                 (list :orientation orientation :rect overlay-rect
+                       :z-index z-index :divider-content divider-content
+                       :visible visible :use use :on-change on-change)
+                 nil)
+    (let* ((ratio (float (etaf-ui--reactive-value ratio)))
+           (first-width (list '% (round (* 100 ratio))))
+           (first (etaf-current-slot 'first))
+           (second (etaf-current-slot 'second))
+           (divider-props
+            (list :class "etaf-splitter-divider" :role 'separator :tab-index 0
+                  :aria-label (if (eq orientation 'horizontal)
+                                  "Resize columns" "Resize rows")
+                  :pointer (if (eq orientation 'horizontal) 'hdrag 'vdrag)
+                  :use use :on-drag on-change
+                  :z-index (etaf-ui--reactive-value z-index)
+                  :background-color (etaf-theme-token :ui-border "#687386")))
+           (divider
+            (if overlay
+                (etaf-node
+                 'box
+                 (append divider-props
                          (if (eq orientation 'horizontal)
                              (list :position 'absolute
                                    :left (list '% (round (* 100 ratio)))
@@ -521,38 +565,40 @@ stores a ratio or window/layout policy."
                                    :height 'stretch)
                            (list :position 'absolute :left '(px 0)
                                  :top (list '% (round (* 100 ratio)))
-                                 :width 'stretch :height '(lh 1)))))
-               (when divider-content
-                 (list (etaf-node 'text nil (list divider-content)))))
-            (if (eq orientation 'horizontal)
+                                 :width 'stretch :height '(lh 1))))
+                 (when divider-content
+                   (list (etaf-node 'text nil
+                                    (list (etaf-ui--reactive-value
+                                           divider-content))))))
+              (if (eq orientation 'horizontal)
+                  (etaf-node 'box
+                             (append divider-props
+                                     (list :width '(px 3) :height 'stretch)) nil)
                 (etaf-node 'box
                            (append divider-props
-                                   (list :width '(px 3) :height 'stretch)) nil)
-              (etaf-node 'box
-                         (append divider-props
-                                 (list :width 'stretch :height '(lh 1))) nil))))
-         (props (list :class (etaf-ui--class-value "etaf-splitter" nil class)
-                      :width 'stretch :height 'stretch
-                      :overflow 'hidden)))
-    (if overlay
-        divider
-      (if (eq orientation 'horizontal)
-        (etaf-node 'flex (append props (list :flex-direction 'row))
-                   (list
-                    (etaf-node 'box (list :width first-width :height 'stretch
-                                          :overflow 'hidden) first)
-                    divider
-                    (etaf-node 'box (list :flex-grow 1 :min-width '(px 0)
-                                          :height 'stretch :overflow 'hidden)
-                               second)))
-      (etaf-node 'flex (append props (list :flex-direction 'column))
-                 (list
-                  (etaf-node 'box (list :height (list '% (round (* 100 ratio)))
-                                        :width 'stretch :overflow 'hidden) first)
-                  divider
-                  (etaf-node 'box (list :flex-grow 1 :min-height '(lh 0)
-                                        :width 'stretch :overflow 'hidden)
-                             second)))))))
+                                   (list :width 'stretch :height '(lh 1))) nil))))
+           (props (list :class (etaf-ui--class-value "etaf-splitter" nil class)
+                        :width 'stretch :height 'stretch
+                        :overflow 'hidden)))
+      (if overlay
+          divider
+        (if (eq orientation 'horizontal)
+            (etaf-node 'flex (append props (list :flex-direction 'row))
+                       (list
+                        (etaf-node 'box (list :width first-width :height 'stretch
+                                              :overflow 'hidden) first)
+                        divider
+                        (etaf-node 'box (list :flex-grow 1 :min-width '(px 0)
+                                              :height 'stretch :overflow 'hidden)
+                                   second)))
+          (etaf-node 'flex (append props (list :flex-direction 'column))
+                     (list
+                      (etaf-node 'box (list :height (list '% (round (* 100 ratio)))
+                                            :width 'stretch :overflow 'hidden) first)
+                      divider
+                      (etaf-node 'box (list :flex-grow 1 :min-height '(lh 0)
+                                            :width 'stretch :overflow 'hidden)
+                                 second))))))))
 
 (provide 'etaf-ui-desktop)
 ;;; etaf-ui-desktop.el ends here

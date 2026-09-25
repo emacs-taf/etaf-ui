@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- `etaf-splitter` overlay dividers accept refs or computeds for
+  `:overlay-rect` (and its entries), `:z-index`, `:divider-content` and the
+  new `:visible` property. A layout policy repositions, relabels or hides
+  dividers through retained cells without re-rendering the tree.
+
 ### Fixed
 
 - `etaf-window` forwards `drag-lock-modifier` to every edge and corner resize
