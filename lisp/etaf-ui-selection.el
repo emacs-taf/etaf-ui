@@ -32,16 +32,17 @@
   options)
 
 (defun etaf-ui--selection-colors (selected disabled)
-  "Return semantic colors for SELECTED and DISABLED controls."
-  (let* ((prefix (cond (disabled "disabled")
-                       (selected "selected")
-                       (t "enabled")))
-         (fg (intern (format ":ui-selection-%s-fg" prefix)))
-         (bg (intern (format ":ui-selection-%s-bg" prefix)))
-         (border (intern (format ":ui-selection-%s-border" prefix)))
-         (theme (etaf-ui--style-tokens fg bg border)))
-    (list (plist-get theme fg) (plist-get theme bg)
-          (etaf-ui--style-border (plist-get theme border)))))
+  "Return (FG BG BORDER) for SELECTED and DISABLED selection controls.
+Selection controls are tonal pills like Buttons: a selected control paints
+the accent on its soft tint, an unselected one inherits its surface, and no
+control carries an outline."
+  (let* ((fg (cond (disabled :ui-disabled-fg)
+                   (selected :ui-accent)
+                   (t :ui-fg)))
+         (bg (cond (disabled :ui-disabled-bg)
+                   (selected :ui-accent-soft-bg)))
+         (theme (etaf-ui--style-tokens fg (or bg :ui-disabled-bg))))
+    (list (plist-get theme fg) (and bg (plist-get theme bg)) nil)))
 
 (etaf-define-component etaf-radio
     (&key (value etaf-ui--unsupplied) options (label "Choice")

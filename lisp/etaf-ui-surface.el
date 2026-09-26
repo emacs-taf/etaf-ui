@@ -128,7 +128,7 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
           (when close
             (list (etaf-node 'etaf-button
                              (list :label "✕" :variant 'ghost
-                                   :aria-label "Close" :help-echo "Close"
+                                   :aria-label "Dismiss" :help-echo "Dismiss"
                                    :tab-index -1
                                    :color (plist-get theme :ui-muted-fg)
                                    :on-press close)

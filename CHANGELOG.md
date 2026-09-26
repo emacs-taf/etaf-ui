@@ -33,12 +33,15 @@
 
 - Buttons are borderless pills. `primary` fills the accent in bold,
   `secondary` uses the soft accent tint and `ghost` inherits its surface with
-  narrower padding; the variant name is part of the Button class. Checkboxes
-  drop their border and background and paint only the mark in the accent.
+  narrower padding; the variant name is part of the Button class. Checkboxes,
+  radios and switches drop their border and background: a selected control
+  paints the accent on its soft tint, the checkbox mark uses the accent.
+  The fallback palette no longer defines `:ui-button-*-border`,
+  `:ui-selection-*` or `:ui-checkbox-*-bg/-border`; Themes may drop them.
 - Floating surfaces share one card anatomy: a one-row header with the title
   under a hairline, a body padded by one row and two columns, and a
-  right-aligned footer. Dialogs and drawers add a pointer-only ✕ to the
-  header; the dialog's default close button is `secondary`. A fixed dialog
+  right-aligned footer. Dialogs and drawers add a pointer-only ✕ named
+  "Dismiss" to the header; the dialog's default close button is `secondary`. A fixed dialog
   height needs the body rows plus five instead of seven.
 - Desktop bars render pill items separated by one column; the taskbar
   launcher is a `primary` button and the workspace layout control a
