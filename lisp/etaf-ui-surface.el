@@ -335,7 +335,9 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
 When BACKDROP is nil, retain the underlying surface's paint while keeping the
 panel as a root-layer projection; the caller owns any outside-click policy.
 HEIGHT optionally fixes the panel to text rows, bounded by the visible window;
-COMPACT keeps the title at one text row without extra panel spacing."
+COMPACT removes the body's vertical air.  CLOSE-LABEL nil omits the default
+footer button so the footer slot owns every action; Escape and the header ✕
+still request ON-CLOSE."
   :validate
   (progn
     (etaf-check-prop :on-close on-close (functionp on-close) "a function")
@@ -349,7 +351,9 @@ COMPACT keeps the title at one text row without extra panel spacing."
                               (> (cadr height) 0)))
                      "nil or (lh POSITIVE-INTEGER)" 'etaf-dialog)
     (etaf-check-prop :compact compact (booleanp compact) "a boolean" 'etaf-dialog)
-    (etaf-check-prop :close-label close-label (stringp close-label) "a string"))
+    (etaf-check-prop :close-label close-label
+                     (or (null close-label) (stringp close-label))
+                     "a string or nil"))
   :render
   (when (etaf-ui--reactive-value open)
     (etaf-node 'etaf-ui--open-surface
@@ -359,9 +363,10 @@ COMPACT keeps the title at one text row without extra panel spacing."
                (etaf-current-slot 'default)
                (list (cons 'footer
                            (append (etaf-current-slot 'footer)
-                                   (list (etaf-node 'etaf-button
-                                                    (list :label close-label :variant 'secondary :on-press on-close)
-                                   nil))))))))
+                                   (when close-label
+                                     (list (etaf-node 'etaf-button
+                                                      (list :label close-label :variant 'secondary :on-press on-close)
+                                                      nil)))))))))
 
 (etaf-define-component etaf-tooltip
     (&key open anchor text (placement 'top-start) on-close)

@@ -333,8 +333,9 @@
 ;; The header shows TITLE and a pointer-only ✕ that requests ON-CLOSE; initial
 ;; focus still lands on the first body control.  Default content and footer
 ;; slots compose ordinary Components; a secondary CLOSE-LABEL button (default
-;; "Close") ends the footer and requests ON-CLOSE.  A fixed HEIGHT needs the
-;; body rows plus five for header, body air and footer.
+;; "Close") ends the footer and requests ON-CLOSE; CLOSE-LABEL nil omits it so
+;; the footer slot orders every action, for example [Cancel] [Delete].  A fixed
+;; HEIGHT needs the body rows plus five for header, body air and footer.
 ;; The opaque backdrop covers the root canvas, blocking covered controls and
 ;; their focus targets. It does not close on a backdrop click; a shell root
 ;; may call `etaf-ui-dismiss-outside-press' from its press callbacks to close

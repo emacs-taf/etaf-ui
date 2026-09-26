@@ -22,6 +22,8 @@
 - `etaf-workspace-bar` `:layout-label` accepts a ref or computed. The layout
   control reserves a fixed width so a changed label publishes as a prepared
   Text update instead of re-rendering the bar.
+- `etaf-dialog` accepts `:close-label nil` to omit its default footer button
+  so a confirmation footer can order its own Cancel and commit actions.
 - `etaf-select` accepts `:presentation` (`auto`, `chips` or `dropdown`),
   `:hide-label`, `:width` and `:ref`. Selection stays in the UI: up to four
   options render as inline chips, more render an anchor pill that opens a
