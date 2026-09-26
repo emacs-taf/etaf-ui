@@ -21,25 +21,23 @@
   (let ((line-height (if (display-graphic-p) (frame-char-height) 16)))
     (max 10 (min 16 (- line-height 4)))))
 
-(defun etaf-ui--window-hover-icon (symbol color)
-  "Return an immutable cached traffic-light Text value for SYMBOL and COLOR.
-Display size and SVG availability select separate variants.  Cache hits do
-not allocate a compound key or copy the already prepared string."
+(defun etaf-ui--window-hover-icon (symbol)
+  "Return an immutable cached traffic-light Text value for SYMBOL.
+The SVG circle fills with `currentColor', which Emacs resolves from the face
+foreground where the glyph is displayed.  The Host `:color' therefore paints
+the light, so an active-state change is a retained paint update rather than
+new Text content.  Display size and SVG availability select separate variants."
   (let* ((svg (and (display-graphic-p)
                    (fboundp 'image-type-available-p)
                    (image-type-available-p 'svg)))
          (size (etaf-ui--window-icon-size))
          (variant (+ size (if svg 32 0)))
-         (colors (gethash symbol etaf-ui--window-icon-cache))
-         (variants (and colors (gethash color colors))))
+         (variants (gethash symbol etaf-ui--window-icon-cache)))
     (or (and variants (gethash variant variants))
         (let ((text (copy-sequence symbol)))
-          (unless colors
-            (setq colors (make-hash-table :test #'equal))
-            (puthash symbol colors etaf-ui--window-icon-cache))
           (unless variants
             (setq variants (make-hash-table :test #'eql))
-            (puthash color variants colors))
+            (puthash symbol variants etaf-ui--window-icon-cache))
           (when svg
             (let* ((path (pcase symbol
                            ("⊗" "M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5")
@@ -49,8 +47,8 @@ not allocate a compound key or copy the already prepared string."
                    (image
                     (create-image
                      (format
-                      "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 14 14'><circle cx='7' cy='7' r='6.5' fill='%s'/><path d='%s' fill='none' stroke='#111111' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
-                      size size color path)
+                      "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 14 14'><circle cx='7' cy='7' r='6.5' fill='currentColor'/><path d='%s' fill='none' stroke='#111111' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
+                      size size path)
                      'svg t :ascent 'center)))
               (put-text-property 0 (length text) 'display image text)))
           (puthash variant text variants)))))
@@ -68,15 +66,8 @@ not allocate a compound key or copy the already prepared string."
                      "normal, minimized or maximized" 'etaf-window)
     mode))
 
-(defconst etaf-ui--window-control-inactive-icon-color "#B7BDC6"
-  "Neutral gray filling the SVG traffic lights of an inactive window.
-The glyph is rasterized when its Text value is built, so this must be a
-concrete color rather than a deferred Theme token; the gray reads on both
-light and dark title bars.  The textual fallback glyph keeps following the
-Theme through the Host `:color' token.")
-
 (defun etaf-ui--window-control-inactive-color ()
-  "Return the Theme token painting the textual traffic lights when inactive."
+  "Return the Theme token painting every traffic light of an inactive window."
   (etaf-ui--style-token :ui-window-title-fg))
 
 (etaf-define-component etaf-ui--window-control-surface
@@ -95,12 +86,8 @@ This stateless surface also supports pure rendering."
        :background-color (etaf-ui--style-token :ui-window-title-bg)
        :padding '((lh 0) (ch 0.30)) :font-size 14 :font-weight 'bold
        :hover-group group
-       :hover-content (etaf-ui--window-hover-icon
-                       hover-label (if (etaf-ui--reactive-value active)
-                                       color etaf-ui--window-control-inactive-icon-color))
-       (text (expr (etaf-ui--window-hover-icon
-                    "⬤" (if (etaf-ui--reactive-value active)
-                            color etaf-ui--window-control-inactive-icon-color))))))
+       :hover-content (etaf-ui--window-hover-icon hover-label)
+       (text (expr (etaf-ui--window-hover-icon "⬤")))))
 
 (defun etaf-ui--window-action (active aria-label callback color hover-label group)
   "Construct a controlled traffic light with caller-owned ACTIVE state."
@@ -194,7 +181,8 @@ to each handle's native gesture binding."
              (etaf-node 'column
                         (list :key 'header-content :width 'stretch
                               :height '(lh 1) :min-width '(px 0)
-                              :flex-grow 1 :flex-shrink 1 :overflow 'hidden)
+                              :flex-grow 1 :flex-shrink 1 :flex-basis '(px 0)
+                              :overflow 'hidden)
                         header))
             ;; Ebox block geometry is row-based.  Reserve a narrow, explicit
             ;; top-edge cell at the end of the title row so the top resize

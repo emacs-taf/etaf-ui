@@ -39,6 +39,11 @@
 
 ### Changed
 
+- Traffic-light SVG glyphs fill with `currentColor`, so the control Host's
+  `:color` paints them. Focus changes no longer replace the glyph Text, and
+  an inactive window's lights use the `:ui-window-title-fg` Theme token in
+  graphical and textual Emacs alike. The window title row gives its content
+  column a zero flex basis so the row lays out in a single render.
 - Buttons are borderless pills. `primary` fills the accent in bold,
   `secondary` uses the soft accent tint and `ghost` inherits its surface with
   narrower padding; the variant name is part of the Button class. Checkboxes,
