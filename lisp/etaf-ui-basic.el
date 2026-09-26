@@ -169,7 +169,7 @@ The row inherits its surface; only the mark carries the accent, so a
 checkbox reads as a labelled control rather than a boxed field."
   (let* ((prefix (if disabled "disabled" "enabled"))
          (fg (intern (format ":ui-checkbox-%s-fg" prefix)))
-         (mark (if disabled :ui-disabled-fg :ui-accent))
+         (mark (if disabled :ui-disabled-fg :ui-button-secondary-fg))
          (theme (etaf-ui--style-tokens fg mark)))
     (list :color (plist-get theme fg)
           :mark-color (plist-get theme mark)

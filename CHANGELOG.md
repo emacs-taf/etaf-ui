@@ -37,7 +37,10 @@
   `secondary` uses the soft accent tint and `ghost` inherits its surface with
   narrower padding; the variant name is part of the Button class. Checkboxes,
   radios and switches drop their border and background: a selected control
-  paints the accent on its soft tint, the checkbox mark uses the accent.
+  and the checkbox mark paint the secondary button tint
+  (`:ui-button-secondary-fg` on `:ui-button-secondary-bg`), as does the
+  selected launcher or switcher row, so they stay crisp inside a dialog
+  while a Desktop dims the shell's accent tokens.
   The fallback palette no longer defines `:ui-button-*-border`,
   `:ui-selection-*` or `:ui-checkbox-*-bg/-border`; Themes may drop them.
 - Floating surfaces share one card anatomy: a one-row header with the title

@@ -254,13 +254,16 @@
 ;; shell through paint slots without re-rendering:
 ;;   `:ui-shell-bg' `:ui-shell-fg' `:ui-shell-muted-fg' `:ui-shell-item-fg'
 ;;   `:ui-shell-item-minimized-fg' (bars and their items),
-;;   `:ui-accent' `:ui-accent-fg' `:ui-accent-soft-bg' (selection and the
+;;   `:ui-accent' `:ui-accent-fg' `:ui-accent-soft-bg' (bar selection and the
 ;;   launcher control), `:ui-window-bg' `:ui-window-fg' `:ui-window-border'
 ;;   `:ui-window-title-bg' `:ui-window-title-fg' `:ui-window-title-active-fg'
 ;;   (window chrome; inactive traffic lights use `:ui-window-title-fg'),
 ;;   `:ui-divider-bg' (splitter dividers) and `:ui-picker-item-bg'
 ;;   `:ui-picker-item-fg' `:ui-picker-item-muted-fg' (launcher and switcher
-;;   rows).  Dialogs keep using `:ui-panel-*'.  Without a provided Theme the
+;;   rows).  Dialogs keep using `:ui-panel-*'; a selected picker row, chip,
+;;   radio, switch or checkbox mark paints `:ui-button-secondary-fg' on
+;;   `:ui-button-secondary-bg', dialog tokens that a Desktop keeps crisp while
+;;   it dims the shell tokens behind a modal.  Without a provided Theme the
 ;;   Components paint their light fallback colors.
 ;;
 ;; Component: etaf-launcher (&key open title items on-select on-close close-label backdrop)

@@ -366,10 +366,13 @@ CLASS names the body for styling.
 
 Items render as full-width rows: a caption, an optional muted description
 and, for the SELECTED item, an accent marker and tinted background.  Colors
-are Theme tokens so a Desktop Theme restyles the picker in place."
+are Theme tokens so a Desktop Theme restyles the picker in place; the
+selected row uses the secondary button tint, a dialog token that stays
+crisp while the shell behind the picker is dimmed."
   (let ((tokens (etaf-ui--style-tokens :ui-picker-item-bg :ui-picker-item-fg
-                                       :ui-picker-item-muted-fg :ui-accent
-                                       :ui-accent-soft-bg :ui-panel-bg)))
+                                       :ui-picker-item-muted-fg
+                                       :ui-button-secondary-fg
+                                       :ui-button-secondary-bg :ui-panel-bg)))
     (etaf-node
      'column
      (list :class class :width 'stretch :item-gap '(lh 1))
@@ -382,7 +385,7 @@ are Theme tokens so a Desktop Theme restyles the picker in place."
                (description (plist-get item :description))
                (marker (cond (is-selected "● ") (t "  ")))
                (bg (if is-selected
-                       (plist-get tokens :ui-accent-soft-bg)
+                       (plist-get tokens :ui-button-secondary-bg)
                      (plist-get tokens :ui-picker-item-bg))))
           (etaf-node
            'box
@@ -395,7 +398,7 @@ are Theme tokens so a Desktop Theme restyles the picker in place."
                  :pointer (unless disabled 'arrow)
                  :width 'stretch :padding '((lh 0) (ch 2))
                  :color (if is-selected
-                            (plist-get tokens :ui-accent)
+                            (plist-get tokens :ui-button-secondary-fg)
                           (plist-get tokens :ui-picker-item-fg))
                  :background-color bg
                  :on-press (and on-select (not disabled)

@@ -34,13 +34,14 @@
 (defun etaf-ui--selection-colors (selected disabled)
   "Return (FG BG BORDER) for SELECTED and DISABLED selection controls.
 Selection controls are tonal pills like Buttons: a selected control paints
-the accent on its soft tint, an unselected one inherits its surface, and no
-control carries an outline."
+the secondary button tint, an unselected one inherits its surface, and no
+control carries an outline.  The secondary tokens are dialog tokens, so a
+selected control stays crisp inside a modal above a dimmed shell."
   (let* ((fg (cond (disabled :ui-disabled-fg)
-                   (selected :ui-accent)
+                   (selected :ui-button-secondary-fg)
                    (t :ui-fg)))
          (bg (cond (disabled :ui-disabled-bg)
-                   (selected :ui-accent-soft-bg)))
+                   (selected :ui-button-secondary-bg)))
          (theme (etaf-ui--style-tokens fg (or bg :ui-disabled-bg))))
     (list (plist-get theme fg) (and bg (plist-get theme bg)) nil)))
 
