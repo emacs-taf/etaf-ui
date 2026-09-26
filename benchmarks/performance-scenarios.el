@@ -306,13 +306,12 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
   (let* ((buffer (generate-new-buffer " *ETAF fixed window resize*"))
          (width (etaf-ref '(px 320) :test #'equal))
          (height (etaf-ref '(lh 12) :test #'equal))
-         (step 0) expected revision runtime)
-    (if (eq route 'runtime)
-        (progn
-          (etaf-mount buffer (etaf-ui-resize-benchmark--view width height))
-          (setq runtime (etaf-runtime-for-buffer buffer)))
-      (ebox-render-to-buffer
-       buffer (etaf-render (etaf-ui-resize-benchmark--view '(px 320) '(lh 12)))))
+         (step 0) expected revision runtime mounted)
+    ;; `etaf-window' is stateful, so both routes mount it; the provider
+    ;; route then publishes geometry directly through Ebox on the buffer.
+    (etaf-mount buffer (etaf-ui-resize-benchmark--view width height))
+    (setq mounted (etaf-runtime-for-buffer buffer)
+          runtime (and (eq route 'runtime) mounted))
     (list
      :buffer buffer
      :environment (lambda () (list :route (symbol-name route)
@@ -365,7 +364,8 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
        (lambda () (ebox-buffer-set-observer buffer nil)))
      :cleanup
      (lambda ()
-       (when runtime (etaf-unmount runtime))
+       (when (and (buffer-live-p buffer) (etaf-runtime-for-buffer buffer))
+         (etaf-unmount mounted))
        (when (buffer-live-p buffer) (kill-buffer buffer))))))
 
 (dolist (route '(provider runtime))
