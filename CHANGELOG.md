@@ -58,6 +58,9 @@
 
 ### Fixed
 
+- A disabled button keeps its variant's padding and, for `ghost`, its
+  transparent surface, so disabling a stepper or chip no longer widens it
+  or fills it with the disabled surface.
 - Inactive window traffic lights are gray again in graphical Emacs. The SVG
   glyph received a deferred Theme token instead of a color, which made every
   inactive control render as a black circle.

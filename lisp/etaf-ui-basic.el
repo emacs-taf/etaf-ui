@@ -94,15 +94,17 @@ ref directly; it owns no state or subscription of its own."
 Buttons are filled single-row pills: `primary' paints the accent, `secondary'
 its soft tint and `ghost' inherits its surface.  Outlines
 are omitted because a one-row control cannot pad above or below its text, so
-a stroke around it always touches the glyphs."
+a stroke around it always touches the glyphs.  A disabled button keeps its
+variant's footprint so toggling availability never shifts its neighbours:
+filled variants dim to the disabled surface, a ghost only dims its text."
   (let* ((variant (or variant 'primary))
          (fg (cond (disabled :ui-disabled-fg)
                    ((eq variant 'secondary) :ui-button-secondary-fg)
                    ((eq variant 'ghost) :ui-button-ghost-fg)
                    (t :ui-button-primary-fg)))
-         (bg (cond (disabled :ui-disabled-bg)
+         (bg (cond ((eq variant 'ghost) nil)
+                   (disabled :ui-disabled-bg)
                    ((eq variant 'secondary) :ui-button-secondary-bg)
-                   ((eq variant 'ghost) nil)
                    (t :ui-button-primary-bg)))
          (theme (etaf-ui--style-tokens fg (or bg :ui-disabled-bg))))
     (list :color (plist-get theme fg)
@@ -126,9 +128,7 @@ the visible Button, so a failed render keeps the previous callback and its
 captured values."
   :render
   (let* ((label (etaf-ui--text-value label))
-         (variant-values
-          (etaf-ui--button-variant-values
-           (and (not disabled) variant) disabled)))
+         (variant-values (etaf-ui--button-variant-values variant disabled)))
     (etaf-node
      'box
      (append
