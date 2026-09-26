@@ -22,6 +22,28 @@
 - `etaf-workspace-bar` `:layout-label` accepts a ref or computed. The layout
   control reserves a fixed width so a changed label publishes as a prepared
   Text update instead of re-rendering the bar.
+- `etaf-select` accepts `:presentation` (`auto`, `chips` or `dropdown`),
+  `:hide-label`, `:width` and `:ref`. Selection stays in the UI: up to four
+  options render as inline chips, more render an anchor pill that opens a
+  Popover listing the options. `etaf-number-input` renders `−`/`+` steppers
+  around its value pill and accepts `:hide-label`; `etaf-text-input` accepts
+  `:hide-label`.
+
+### Changed
+
+- Buttons are borderless pills. `primary` fills the accent in bold,
+  `secondary` uses the soft accent tint and `ghost` inherits its surface with
+  narrower padding; the variant name is part of the Button class. Checkboxes
+  drop their border and background and paint only the mark in the accent.
+- Floating surfaces share one card anatomy: a one-row header with the title
+  under a hairline, a body padded by one row and two columns, and a
+  right-aligned footer. Dialogs and drawers add a pointer-only ✕ to the
+  header; the dialog's default close button is `secondary`. A fixed dialog
+  height needs the body rows plus five instead of seven.
+- Desktop bars render pill items separated by one column; the taskbar
+  launcher is a `primary` button and the workspace layout control a
+  `secondary` one. Picker rows pad two columns and mark the selected item with
+  `●` in bold; unselected captions use normal weight.
 
 ### Removed
 

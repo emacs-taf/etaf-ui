@@ -49,7 +49,7 @@
                 (etaf-dispatch-event runtime 'save-button 'press)
                 (with-current-buffer "*etaf-preferences*"
                   (should (string-match-p "Complete" (buffer-string)))
-                  (should (string-match-p "Rows 7" (buffer-string)))
+                  (should (string-match-p "Rows[^0-9]*7" (buffer-string)))
                   (should (string-match-p "Saved" (buffer-string))))
                 (etaf-dispatch-event runtime 'done-checkbox 'press)
                 (with-current-buffer "*etaf-preferences*"

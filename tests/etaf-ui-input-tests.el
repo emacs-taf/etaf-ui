@@ -31,16 +31,16 @@
             (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
               (should-error (setf (etaf-value maximum) 1)
                             :type 'etaf-component-call-error)
-              (should (string-match-p "Count 2" (buffer-string)))
+              (should (string-match-p "Count[^0-9]*2" (buffer-string)))
               (setf (etaf-value maximum) 4)
               (cl-letf (((symbol-function 'read-number) (lambda (&rest _) 3)))
                 (etaf-dispatch-event runtime 'number 'press))
               (should (= 3 (etaf-value value)))
               (should-error (setf (etaf-value value) "bad")
                             :type 'etaf-component-call-error)
-              (should (string-match-p "Count 3" (buffer-string)))
+              (should (string-match-p "Count[^0-9]*3" (buffer-string)))
               (setf (etaf-value value) 4)
-              (should (string-match-p "Count 4" (buffer-string)))))
+              (should (string-match-p "Count[^0-9]*4" (buffer-string)))))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
@@ -54,11 +54,12 @@
            buffer
            (etaf-view
             (column
-             (etaf-text-input :ref 'title :bind value :label "标题"
+             (etaf-text-input :ref 'title :value value :label "标题"
                               :disabled (etaf-value disabled)
-                              :on-press (lambda () (push (etaf-value value) observed)))
-             (etaf-text-input :ref 'explicit :value value :label "镜像"
-                              :on-change (lambda (next) (setf (etaf-value value) next))))))
+                              :on-change (lambda (next)
+                                           (setf (etaf-value value) next)
+                                           (push next observed)))
+             (etaf-text-input :ref 'explicit :bind value :label "镜像"))))
           (let ((runtime (etaf-runtime-for-buffer buffer)))
             (cl-letf (((symbol-function 'read-string)
                        (lambda (_prompt initial &rest _) (should (equal initial "原始标题")) "中文新标题")))
@@ -71,7 +72,7 @@
             (should (equal observed '("中文新标题")))
             (should (equal (etaf-value value) "中文新标题"))
             (setf (etaf-value value) "外部修改")
-            (should (string-match-p "镜像 外部修改" (with-current-buffer buffer (buffer-string))))
+            (should (string-match-p "镜像.*外部修改" (with-current-buffer buffer (buffer-string))))
             (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "")))
               (etaf-dispatch-event runtime 'explicit 'press))
             (should (equal (etaf-value value) ""))
@@ -84,34 +85,58 @@
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(defun etaf-ui-input-test--control (runtime label)
+  "Find the visible control with LABEL in RUNTIME's public Host properties."
+  (car (cl-find-if
+        (lambda (entry)
+          (and (equal label (plist-get (cdr entry) :aria-label))
+               (etaf-host-ref-position runtime (car entry))))
+        (etaf-runtime-host-props-entries runtime))))
+
 (ert-deftest etaf-ui-select-maps-labels-to-controlled-values ()
-  "Selection preserves nil values, handles cancellation and disables empty lists."
+  "Chips and dropdown selection preserve nil values and disable empty lists."
   (let ((buffer (generate-new-buffer " *select-input*"))
-        (value (etaf-ref nil)) (options (etaf-ref '((nil . "进行中") (t . "已完成")))) observed)
+        (value (etaf-ref nil)) (options (etaf-ref '((nil . "进行中") (t . "已完成"))))
+        (presentation (etaf-ref 'auto)) observed)
     (unwind-protect
         (progn
           (etaf-mount buffer
                       (etaf-view
-                       (etaf-select :ref 'state :bind value :label "状态" :options (etaf-value options)
-                                    :on-press (lambda () (push (etaf-value value) observed)))))
+                       (column :width '(ch 60) :height '(lh 12)
+                         (etaf-select :ref 'state :value value :label "状态"
+                                      :options (etaf-value options)
+                                      :presentation (etaf-value presentation)
+                                      :on-change (lambda (next)
+                                                   (setf (etaf-value value) next)
+                                                   (push next observed))))))
           (let ((runtime (etaf-runtime-for-buffer buffer)))
+            ;; Two options render as chips; no minibuffer is involved.
             (cl-letf (((symbol-function 'completing-read)
-                       (lambda (_prompt collection _predicate require-match &rest _)
-                         (should (equal collection '("进行中" "已完成")))
-                         (should require-match) "已完成")))
-              (etaf-dispatch-event runtime 'state 'press))
-            (should (etaf-value value))
-            (should (equal observed '(t)))
-            (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "进行中")))
-              (etaf-dispatch-event runtime 'state 'press))
-            (should-not (etaf-value value))
-            (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) (signal 'quit nil))))
-              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'state 'press)
-                                      (quit 'cancelled)))))
+                       (lambda (&rest _) (error "chips must not read"))))
+              (etaf-dispatch-event
+               runtime (etaf-ui-input-test--control runtime "已完成") 'press)
+              (should (etaf-value value))
+              (etaf-dispatch-event
+               runtime (etaf-ui-input-test--control runtime "进行中") 'press)
+              (should-not (etaf-value value)))
             (should (equal observed '(nil t)))
-            (should (eq (etaf-focused-host-ref runtime) 'state))
+            ;; A dropdown lists the options in a Popover under one anchor.
+            (setf (etaf-value presentation) 'dropdown)
+            (should-not (etaf-ui-input-test--control runtime "已完成"))
+            (etaf-dispatch-event runtime 'state 'press)
+            (should (etaf-ui-input-test--control runtime "已完成"))
+            (etaf-dispatch-event
+             runtime (etaf-ui-input-test--control runtime "已完成") 'press)
+            (should (etaf-value value))
+            (should-not (etaf-ui-input-test--control runtime "已完成"))
+            (should (string-match-p "已完成 ▾"
+                                    (with-current-buffer buffer
+                                      (buffer-substring-no-properties
+                                       (point-min) (point-max)))))
+            (setf (etaf-value value) nil)
             (setf (etaf-value options) nil)
-            (should-error (etaf-dispatch-event runtime 'state 'press) :type 'etaf-event-error)))
+            (should-error (etaf-dispatch-event runtime 'state 'press)
+                          :type 'etaf-event-error)))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 

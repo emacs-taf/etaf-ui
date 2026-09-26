@@ -21,8 +21,11 @@
 ;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content hover-group pointer use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
-;; DISABLED removes the callback and default focus tab index.  Presentation props
-;; remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
+;; DISABLED removes the callback and default focus tab index.  VARIANT is
+;; `primary' (accent fill, bold, default), `secondary' (soft accent tint) or
+;; `ghost' (inherits its surface, narrower padding); every variant is a
+;; borderless single-row pill whose class carries the variant name.
+;; Presentation props remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
 ;; so a failed render keeps the previous callback and its captured values.
 ;; ID reaches the rendered Host so anchor-based surfaces can reference the
 ;; Button by identity.
@@ -75,8 +78,11 @@
 ;; for wrapping prose. Reactive text and viewport changes use Ebox reflow.
 ;; Use inside (etaf-view (etaf-label ...)); keyword arguments are component props.
 ;;
-;; Component: etaf-number-input (&key value label on-change disabled min max bind)
-;; Render a controlled minibuffer-backed NumberInput using Button.
+;; Component: etaf-number-input (&key value label on-change disabled min max bind hide-label ref)
+;; Render a controlled stepper NumberInput: a muted LABEL, a − stepper, the
+;; value pill and a + stepper.  Steppers change the value by one and disable
+;; at MIN/MAX; pressing the value pill, which REF names, reads a number in the
+;; minibuffer.  HIDE-LABEL omits the caption for grid forms.
 ;; Alternatively, :bind accepts an existing writable ref and replaces VALUE
 ;; plus ON-CHANGE. It uses the same conflict, ownership and publication rules
 ;; as Checkbox. The current value must be an integer or nil, label a string or
@@ -92,8 +98,9 @@
 ;; Target removal, unmount or a disabled/inaccessible entry cancels the result
 ;; before ON-CHANGE or an additive ON-PRESS observer runs.
 ;;
-;; Component: etaf-text-input (&key value label placeholder on-change disabled bind)
-;; Edit a controlled string with native `read-string'. Nil VALUE is empty.
+;; Component: etaf-text-input (&key value label placeholder on-change disabled bind hide-label ref)
+;; Edit a controlled string through a value pill that reads with `read-string'.
+;; REF names the pill; HIDE-LABEL omits the muted caption.  Nil VALUE is empty.
 ;; LABEL defaults to "Text"; PLACEHOLDER defaults to "—" for empty values.
 ;; Both must be strings. VALUE may also be a ref/computed holding string or nil.
 ;; ON-CHANGE receives the accepted string, including empty input. Use :bind
@@ -125,16 +132,21 @@
 ;; Outside a Host event, signal `etaf-event-error'. Invalid PROMPT signals
 ;; `etaf-view-error'. Compose in a Menu's ON-SELECT or a Button's ON-PRESS.
 ;;
-;; Component: etaf-select (&key value options label placeholder on-change disabled bind)
-;; Choose a controlled value using native completion over OPTIONS labels.
+;; Component: etaf-select (&key value options label placeholder on-change disabled bind presentation hide-label width ref)
+;; Choose a controlled value from OPTIONS without leaving the UI.
+;; PRESENTATION is `chips', `dropdown' or `auto' (default): chips render each
+;; option as an inline pill with the current one filled; a dropdown renders one
+;; anchor pill "CAPTION ▾", which REF names, and lists the options as ghost
+;; buttons in a Popover of WIDTH (default (ch 28)) that closes on selection or
+;; Escape.  `auto' shows chips for up to four options.  HIDE-LABEL omits the
+;; muted caption for grid forms.
 ;; OPTIONS is an alist of (VALUE . LABEL); values are unique symbols, numbers
 ;; or strings, labels unique nonempty strings. Nil is a valid option value.
 ;; A nil VALUE absent from OPTIONS displays PLACEHOLDER; other absent values
 ;; are errors. An empty list disables activation. LABEL defaults to "Select"
 ;; and PLACEHOLDER to "—"; both are strings. VALUE may be a ref/computed.
-;; ON-CHANGE receives the accepted option value. :bind and native cancellation
-;; follow TextInput; selection requires a matching label. Invalid props signal
-;; contextual `etaf-view-error'. Use (etaf-view (etaf-select ...)).
+;; ON-CHANGE receives the accepted option value. :bind follows TextInput.
+;; Invalid props signal contextual `etaf-view-error'. Use (etaf-view (etaf-select ...)).
 
 ;; Component: etaf-radio (&key value options label on-change disabled bind)
 ;; Render a controlled single-choice group from an options alist. VALUE/ON-CHANGE
@@ -301,7 +313,10 @@
 ;; semantic ID. OPEN can be a value, ref or computed; ON-CLOSE requests closing
 ;; without owning application state. Default PLACEMENT is bottom-start and
 ;; WIDTH is (ch 32). Other placements follow Ebox's anchor contract. TITLE is
-;; optional. Default and footer slots retain their author Context and state.
+;; optional. Every floating surface shares one card anatomy: a one-row header
+;; with the title under a hairline, a body padded by one row and two columns,
+;; and a right-aligned footer row. Default and footer slots retain their
+;; author Context and state.
 ;; Opening focuses the first eligible control (or the panel when empty).
 ;; TAB/Shift-TAB and arrow keys navigate within the panel; Escape/C-g request
 ;; close. Closing restores a still-valid prior focus. Shortcuts are buffer-local
@@ -313,11 +328,13 @@
 ;; Show a controlled modal panel using the same floating surface as Popover.
 ;; TITLE defaults to Dialog and WIDTH to (ch 48).  HEIGHT optionally fixes the
 ;; panel to `(lh N)' rows, bounded by the visible window.  COMPACT removes
-;; extra title spacing so its header occupies one row.  The panel centers in
+;; the body's vertical air so short forms stay dense.  The panel centers in
 ;; the window that displays its buffer when that window is graphical.
-;; Default content and footer slots compose ordinary Components; a
-;; CLOSE-LABEL button (default "Close")
-;; requests ON-CLOSE.
+;; The header shows TITLE and a pointer-only ✕ that requests ON-CLOSE; initial
+;; focus still lands on the first body control.  Default content and footer
+;; slots compose ordinary Components; a secondary CLOSE-LABEL button (default
+;; "Close") ends the footer and requests ON-CLOSE.  A fixed HEIGHT needs the
+;; body rows plus five for header, body air and footer.
 ;; The opaque backdrop covers the root canvas, blocking covered controls and
 ;; their focus targets. It does not close on a backdrop click; a shell root
 ;; may call `etaf-ui-dismiss-outside-press' from its press callbacks to close

@@ -145,11 +145,32 @@ number inputs.  Date values use ISO `YYYY-MM-DD' strings."
         (etaf-label :text display :variant 'strong
                     :flex-grow 1 :min-width '(px 0) :wrap-mode 'word))))))
 
+(defun etaf-ui--input-field (label hide-label controls &optional ref)
+  "Return one field row holding LABEL and CONTROLS.
+A field is a single row: a muted caption unless HIDE-LABEL, then the
+controls separated by one column.  Grid forms pass HIDE-LABEL and render
+the caption in their own column so every control aligns.  REF, when
+non-nil, names the row itself."
+  (etaf-node
+   'flex
+   (append
+    (list :class "etaf-field" :flex-direction 'row :align-items 'center
+          :flex-wrap 'wrap :gap '((lh 0) (ch 1)) :width 'stretch)
+    (when ref (list :ref ref)))
+   (append
+    (unless hide-label
+      (list (etaf-node 'etaf-label
+                       (list :text label :variant 'muted :class "etaf-field-label")
+                       nil)))
+    controls)))
+
 (etaf-define-component etaf-text-input
     (&key (value etaf-ui--unsupplied) (label "Text") (placeholder "—")
-          (on-change etaf-ui--unsupplied) disabled bind)
-  "Edit a controlled string in the native minibuffer.
-Use VALUE/ON-CHANGE or writable ref BIND.  Nil VALUE displays as empty text."
+          (on-change etaf-ui--unsupplied) disabled bind hide-label ref)
+  "Edit a controlled string through a value pill.
+Use VALUE/ON-CHANGE or writable ref BIND.  Nil VALUE displays PLACEHOLDER.
+Pressing the pill reads the new text natively; REF names that pill.
+HIDE-LABEL omits the caption for callers that align labels in their own column."
   :render
   (let* ((input (etaf-ui--controlled-input 'etaf-text-input :value bind value on-change))
          (current (etaf-ui--reactive-value (car input)))
@@ -160,23 +181,45 @@ Use VALUE/ON-CHANGE or writable ref BIND.  Nil VALUE displays as empty text."
                      'etaf-text-input)
     (etaf-check-prop :placeholder placeholder (stringp placeholder)
                      "a string" 'etaf-text-input)
-    (etaf-node
-     'etaf-button
-     (list :label (format "%s %s" label (if (or (null current) (equal current "")) placeholder current))
-           :aria-label label :disabled disabled :variant 'ghost
-           :on-press
-           (unless disabled
-             (lambda ()
-               (let ((next (etaf-call-with-input
-                            (lambda () (read-string (concat label ": ") (or current ""))))))
-                 (when callback (funcall callback next))))))
-     nil)))
+    (etaf-ui--input-field
+     label hide-label
+     (list
+      (etaf-node
+       'etaf-button
+       (list :ref ref
+             :label (if (or (null current) (equal current "")) placeholder current)
+             :aria-label label :disabled disabled :variant 'secondary
+             :class "etaf-text-input-value"
+             :on-press
+             (unless disabled
+               (lambda ()
+                 (let ((next (etaf-call-with-input
+                              (lambda () (read-string (concat label ": ") (or current ""))))))
+                   (when callback (funcall callback next))))))
+       nil)))))
+
+(defconst etaf-ui--select-chip-limit 4
+  "Largest option count that `etaf-select' presents as inline chips.")
 
 (etaf-define-component etaf-select
     (&key (value etaf-ui--unsupplied) options (label "Select") (placeholder "—")
-          (on-change etaf-ui--unsupplied) disabled bind)
+          (on-change etaf-ui--unsupplied) disabled bind (presentation 'auto)
+          hide-label (width '(ch 28)) ref)
   "Choose a controlled VALUE from an alist of (VALUE . LABEL) OPTIONS.
-Values and nonempty string labels must be unique.  Use VALUE/ON-CHANGE or BIND."
+Values and nonempty string labels must be unique.  Use VALUE/ON-CHANGE or BIND.
+
+PRESENTATION is `chips', `dropdown' or `auto': chips render every option as
+an inline pill and the current one filled; a dropdown renders one anchor pill
+reading the current caption and lists the options in a Popover of WIDTH.
+`auto' uses chips for up to four options.  REF names the dropdown anchor, or
+the whole field when chips are shown.  HIDE-LABEL omits the caption for grid
+forms.  Selection never opens the minibuffer."
+  :bindings ((open (etaf-ref nil))
+             (anchor (symbol-name (gensym "etaf-select-"))))
+  :validate
+  (etaf-check-prop :presentation presentation
+                   (memq presentation '(auto chips dropdown))
+                   "auto, chips or dropdown" 'etaf-select)
   :render
   (let* ((input (etaf-ui--controlled-input 'etaf-select :value bind value on-change))
          (current (etaf-ui--reactive-value (car input)))
@@ -206,30 +249,75 @@ Values and nonempty string labels must be unique.  Use VALUE/ON-CHANGE or BIND."
     (etaf-check-prop :label label (stringp label) "a string" 'etaf-select)
     (etaf-check-prop :placeholder placeholder (stringp placeholder)
                      "a string" 'etaf-select)
-    (let ((caption (cdr (assoc current choices))))
-      (etaf-node
-       'etaf-button
-       (list :label (format "%s %s v" label (or caption placeholder))
-             :aria-label label :disabled (or disabled (null choices)) :variant 'ghost
-             :on-press
-             (unless (or disabled (null choices))
-               (lambda ()
-                 (let* ((selected (etaf-call-with-input
-                                   (lambda ()
-                                     (completing-read (concat label ": ")
-                                                      (mapcar #'cdr choices) nil t nil nil caption))))
-                        (option (rassoc selected choices)))
-                   (unless option (user-error "%s: select an available option" label))
-                   (when callback (funcall callback (car option)))))))
-       nil))))
+    (let* ((caption (cdr (assoc current choices)))
+           (inactive (or disabled (null choices)))
+           (chips (or (eq presentation 'chips)
+                      (and (eq presentation 'auto)
+                           (<= (length choices) etaf-ui--select-chip-limit))))
+           (choose (lambda (option)
+                     (setf (etaf-value open) nil)
+                     (when callback (funcall callback (car option))))))
+      (etaf-ui--input-field
+       label hide-label
+       (if chips
+           (mapcar
+            (lambda (option)
+              (let ((selected (equal (car option) current)))
+                (etaf-node
+                 'etaf-button
+                 (list :key (cdr option) :label (cdr option)
+                       :aria-label (cdr option)
+                       :class (etaf-ui--class-value
+                               "etaf-select-chip" (if selected "selected" "unselected") nil)
+                       :variant (if selected 'secondary 'ghost)
+                       :disabled inactive
+                       :on-press (unless inactive
+                                   (lambda () (funcall choose option))))
+                 nil)))
+            choices)
+         (list
+          (etaf-node
+           'etaf-button
+           (list :id anchor :ref ref
+                 :label (concat (or caption placeholder) " ▾")
+                 :aria-label label :variant 'secondary
+                 :class "etaf-select-anchor"
+                 :disabled inactive
+                 :on-press (unless inactive
+                             (lambda ()
+                               (setf (etaf-value open) (not (etaf-value open))))))
+           nil)
+          (etaf-node
+           'etaf-popover
+           (list :open (and (not inactive) (etaf-value open))
+                 :anchor anchor :width width
+                 :on-close (lambda () (setf (etaf-value open) nil)))
+           (mapcar
+            (lambda (option)
+              (let ((selected (equal (car option) current)))
+                (etaf-node
+                 'etaf-button
+                 (list :key (cdr option)
+                       :label (concat (if selected "● " "  ") (cdr option))
+                       :aria-label (cdr option)
+                       :class (etaf-ui--class-value
+                               "etaf-select-option" (if selected "selected" "unselected") nil)
+                       :variant 'ghost :width 'stretch
+                       :font-weight (if selected 'bold 'normal)
+                       :on-press (lambda () (funcall choose option)))
+                 nil)))
+            choices))))
+       (and chips ref)))))
 
 (etaf-define-component etaf-number-input
     (&key (value etaf-ui--unsupplied) label
-          (on-change etaf-ui--unsupplied) disabled min max bind)
-  "Render a minibuffer NumberInput using VALUE/ON-CHANGE or writable ref BIND.
+          (on-change etaf-ui--unsupplied) disabled min max bind hide-label ref)
+  "Render a stepper NumberInput using VALUE/ON-CHANGE or writable ref BIND.
 Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil.
 The current value is an integer or nil; LABEL is a string or nil. MIN and
-MAX are numbers or nil with MIN <= MAX. Invalid inputs signal
+MAX are numbers or nil with MIN <= MAX.  The − and + steppers change the
+value by one within the bounds; pressing the value pill, which REF names,
+reads a number natively.  HIDE-LABEL omits the caption.  Invalid inputs signal
 `etaf-component-call-error' identifying the Component and property."
   :validate
   (progn
@@ -244,26 +332,54 @@ MAX are numbers or nil with MIN <= MAX. Invalid inputs signal
          (callback (cdr input))
          (current-value (etaf-ui--reactive-value (car input)))
          (minimum min)
-         (maximum max))
+         (maximum max)
+         (accept (lambda (next)
+                   (unless (and (integerp next)
+                                (or (null minimum) (>= next minimum))
+                                (or (null maximum) (<= next maximum)))
+                     (user-error "%s must be an integer from %s to %s"
+                                 label (or minimum "—") (or maximum "—")))
+                   (when callback (funcall callback next))))
+         (step (lambda (delta)
+                 (lambda ()
+                   (funcall accept (+ (or current-value 0) delta))))))
     (etaf-check-prop :value current-value (or (null current-value) (integerp current-value))
                      "an integer or nil" 'etaf-number-input)
-    (etaf-node
-     'etaf-button
+    (etaf-ui--input-field
+     label hide-label
      (list
-      :label (format "%s %s" label (or current-value "—"))
-      :disabled disabled :variant 'ghost
-      :on-press
-      (unless disabled
-        (lambda ()
-          (let ((next (etaf-call-with-input
-                       (lambda () (read-number (format "%s: " label) (or current-value 0))))))
-            (unless (and (integerp next)
-                         (or (null minimum) (>= next minimum))
-                         (or (null maximum) (<= next maximum)))
-              (user-error "%s must be an integer from %s to %s"
-                          label (or minimum "—") (or maximum "—")))
-            (when callback (funcall callback next))))))
-     nil)))
+      (etaf-node
+       'etaf-button
+       (list :label "−" :aria-label (format "Decrease %s" label)
+             :class "etaf-number-input-step" :variant 'ghost
+             :disabled (or disabled
+                           (and minimum current-value
+                                (< (1- current-value) minimum)))
+             :on-press (unless disabled (funcall step -1)))
+       nil)
+      (etaf-node
+       'etaf-button
+       (list :ref ref :label (format "%s" (or current-value "—"))
+             :aria-label label :class "etaf-number-input-value"
+             :disabled disabled :variant 'secondary
+             :on-press
+             (unless disabled
+               (lambda ()
+                 (funcall accept
+                          (etaf-call-with-input
+                           (lambda ()
+                             (read-number (format "%s: " label)
+                                          (or current-value 0))))))))
+       nil)
+      (etaf-node
+       'etaf-button
+       (list :label "+" :aria-label (format "Increase %s" label)
+             :class "etaf-number-input-step" :variant 'ghost
+             :disabled (or disabled
+                           (and maximum current-value
+                                (> (1+ current-value) maximum)))
+             :on-press (unless disabled (funcall step 1)))
+       nil)))))
 
 (provide 'etaf-ui-input)
 ;;; etaf-ui-input.el ends here

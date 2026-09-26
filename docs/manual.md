@@ -112,10 +112,21 @@ the native completion choice for searchable lists. Use `etaf-popover` for
 arbitrary content anchored to a unique Host `:id`, and `etaf-dialog` for a
 modal form or task. These components compose the same Button, inputs and
 slots. Their supported props and lifecycle are listed in [the entry](../etaf-ui.el).
-For a settings form, pass a bounded `:height '(lh N)` and `:compact t` to
-`etaf-dialog`: it centers in the graphical window displaying its buffer,
-keeps the title to one row, and scrolls content inside the panel when needed.
-The requested width and height shrink to fit a smaller visible window.
+Every floating surface shares one card anatomy: a one-row header with the
+title under a hairline (dialogs and drawers add a pointer-only ✕), a body
+padded by one row and two columns, and a right-aligned footer row that
+`etaf-dialog` ends with a secondary close button. For a settings form, pass a
+bounded `:height '(lh N)` and `:compact t` to `etaf-dialog`: it centers in
+the graphical window displaying its buffer, drops the body's vertical air,
+and scrolls content inside the panel when needed. A fixed height needs the
+body rows plus five. The requested width and height shrink to fit a smaller
+visible window.
+
+Buttons are borderless pills: `primary` fills the accent for the committing
+action, `secondary` tints it softly for dismiss and value pills, and `ghost`
+inherits its surface for low-emphasis actions. Ebox paints block geometry in
+whole text rows, so a one-row control cannot pad above its label; the design
+relies on tone instead of outlines.
 
 ```elisp
 ;;; -*- lexical-binding: t; -*-
@@ -317,23 +328,31 @@ role `checkbox`, a stable `:ref`, and tab index `0` while enabled. Its
 `:on-change` receives the next boolean value; disabled checkboxes have no
 handler or tab stop.
 
-`etaf-number-input` is a small controlled input primitive for values edited
-through Emacs's native minibuffer. It accepts `:value`, `:label`, `:on-change`,
-`:min`, `:max`, `:ref`, and `:disabled`; the callback receives the validated
-integer while the caller remains the owner of the ref. The current value must
+`etaf-number-input` is a small controlled stepper: a muted label, a `−`
+button, the value pill and a `+` button on one row. The steppers move the
+value by one and disable at the bounds; pressing the value pill, which `:ref`
+names, reads a number in the minibuffer. It accepts `:value`, `:label`,
+`:on-change`, `:min`, `:max`, `:ref`, `:hide-label` and `:disabled`; the
+callback receives the validated integer while the caller remains the owner of
+the ref. The current value must
 be an integer or nil, and the label a string or nil. Numeric bounds may be nil;
 when both are present, `:min` must not exceed `:max`. Invalid configuration is
 rejected before initialization or updated props publish; invalid live values
 are rejected when rendered. Errors identify the component and property.
 
-`etaf-text-input` edits strings with the native minibuffer. `etaf-select`
-chooses a value from an ordinary alist, such as `((nil . "Pending") (t . "Done"))`.
-Both use `:value` / `:on-change` or `:bind`, and compose the same Button entry.
-TAB reaches the entry; RET or a mouse click opens native input. `C-g` cancels
-without a change callback or additive press observer. Focus returns to the
-retained entry; if its mounted target has disappeared, become disabled or
-inaccessible, the result is cancelled. Native Emacs owns input methods, cursor,
-selection and undo; the rendered surface remains owned by Ebox.
+`etaf-text-input` shows the current string as a pill that reads a new value
+with the native minibuffer. `etaf-select` chooses a value from an ordinary
+alist, such as `((nil . "Pending") (t . "Done"))`, without the minibuffer:
+up to four options render as inline chips with the current one filled, more
+options render one `Caption ▾` anchor that opens a Popover listing every
+option; `:presentation 'chips` or `'dropdown` overrides the choice. Both use
+`:value` / `:on-change` or `:bind`, and `:hide-label` drops the caption when
+a grid form aligns labels in its own column. TAB reaches each pill; RET or a
+mouse click activates it. `C-g` cancels native input without a change
+callback. Focus returns to the retained entry; if its mounted target has
+disappeared, become disabled or inaccessible, the result is cancelled.
+Native Emacs owns input methods, cursor, selection and undo; the rendered
+surface remains owned by Ebox.
 
 `etaf-menu` composes the same Button and native input boundary for actions.
 Disabled items are excluded from native completion. A confirmation dialog can
@@ -487,7 +506,7 @@ separate from forwarded Host attributes:
 | `etaf-button` | `:label`, `:on-press`, `:disabled`, `:id`, `:ref`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:font-size`, `:font-weight`, `:tab-index`, `:aria-label`, `:help-echo`, `:hover-content`, `:hover-group`, `:pointer`, `:use`, `:variant` |
 | `etaf-checkbox` | `:checked`, `:label`, `:on-change`, `:disabled`, `:bind` |
 | `etaf-panel` | `:title`, `:variant` |
-| `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind` |
+| `etaf-number-input` | `:value`, `:label`, `:on-change`, `:disabled`, `:min`, `:max`, `:bind`, `:hide-label`, `:ref` |
 | `etaf-table` | `:columns`, `:rows`, `:row-key`, `:row-ref`, `:on-row-press`, `:row-selected-p` |
 | `etaf-data-grid` | `:controller`, `:columns`, `:row-key`, `:on-row-press`, `:row-ref`, `:row-selected-p`, `:loading-label`, `:error-label`, `:empty-label` |
 | `etaf-pagination` | `:controller`, `:previous-ref`, `:next-ref`, `:previous-label`, `:next-label`, `:class`, `:color`, `:bgcolor`, `:border`, `:padding`, `:aria-label` |

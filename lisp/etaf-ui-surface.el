@@ -102,6 +102,57 @@ Target selection and navigation stay with the public Runtime."
             (setq etaf-ui--surface-return-stack (delq route etaf-ui--surface-return-stack))
             (kill-local-variable tag)))))))
 
+(defun etaf-ui--surface-card-children (title close compact spacious body footer)
+  "Return the header, body and footer nodes of one floating card.
+
+Every surface shares this anatomy: a one-row header carrying TITLE under a
+hairline, a BODY column padded by one row and two columns, and a right-aligned
+FOOTER row.  CLOSE, when a function, adds a pointer-only ghost ✕ to the header
+so keyboard focus still lands on the first body control.  COMPACT
+removes the body's vertical air; SPACIOUS separates body items by one row."
+  (let ((theme (etaf-ui--style-tokens :ui-panel-border :ui-muted-fg)))
+    (append
+     (when title
+       (list
+        (etaf-node
+         'flex
+         (list :class "etaf-surface-header"
+               :width 'stretch :flex-direction 'row
+               :justify-content 'space-between :align-items 'center
+               :padding '((lh 0) (ch 2))
+               :border-bottom (etaf-ui--style-border
+                               (plist-get theme :ui-panel-border)))
+         (append
+          (list (etaf-node 'etaf-label
+                           (list :text title :variant 'strong) nil))
+          (when close
+            (list (etaf-node 'etaf-button
+                             (list :label "✕" :variant 'ghost
+                                   :aria-label "Close" :help-echo "Close"
+                                   :tab-index -1
+                                   :color (plist-get theme :ui-muted-fg)
+                                   :on-press close)
+                             nil)))))))
+     (list
+      (etaf-node 'column
+                 (list :class "etaf-surface-body"
+                       :padding (if compact '((lh 0) (ch 2)) '((lh 1) (ch 2)))
+                       :item-gap (if (and spacious (not compact))
+                                     '(lh 1)
+                                   '(lh 0)))
+                 body))
+     (when footer
+       (list
+        (etaf-node 'flex
+                   (list :class "etaf-surface-footer"
+                         :width 'stretch :flex-direction 'row
+                         :justify-content 'flex-end :align-items 'center
+                         :gap '((lh 0) (ch 1)) :padding '((lh 0) (ch 2)))
+                   footer)
+        (etaf-node 'box (list :class "etaf-surface-footer-air"
+                              :height '(lh 1))
+                   nil))))))
+
 (etaf-define-component etaf-ui--open-surface
     (&key anchor (placement 'bottom-start) side (width '(ch 32)) height
           title on-close modal center compact (backdrop t))
@@ -230,19 +281,15 @@ Target selection and navigation stay with the public Runtime."
                  :width (if bounded-width-px
                             (list 'px bounded-width-px)
                           width)
-                 :item-gap (if compact '(lh 0)
-                             (if (or modal side) '(lh 1) '(lh 0)))
-                 :padding (if compact '((lh 0) (ch 1))
-                            '((lh 1) (ch 2)))
+                 :item-gap '(lh 0)
+                 :padding '((lh 0) (ch 0))
                  :color (plist-get theme :ui-panel-fg)
                  :background-color (plist-get theme :ui-panel-bg)
                  :overflow (when (and modal viewport-height-known) 'scroll)
                  :border (etaf-ui--style-border (plist-get theme :ui-panel-border)))
-           (append
-            (when title
-              (list (etaf-node 'etaf-label (list :text title :variant 'strong) nil)))
-            (etaf-current-slot 'default)
-            (etaf-current-slot 'footer)))))
+           (etaf-ui--surface-card-children
+            title (and modal on-close) compact (or modal side)
+            (etaf-current-slot 'default) (etaf-current-slot 'footer)))))
     (if (and modal backdrop)
         (etaf-node 'fragment nil
                    (list
@@ -313,7 +360,7 @@ COMPACT keeps the title at one text row without extra panel spacing."
                (list (cons 'footer
                            (append (etaf-current-slot 'footer)
                                    (list (etaf-node 'etaf-button
-                                                    (list :label close-label :variant 'ghost :on-press on-close)
+                                                    (list :label close-label :variant 'secondary :on-press on-close)
                                    nil))))))))
 
 (etaf-define-component etaf-tooltip

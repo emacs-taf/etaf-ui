@@ -89,24 +89,28 @@ ref directly; it owns no state or subscription of its own."
    (text (expr (etaf-ui--text-value text)))))
 
 (defun etaf-ui--button-variant-values (variant disabled)
-  "Return themed presentation defaults for Button VARIANT and DISABLED."
-  (let* ((fg (cond (disabled :ui-disabled-fg)
+  "Return themed presentation defaults for Button VARIANT and DISABLED.
+
+Buttons are filled single-row pills: `primary' paints the accent, `secondary'
+its soft tint and `ghost' inherits its surface.  Outlines
+are omitted because a one-row control cannot pad above or below its text, so
+a stroke around it always touches the glyphs."
+  (let* ((variant (or variant 'primary))
+         (fg (cond (disabled :ui-disabled-fg)
                    ((eq variant 'secondary) :ui-button-secondary-fg)
                    ((eq variant 'ghost) :ui-button-ghost-fg)
                    (t :ui-button-primary-fg)))
          (bg (cond (disabled :ui-disabled-bg)
                    ((eq variant 'secondary) :ui-button-secondary-bg)
-                   ((eq variant 'ghost) :ui-button-ghost-bg)
+                   ((eq variant 'ghost) nil)
                    (t :ui-button-primary-bg)))
-         (border-key
-          (cond (disabled :ui-disabled-border)
-                ((eq variant 'secondary) :ui-button-secondary-border)
-                ((eq variant 'ghost) :ui-button-ghost-border)
-                (t :ui-button-primary-border)))
-         (theme (etaf-ui--style-tokens fg bg border-key)))
+         (theme (etaf-ui--style-tokens fg (or bg :ui-disabled-bg))))
     (list :color (plist-get theme fg)
-          :bgcolor (plist-get theme bg)
-          :border (etaf-ui--style-border (plist-get theme border-key))
+          :bgcolor (and bg (plist-get theme bg))
+          :border nil
+          :padding (if (memq variant '(primary secondary))
+                       '((lh 0) (ch 2))
+                     '((lh 0) (ch 1)))
           :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 
 (etaf-define-component etaf-button
@@ -132,7 +136,10 @@ captured values."
        :class (etaf-ui--class-value
                "etaf-button"
                (if disabled "disabled" "enabled")
-               class)
+               (cons (symbol-name (or variant 'primary))
+                     (cond ((null class) nil)
+                           ((listp class) class)
+                           (t (list class)))))
        :ref ref :role 'button :disabled disabled
        :tab-index (unless disabled (or tab-index 0))
        :aria-label (or aria-label label)
@@ -141,7 +148,7 @@ captured values."
        :color (or color (plist-get variant-values :color))
        :background-color (or bgcolor (plist-get variant-values :bgcolor))
        :border (or border (plist-get variant-values :border))
-       :padding padding
+       :padding (or padding (plist-get variant-values :padding))
        :font-size font-size
        :font-weight (or font-weight (plist-get variant-values :font-weight))
        :use use
@@ -154,19 +161,20 @@ captured values."
          (list (etaf-node 'text nil (list label))))))
   :styles
   (("&" :width max-content)
-   ("&.disabled" :padding ((lh 0) (ch 1)) :font-weight normal)
-   ("&.enabled" :padding ((lh 0) (ch 1)) :font-weight bold)))
+   ("&.disabled" :font-weight normal)))
 
 (defun etaf-ui--checkbox-variant-values (disabled)
-  "Return semantic Theme presentation for a DISABLED Checkbox."
+  "Return semantic Theme presentation for a DISABLED Checkbox.
+The row inherits its surface; only the mark carries the accent, so a
+checkbox reads as a labelled control rather than a boxed field."
   (let* ((prefix (if disabled "disabled" "enabled"))
          (fg (intern (format ":ui-checkbox-%s-fg" prefix)))
-         (bg (intern (format ":ui-checkbox-%s-bg" prefix)))
-         (border-key (intern (format ":ui-checkbox-%s-border" prefix)))
-         (theme (etaf-ui--style-tokens fg bg border-key)))
+         (mark (if disabled :ui-disabled-fg :ui-accent))
+         (theme (etaf-ui--style-tokens fg mark)))
     (list :color (plist-get theme fg)
-          :bgcolor (plist-get theme bg)
-          :border (etaf-ui--style-border (plist-get theme border-key)))))
+          :mark-color (plist-get theme mark)
+          :bgcolor nil
+          :border nil)))
 
 (etaf-define-component etaf-checkbox
     (&key (checked etaf-ui--unsupplied) label
@@ -195,14 +203,15 @@ Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
              (lambda ()
                (funcall callback (not (etaf-ui--reactive-value source))))))
       (box :class "etaf-checkbox-mark"
+           :color (plist-get (etaf-ui--checkbox-variant-values disabled) :mark-color)
            (text (expr (if (etaf-ui--reactive-value checked) "☑" "☐"))))
       (text (expr
              (let ((value (etaf-ui--text-value label)))
                (if (string-empty-p value) "" (concat " " value))))))))
   :styles
   (("&" :width max-content)
-   ("&.disabled" :padding ((lh 0) (ch 1)))
-   ("&.enabled" :padding ((lh 0) (ch 1)))
+   ("&.disabled" :padding ((lh 0) (ch 0)))
+   ("&.enabled" :padding ((lh 0) (ch 0)))
    (".etaf-checkbox-mark" :font-weight bold :width (ch 1))))
 
 (etaf-define-component etaf-panel (&key title variant)

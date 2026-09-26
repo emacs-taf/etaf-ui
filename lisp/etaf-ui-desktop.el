@@ -74,7 +74,7 @@ selection change and a Theme change stay retained paint updates."
   (box :ref ref :role 'button :aria-label label
        :width 'max-content :disabled disabled
        :tab-index (unless disabled 0) :pointer (unless disabled 'arrow)
-       :on-press callback :padding '((lh 0) (ch 1))
+       :on-press callback :padding '((lh 0) (ch 1.5))
        :class (pcase (etaf-ui--desktop-bar-item-tone item-key active state)
                 ('active active-class)
                 ('minimized minimized-class)
@@ -114,7 +114,7 @@ TASKBAR selects window-state presentation."
             :class class :active-class (concat class " active")
             :minimized-class (concat class " minimized")
             :state (and taskbar (plist-get item :state))
-            :bold-active taskbar)
+            :bold-active t)
       (unless taskbar (list :flex-shrink 0 :min-width 'max-content)))
      nil)))
 
@@ -188,13 +188,12 @@ caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
                      "a string" 'etaf-taskbar))
   :render
   (let ((shell (etaf-ui--style-tokens :ui-shell-bg :ui-shell-fg
-                                      :ui-shell-muted-fg :ui-accent
-                                      :ui-accent-fg)))
+                                      :ui-shell-muted-fg)))
     (etaf-node
      'row
      (list :class (etaf-ui--class-value "etaf-taskbar" nil class)
            :role 'toolbar :aria-label "Taskbar" :width 'stretch
-           :height '(lh 1) :item-gap '(ch 0.5)
+           :height '(lh 1) :item-gap '(ch 1)
            :padding '((lh 0) (ch 1))
            :background-color (plist-get shell :ui-shell-bg)
            :color (plist-get shell :ui-shell-fg))
@@ -202,13 +201,8 @@ caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
       (when on-launch
         (list (etaf-node 'etaf-button
                          (list :label (concat "⊞ " launcher-label)
-                               :aria-label launcher-label :variant 'ghost
+                               :aria-label launcher-label :variant 'primary
                                :class "etaf-taskbar-launcher"
-                               :color (plist-get shell :ui-accent-fg)
-                               :bgcolor (plist-get shell :ui-accent)
-                               :border (etaf-ui--style-border
-                                        (plist-get shell :ui-accent))
-                               :padding '((lh 0) (ch 1))
                                :ref 'etaf-taskbar-launcher
                                :on-press on-launch)
                          nil)))
@@ -291,13 +285,12 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
               (list :key workspace :label (format "%s" workspace))))
           workspaces))
         (shell (etaf-ui--style-tokens :ui-shell-bg :ui-shell-fg
-                                      :ui-shell-muted-fg :ui-shell-item-fg
-                                      :ui-accent :ui-accent-soft-bg)))
+                                      :ui-shell-item-fg)))
     (etaf-node
      'flex
      (list :class (etaf-ui--class-value "etaf-workspace-bar" nil class)
            :role 'tablist :aria-label "Workspaces" :width 'stretch
-           :height '(lh 1) :flex-direction 'row :gap '((lh 0) (ch 0.5))
+           :height '(lh 1) :flex-direction 'row :gap '((lh 0) (ch 1))
            :padding '((lh 0) (ch 1))
            :background-color (plist-get shell :ui-shell-bg)
            :color (plist-get shell :ui-shell-fg))
@@ -332,17 +325,12 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                                :aria-label (if (stringp layout-label)
                                                layout-label "Window layout")
                                :ref 'etaf-workspace-layout
-                               :variant 'ghost
+                               :variant 'secondary
                                :class "etaf-workspace-layout"
                                ;; A fixed allocation lets a reactive label
                                ;; change as a prepared Text update.
                                :width (list 'ch etaf-ui--desktop-layout-label-width)
                                :flex-shrink 0 :overflow 'hidden
-                               :color (plist-get shell :ui-accent)
-                               :bgcolor (plist-get shell :ui-accent-soft-bg)
-                               :border (etaf-ui--style-border
-                                        (plist-get shell :ui-accent-soft-bg))
-                               :padding '((lh 0) (ch 1))
                                :pointer 'hand
                                :on-press layout-action)
                          (list (etaf-node 'etaf-ui--desktop-layout-label
@@ -356,10 +344,6 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                                :class "etaf-workspace-settings"
                                :flex-shrink 0 :min-width 'max-content
                                :color (plist-get shell :ui-shell-item-fg)
-                               :bgcolor (plist-get shell :ui-shell-bg)
-                               :border (etaf-ui--style-border
-                                        (plist-get shell :ui-shell-bg))
-                               :padding '((lh 0) (ch 1))
                                :pointer 'arrow
                                :on-press settings-action)
                          nil)))))))
@@ -396,7 +380,7 @@ are Theme tokens so a Desktop Theme restyles the picker in place."
                (is-selected (and selected (equal key selected)))
                (caption (etaf-ui--desktop-item-caption item :label))
                (description (plist-get item :description))
-               (marker (cond (is-selected "▸ ") (t "  ")))
+               (marker (cond (is-selected "● ") (t "  ")))
                (bg (if is-selected
                        (plist-get tokens :ui-accent-soft-bg)
                      (plist-get tokens :ui-picker-item-bg))))
@@ -409,7 +393,7 @@ are Theme tokens so a Desktop Theme restyles the picker in place."
                  :role 'button :aria-label (plist-get item :label)
                  :disabled disabled :tab-index (unless disabled 0)
                  :pointer (unless disabled 'arrow)
-                 :width 'stretch :padding '((lh 0) (ch 1))
+                 :width 'stretch :padding '((lh 0) (ch 2))
                  :color (if is-selected
                             (plist-get tokens :ui-accent)
                           (plist-get tokens :ui-picker-item-fg))
@@ -419,7 +403,9 @@ are Theme tokens so a Desktop Theme restyles the picker in place."
            (list (etaf-node
                   'column (list :item-gap '(lh 0) :width 'stretch)
                   (append
-                   (list (etaf-node 'text (list :font-weight 'bold)
+                   (list (etaf-node 'text
+                                    (list :font-weight
+                                          (if is-selected 'bold 'normal))
                                     (list (concat marker caption))))
                    (when description
                      (list (etaf-node
@@ -432,12 +418,11 @@ are Theme tokens so a Desktop Theme restyles the picker in place."
   "Return the `(lh N)' Dialog height that fits picker ITEMS exactly.
 
 Each item occupies one caption row plus one description row when described,
-separated by one row; the title, the close button, their surrounding gaps and
-the panel padding add the remaining rows."
+separated by one row; the card's header, body air and footer add five rows."
   (let ((rows 0))
     (dolist (item items)
       (setq rows (+ rows (if (plist-get item :description) 2 1))))
-    (list 'lh (+ rows (max 0 (1- (length items))) 7))))
+    (list 'lh (+ rows (max 0 (1- (length items))) 5))))
 
 (etaf-define-component etaf-launcher
     (&key open (title "Applications") items on-select on-close

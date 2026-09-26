@@ -208,7 +208,6 @@
               (should panel)
               (should (equal '(lh 18) (plist-get props :height)))
               (should (equal '(lh 0) (plist-get props :item-gap)))
-              (should (equal '((lh 0) (ch 1)) (plist-get props :padding)))
               (should (string-match-p "Background" (buffer-string)))
               (setf (etaf-value open) nil)
               (should (string-match-p "Background" (buffer-string)))))
