@@ -71,7 +71,8 @@
 ;; Render TEXT in a semantic Label with ordinary Box layout. TEXT accepts a
 ;; value, ref or computed; nil is empty, strings retain their text properties,
 ;; and other values use their printed representation. VARIANT selects the
-;; default, muted, danger, success, strong or heading presentation.
+;; default, muted, danger, success, strong or heading presentation. Strong and
+;; heading emphasize text with weight while retaining the inherited font size.
 ;; Layout attributes such as :width, :padding, :border and :wrap-mode apply
 ;; to the Label's Box; its Text child inherits typography and color.
 ;; Use :width 'stretch to follow the containing width and :wrap-mode 'word
@@ -136,7 +137,7 @@
 ;; Choose a controlled value from OPTIONS without leaving the UI.
 ;; PRESENTATION is `chips', `dropdown' or `auto' (default): chips render each
 ;; option as an inline pill with the current one filled; a dropdown renders one
-;; anchor pill "CAPTION ▾", which REF names, and lists the options as ghost
+;; anchor pill "CAPTION v", which REF names, and lists the options as ghost
 ;; buttons in a Popover of WIDTH (default (ch 28)) that closes on selection or
 ;; Escape.  `auto' shows chips for up to four options.  HIDE-LABEL omits the
 ;; muted caption for grid forms.
@@ -176,7 +177,7 @@
 ;; Render a titled Panel with named header and default slots.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
 
-;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier ref id class role use overflow)
+;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier font-size font-family ref id class role use overflow)
 ;; Render a controlled positioned panel and optional edge/corner resize handles.
 ;; Geometry props are passed to Ebox and may be values, refs or computed values;
 ;; CLASS may also be a ref or computed so a caller's mode class changes stay a
@@ -192,6 +193,11 @@
 ;; area, so a caller's title bar reaches both panel borders.
 ;; Callers own geometry updates and constraints.  This component stores no
 ;; state, does not assign z-order and does not implement a window manager.
+;; FONT-SIZE and FONT-FAMILY default to nil, inheriting the surrounding
+;; typography (the Emacs default font without an authored ancestor override).
+;; An explicit FONT-SIZE is a positive number in CSS reference pixels.
+;; Positioned content must fit its containing canvas's shared line height;
+;; Ebox rejects a font whose resolved line height exceeds that canvas.
 
 ;; Component: etaf-window-controls (&key mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close group class)
 ;; Render reusable macOS-style traffic-light controls.  GROUP is forwarded to
@@ -201,16 +207,22 @@
 ;; "Zoom" control has one stable target: it calls ON-RESTORE while MODE is
 ;; `maximized' and ON-MAXIMIZE otherwise.  MODE and ACTIVE may be scalars,
 ;; refs or computed values; the rendered structure never depends on them.
+;; SVG lights fit the frame line. Without SVG, inherited one-cell ASCII `o'
+;; marks show `x', `-' and `+' on hover, preserving the same action targets.
 ;;
-;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close on-move drag-lock-modifier group ref class use)
+;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close on-move drag-lock-modifier title-font-size font-family group ref class use)
 ;; Render a controlled title bar with minimize, zoom and close action
 ;; buttons; MODE may be a scalar, ref or computed and only changes classes.  The title bar forwards drag gestures to ON-MOVE; its
 ;; `drag-lock-modifier' defaults to `shift' for a release-independent drag.
 ;; Actions
 ;; only request caller-owned state transitions; `actions' and default slots
-;; append custom controls/content.
+;; append custom controls/content. TITLE-FONT-SIZE and FONT-FAMILY default to
+;; nil to inherit; an explicit size is a positive CSS reference pixel number.
+;; The title, traffic lights and custom controls share the title-bar typography.
+;; Within a positioned window, the font must fit its canvas's shared line height;
+;; Ebox rejects a larger resolved font before publishing the candidate.
 
-;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier title-font-size content-font-size font-family controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
@@ -223,6 +235,13 @@
 ;; when a nested body control is pressed.  DRAG-LOCK-MODIFIER defaults to shift
 ;; and applies to both the title bar and all resize handles.  Set it to super
 ;; for a Super-modified press or nil to disable locking everywhere.
+;; TITLE-FONT-SIZE and CONTENT-FONT-SIZE default to nil and inherit independently;
+;; positive CSS reference pixel numbers override only their own region.
+;; FONT-FAMILY defaults to nil and otherwise selects the family for both regions.
+;; All positioned content must fit the containing canvas's shared line height.
+;; A larger resolved font is rejected by Ebox before publication; the previous
+;; committed pixels and input remain available. Custom text may still select
+;; fallback glyph fonts with different metrics even at an equal CSS font size.
 ;;
 ;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
@@ -333,7 +352,7 @@
 ;; panel to `(lh N)' rows, bounded by the visible window.  COMPACT removes
 ;; the body's vertical air so short forms stay dense.  The panel centers in
 ;; the window that displays its buffer when that window is graphical.
-;; The header shows TITLE and a pointer-only ✕ that requests ON-CLOSE; initial
+;; The header shows TITLE and a pointer-only x that requests ON-CLOSE; initial
 ;; focus still lands on the first body control.  Default content and footer
 ;; slots compose ordinary Components; a secondary CLOSE-LABEL button (default
 ;; "Close") ends the footer and requests ON-CLOSE; CLOSE-LABEL nil omits it so

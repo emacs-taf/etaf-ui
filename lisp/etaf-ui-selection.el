@@ -73,7 +73,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
                     (colors (etaf-ui--selection-colors selected disabled)))
                (etaf-view
                 (etaf-button
-                 :label (concat (if selected "◉ " "○ ") caption)
+                 :label (concat (if selected "(o) " "( ) ") caption)
                  :aria-label caption :variant 'ghost :disabled disabled
                  :color (nth 0 colors) :bgcolor (nth 1 colors)
                  :border (nth 2 colors)
@@ -94,7 +94,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
     (etaf-check-prop :label label (stringp label) "a string" 'etaf-switch)
     (etaf-view
      (etaf-button
-      :label (format "%s %s" (if current "●" "○") label)
+      :label (format "%s %s" (if current "[x]" "[ ]") label)
       :aria-label label :variant 'ghost :disabled disabled
       :color (nth 0 colors) :bgcolor (nth 1 colors) :border (nth 2 colors)
       :on-press (and (not disabled) callback
@@ -120,7 +120,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
            (let* ((key (car option)) (caption (cdr option))
                   (selected (equal key current)))
              (etaf-view
-              (etaf-button :label (if selected (concat "◆ " caption) caption)
+              (etaf-button :label (if selected (concat "* " caption) caption)
                            :aria-label caption
                            :variant (if selected 'secondary 'ghost)
                            :disabled disabled

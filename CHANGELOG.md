@@ -39,6 +39,19 @@
 
 ### Changed
 
+- Traffic-light controls use one-cell ASCII marks when SVG is unavailable,
+  avoiding fallback symbol fonts with taller physical text rows.
+
+- Checkbox, radio, switch, selection, disclosure and close markers use ASCII
+  characters from the inherited text font. This avoids symbol-font fallback
+  increasing an entire Emacs physical row and shifting neighboring panes.
+  Checkbox markers reserve three character cells for `[x]` and `[ ]`.
+
+- Window shells, title bars and traffic lights inherit the surrounding Emacs
+  typography by default instead of forcing 14 CSS pixels (10.5 points).
+  Window title/body sizes can independently override inheritance with positive
+  CSS pixel values; panel `font-family` now reaches its rendered content.
+
 - Traffic-light SVG glyphs fill with `currentColor`, so the control Host's
   `:color` paints them. Focus changes no longer replace the glyph Text, and
   an inactive window's lights use the `:ui-window-title-fg` Theme token in
@@ -56,13 +69,13 @@
   `:ui-selection-*` or `:ui-checkbox-*-bg/-border`; Themes may drop them.
 - Floating surfaces share one card anatomy: a one-row header with the title
   under a hairline, a body padded by one row and two columns, and a
-  right-aligned footer. Dialogs and drawers add a pointer-only ✕ named
+  right-aligned footer. Dialogs and drawers add a pointer-only x named
   "Dismiss" to the header; the dialog's default close button is `secondary`. A fixed dialog
   height needs the body rows plus five instead of seven.
 - Desktop bars render pill items separated by one column; the taskbar
   launcher is a `primary` button and the workspace layout control a
   `secondary` one. Picker rows pad two columns and mark the selected item with
-  `●` in bold; unselected captions use normal weight.
+  `*` in bold; unselected captions use normal weight.
 
 ### Removed
 

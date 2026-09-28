@@ -127,7 +127,8 @@ SCALAR-CONTROLS resolves the controlled inputs before passing Component props."
                      (plist-get props :background-color)))
       (cl-loop for label in '("Close" "Minimize" "Zoom")
                for color in '("#FF5F57" "#FEBC2E" "#28C840")
-               for glyph in '("⊗" "⊖" "⊕")
+               for glyph in (if (and (display-graphic-p) (image-type-available-p 'svg))
+                      '("⊗" "⊖" "⊕") '("x" "-" "+"))
                do
                (let ((light (etaf-ui-prepared-focus-test--light runtime group label)))
                  (should (equal (if active color "#7B8794") (plist-get light :color)))

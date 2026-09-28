@@ -107,7 +107,7 @@ Target selection and navigation stay with the public Runtime."
 
 Every surface shares this anatomy: a one-row header carrying TITLE under a
 hairline, a BODY column padded by one row and two columns, and a right-aligned
-FOOTER row.  CLOSE, when a function, adds a pointer-only ghost ✕ to the header
+FOOTER row.  CLOSE, when a function, adds a pointer-only ghost x to the header
 so keyboard focus still lands on the first body control.  COMPACT
 removes the body's vertical air; SPACIOUS separates body items by one row."
   (let ((theme (etaf-ui--style-tokens :ui-panel-border :ui-muted-fg)))
@@ -127,7 +127,7 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
                            (list :text title :variant 'strong) nil))
           (when close
             (list (etaf-node 'etaf-button
-                             (list :label "✕" :variant 'ghost
+                             (list :label "x" :variant 'ghost
                                    :aria-label "Dismiss" :help-echo "Dismiss"
                                    :tab-index -1
                                    :color (plist-get theme :ui-muted-fg)
@@ -336,7 +336,7 @@ When BACKDROP is nil, retain the underlying surface's paint while keeping the
 panel as a root-layer projection; the caller owns any outside-click policy.
 HEIGHT optionally fixes the panel to text rows, bounded by the visible window;
 COMPACT removes the body's vertical air.  CLOSE-LABEL nil omits the default
-footer button so the footer slot owns every action; Escape and the header ✕
+footer button so the footer slot owns every action; Escape and the header x
 still request ON-CLOSE."
   :validate
   (progn
@@ -426,7 +426,7 @@ the message's semantic color. Anchored placement follows Popover."
                         (cl-some (lambda (item) (not (plist-get item :disabled))) items))))
       (etaf-node 'fragment nil (list
        (etaf-node 'etaf-button
-                  (list :id anchor :label (concat label " ▾") :aria-label label
+                  (list :id anchor :label (concat label " v") :aria-label label
                         :disabled (not enabled) :variant 'secondary
                         :on-press (lambda () (setf (etaf-value open) (not (etaf-value open)))))
                   nil)

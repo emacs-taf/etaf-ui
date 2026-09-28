@@ -126,7 +126,7 @@
          (cons "menu-dialog-handoff" (lambda () (etaf-ui-gui-press "操作") (etaf-ui-gui-key "RET") (etaf-ui-gui-visible "编辑偏好" nil) (etaf-ui-gui-focused "名称")))
          (cons "native-chinese-input" (lambda () (etaf-ui-gui-input "中文交互验收") (etaf-ui-gui-text "中文交互验收")))
          (cons "native-input-cancel" (lambda () (etaf-ui-gui-input "未提交草稿" t) (etaf-ui-gui-text "中文交互验收") (etaf-ui-gui-expect (not (string-match-p "未提交草稿" (buffer-string))) "Cancelled draft published")))
-         (cons "dialog-checkbox" (lambda () (etaf-ui-gui-press "接收通知") (etaf-ui-gui-text "☐ 接收通知")))
+         (cons "dialog-checkbox" (lambda () (etaf-ui-gui-press "接收通知") (etaf-ui-gui-text "[ ] 接收通知")))
          (cons "dialog-focus-cycle" (lambda () (etaf-ui-gui-tab-to "关闭") (etaf-ui-gui-key "TAB") (etaf-ui-gui-focused "名称") (etaf-ui-gui-key "<backtab>") (etaf-ui-gui-focused "关闭")))
          (cons "dialog-close-return-menu-trigger" (lambda () (etaf-ui-gui-key "RET") (etaf-ui-gui-visible "名称" nil) (etaf-ui-gui-focused "操作") (etaf-ui-gui-text "通知已关闭")))
          (cons "dialog-direct-open-complete" (lambda () (etaf-ui-gui-press "偏好设置") (etaf-ui-gui-press "完成") (etaf-ui-gui-visible "名称" nil) (etaf-ui-gui-focused "偏好设置") (etaf-ui-gui-text "偏好已更新")))
@@ -137,7 +137,7 @@
          (cons "mouse-dropdown-open" (lambda () (etaf-ui-gui-mouse "操作") (etaf-ui-gui-visible "编辑偏好" t)))
          (cons "mouse-disabled-item" (lambda () (etaf-ui-gui-mouse "删除（不可用）") (etaf-ui-gui-visible "编辑偏好" t)))
          (cons "mouse-menu-dialog" (lambda () (etaf-ui-gui-mouse "编辑偏好") (etaf-ui-gui-focused "名称")))
-         (cons "mouse-checkbox" (lambda () (etaf-ui-gui-mouse "接收通知") (etaf-ui-gui-text "☑ 接收通知")))
+         (cons "mouse-checkbox" (lambda () (etaf-ui-gui-mouse "接收通知") (etaf-ui-gui-text "[x] 接收通知")))
          (cons "mouse-dialog-close" (lambda () (etaf-ui-gui-mouse "关闭") (etaf-ui-gui-visible "名称" nil) (etaf-ui-gui-focused "操作")))
          (cons "mouse-help" (lambda () (etaf-ui-gui-mouse "帮助") (etaf-ui-gui-mouse "知道了") (etaf-ui-gui-focused "帮助")))
          (cons "shortcuts-restored" (lambda () (etaf-ui-gui-expect (equal etaf-ui-gui-original-keys (mapcar (lambda (key) (key-binding (kbd key))) '("<escape>" "C-g"))) "Dismissal keys leaked")))
@@ -209,6 +209,128 @@
          (cons "workspace-return" (lambda () (etaf-ui-gui-top) (etaf-ui-gui-activate "Workspace") (etaf-ui-gui-text "Release checklist")))
          (cons "mouse-drawer-open" (lambda () (etaf-ui-gui-mouse "More") (etaf-ui-gui-mouse "Open inspector") (etaf-ui-gui-text "Workspace inspector")))
          (cons "mouse-drawer-close" (lambda () (etaf-ui-gui-mouse "Close inspector") (etaf-ui-gui-focused "More")))))
+  (switch-to-buffer (get-buffer-create etaf-ui-gui-buffer))
+  (run-at-time 0.1 nil #'etaf-ui-gui-next-step)
+  'scheduled)
+
+(defvar etaf-ui-gui-font-baseline nil)
+(defvar etaf-ui-gui-font-samples nil)
+(defvar etaf-ui-gui-font-tail-line nil)
+
+(defun etaf-ui-gui-font-row-check (label &optional initialize)
+  "Check physical row heights and the unchanged neighboring tail at LABEL.
+INITIALIZE records the inherited reference row and tail position."
+  (let* ((runtime (etaf-ui-gui-runtime))
+         (window (selected-window))
+         (reference (etaf-host-ref-position runtime 'font-reference))
+         (tail (if initialize
+                   (etaf-host-ref-position runtime 'font-tail)
+                 (save-excursion
+                   (goto-char (point-min))
+                   (forward-line (1- etaf-ui-gui-font-tail-line))
+                   (point))))
+         reference-height tail-y heights)
+    (redisplay t)
+    (save-excursion
+      (goto-char reference)
+      (setq reference-height (line-pixel-height))
+      (setq tail-y (cdr (posn-x-y (or (posn-at-point tail window)
+                                     (error "Font fixture tail is offscreen")))))
+      (goto-char (window-start window))
+      (while (and (< (point) (point-max))
+                  (pos-visible-in-window-p (point) window))
+        (push (line-pixel-height) heights)
+        (forward-line 1)))
+    (when initialize
+      (setq etaf-ui-gui-font-baseline (cons reference-height tail-y)
+            etaf-ui-gui-font-tail-line (line-number-at-pos tail)))
+    (etaf-ui-gui-expect etaf-ui-gui-font-baseline "Missing font row baseline")
+    (etaf-ui-gui-expect
+     (cl-every (lambda (height) (<= height (car etaf-ui-gui-font-baseline))) heights)
+     "Control glyph expanded a physical row: standard=%s observed=%S"
+     (car etaf-ui-gui-font-baseline) (delete-dups (copy-sequence heights)))
+    (etaf-ui-gui-expect (= tail-y (cdr etaf-ui-gui-font-baseline))
+                        "Unchanged neighboring tail moved: %s -> %s"
+                        (cdr etaf-ui-gui-font-baseline) tail-y)
+    (push (list label :row-heights (delete-dups heights) :tail-y tail-y)
+          etaf-ui-gui-font-samples)))
+
+;;;###autoload
+(defun etaf-ui-font-gui-interactions-start ()
+  "Verify native control markers on the configured Emacs physical row grid."
+  (unless (display-graphic-p) (user-error "Font checks require a graphical frame"))
+  (when (active-minibuffer-window) (user-error "Finish the active minibuffer first"))
+  (setq etaf-ui-gui-buffer "*ETAF UI Font Acceptance*"
+        etaf-ui-gui-interactions nil
+        etaf-ui-gui-font-baseline nil
+        etaf-ui-gui-font-tail-line nil
+        etaf-ui-gui-font-samples nil)
+  (when-let* ((runtime (etaf-runtime-for-buffer etaf-ui-gui-buffer)))
+    (etaf-unmount runtime))
+  (let ((checked (etaf-ref nil)) (enabled (etaf-ref nil))
+        (radio (etaf-ref 'one)) (choice (etaf-ref 'one))
+        (tab (etaf-ref 'one)) (dialog (etaf-ref nil)))
+    (setq etaf-ui-gui-steps
+          (list
+           (cons "font-mount"
+                 (lambda ()
+                   (etaf-mount
+                    etaf-ui-gui-buffer
+                    (etaf-view
+                     (column :width '(vw 100) :height '(vh 100)
+                       (etaf-label :ref 'font-reference :text "Standard row")
+                       (etaf-checkbox :bind checked :label "Checkbox")
+                       (etaf-switch :bind enabled :label "Switch")
+                       (etaf-radio :bind radio :label "Radio"
+                                   :options '((one . "One") (two . "Two")))
+                       (etaf-select :bind choice :label "Select" :presentation 'dropdown
+                                    :options '((one . "First choice") (two . "Second choice")))
+                       (etaf-tabs :active tab :items '((:key one :label "First tab")
+                                                       (:key two :label "Second tab"))
+                                  :on-change (lambda (next) (etaf-set-value tab next)))
+                       (etaf-button :label "Open dialog"
+                                    :on-press (lambda () (etaf-set-value dialog t)))
+                       (etaf-label :ref 'font-tail :text "Unchanged neighboring row")
+                       (etaf-dialog :open dialog :title "Standard title"
+                                    :width '(ch 40) :height '(lh 6) :backdrop nil
+                                    :on-close (lambda () (etaf-set-value dialog nil))
+                         (etaf-label :text "Standard body")))))
+                   (etaf-ui-gui-font-row-check "mount" t)))
+           (cons "font-checkbox-keyboard"
+                 (lambda () (etaf-ui-gui-activate "Checkbox")
+                   (etaf-ui-gui-text "[x] Checkbox")
+                   (etaf-ui-gui-font-row-check "checkbox-keyboard")))
+           (cons "font-checkbox-mouse"
+                 (lambda () (etaf-ui-gui-mouse "Checkbox")
+                   (etaf-ui-gui-text "[ ] Checkbox")
+                   (etaf-ui-gui-font-row-check "checkbox-mouse")))
+           (cons "font-switch"
+                 (lambda () (etaf-ui-gui-activate "Switch")
+                   (etaf-ui-gui-text "[x] Switch")
+                   (etaf-ui-gui-font-row-check "switch")))
+           (cons "font-radio"
+                 (lambda () (etaf-ui-gui-activate "Two")
+                   (etaf-ui-gui-text "(o) Two")
+                   (etaf-ui-gui-font-row-check "radio")))
+           (cons "font-select-open"
+                 (lambda () (etaf-ui-gui-activate "Select")
+                   (etaf-ui-gui-text "* First choice")
+                   (etaf-ui-gui-font-row-check "select-open")))
+           (cons "font-select-choice"
+                 (lambda () (etaf-ui-gui-activate "Second choice")
+                   (etaf-ui-gui-text "Second choice v")
+                   (etaf-ui-gui-font-row-check "select-choice")))
+           (cons "font-tab"
+                 (lambda () (etaf-ui-gui-activate "Second tab")
+                   (etaf-ui-gui-text "* Second tab")
+                   (etaf-ui-gui-font-row-check "tab")))
+           (cons "font-dialog-open"
+                 (lambda () (etaf-ui-gui-activate "Open dialog")
+                   (etaf-ui-gui-text "Standard title")
+                   (etaf-ui-gui-font-row-check "dialog-open")))
+           (cons "font-dialog-close"
+                 (lambda () (etaf-ui-gui-activate "Close")
+                   (etaf-ui-gui-font-row-check "dialog-close"))))))
   (switch-to-buffer (get-buffer-create etaf-ui-gui-buffer))
   (run-at-time 0.1 nil #'etaf-ui-gui-next-step)
   'scheduled)

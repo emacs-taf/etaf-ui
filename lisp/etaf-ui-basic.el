@@ -204,7 +204,7 @@ Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
                (funcall callback (not (etaf-ui--reactive-value source))))))
       (box :class "etaf-checkbox-mark"
            :color (plist-get (etaf-ui--checkbox-variant-values disabled) :mark-color)
-           (text (expr (if (etaf-ui--reactive-value checked) "☑" "☐"))))
+           (text (expr (if (etaf-ui--reactive-value checked) "[x]" "[ ]"))))
       (text (expr
              (let ((value (etaf-ui--text-value label)))
                (if (string-empty-p value) "" (concat " " value))))))))
@@ -212,7 +212,7 @@ Non-nil BIND cannot be combined with explicit CHECKED or ON-CHANGE, even nil."
   (("&" :width max-content)
    ("&.disabled" :padding ((lh 0) (ch 0)))
    ("&.enabled" :padding ((lh 0) (ch 0)))
-   (".etaf-checkbox-mark" :font-weight bold :width (ch 1))))
+   (".etaf-checkbox-mark" :font-weight bold :width (ch 3))))
 
 (etaf-define-component etaf-panel (&key title variant)
   "Render a titled Panel with named header and default slots."

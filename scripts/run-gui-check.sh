@@ -5,7 +5,8 @@ emacsclient_bin=${EMACSCLIENT:-emacsclient}
 case "${1:-surfaces}" in
     surfaces) entry=etaf-ui-gui-interactions-start ;;
     gallery) entry=etaf-ui-gallery-gui-interactions-start ;;
-    *) printf '%s\n' 'usage: run-gui-check.sh [surfaces|gallery]' >&2; exit 2 ;;
+    fonts) entry=etaf-ui-font-gui-interactions-start ;;
+    *) printf '%s\n' 'usage: run-gui-check.sh [surfaces|gallery|fonts]' >&2; exit 2 ;;
 esac
 "$emacsclient_bin" --eval "(progn (load \"$root/scripts/etaf-ui-gui.el\" nil t t) ($entry))" >/dev/null
 end=$(( $(date +%s) + ${GUI_TIMEOUT:-90} ))

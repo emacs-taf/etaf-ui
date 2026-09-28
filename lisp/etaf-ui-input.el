@@ -279,7 +279,7 @@ forms.  Selection never opens the minibuffer."
           (etaf-node
            'etaf-button
            (list :id anchor :ref ref
-                 :label (concat (or caption placeholder) " ▾")
+                 :label (concat (or caption placeholder) " v")
                  :aria-label label :variant 'secondary
                  :class "etaf-select-anchor"
                  :disabled inactive
@@ -298,7 +298,7 @@ forms.  Selection never opens the minibuffer."
                 (etaf-node
                  'etaf-button
                  (list :key (cdr option)
-                       :label (concat (if selected "● " "  ") (cdr option))
+                       :label (concat (if selected "* " "  ") (cdr option))
                        :aria-label (cdr option)
                        :class (etaf-ui--class-value
                                "etaf-select-option" (if selected "selected" "unselected") nil)

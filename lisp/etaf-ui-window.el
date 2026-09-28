@@ -26,7 +26,8 @@
 The SVG circle fills with `currentColor', which Emacs resolves from the face
 foreground where the glyph is displayed.  The Host `:color' therefore paints
 the light, so an active-state change is a retained paint update rather than
-new Text content.  Display size and SVG availability select separate variants."
+new Text content.  Without SVG, one-cell ASCII marks inherit the same font
+as neighboring text. Display size and SVG availability select variants."
   (let* ((svg (and (display-graphic-p)
                    (fboundp 'image-type-available-p)
                    (image-type-available-p 'svg)))
@@ -34,7 +35,10 @@ new Text content.  Display size and SVG availability select separate variants."
          (variant (+ size (if svg 32 0)))
          (variants (gethash symbol etaf-ui--window-icon-cache)))
     (or (and variants (gethash variant variants))
-        (let ((text (copy-sequence symbol)))
+        (let ((text (copy-sequence
+                     (if svg symbol
+                       (pcase symbol
+                         ("⊗" "x") ("⊖" "-") ("⊕" "+") (_ "o"))))))
           (unless variants
             (setq variants (make-hash-table :test #'eql))
             (puthash symbol variants etaf-ui--window-icon-cache))
@@ -84,7 +88,7 @@ This stateless surface also supports pure rendering."
        :color (if (etaf-ui--reactive-value active)
                   color (etaf-ui--window-control-inactive-color))
        :background-color (etaf-ui--style-token :ui-window-title-bg)
-       :padding '((lh 0) (ch 0.30)) :font-size 14 :font-weight 'bold
+       :padding '((lh 0) (ch 0.30)) :font-weight 'bold
        :hover-group group
        :hover-content (etaf-ui--window-hover-icon hover-label)
        (text (expr (etaf-ui--window-hover-icon "⬤")))))
@@ -305,14 +309,15 @@ continuous background and bottom rule across the window's outer columns."
           (show-close t) (active t)
           on-minimize on-maximize on-restore on-close
           on-move (drag-lock-modifier 'shift)
-          (title-font-size 14) font-family group ref class use)
+          title-font-size font-family group ref class use)
   "Render a controlled window title bar and caller-owned action callbacks.
 
 ON-MOVE receives Ebox's gesture plist from the title bar.  The component does
 not change geometry; callers update their X/Y refs (or use an ETAF Behavior).
 MODE selects the Zoom action's transition and the chrome's mode class; a
 reactive MODE updates both without rebuilding the title bar.  Named `actions'
-and default slots are projected after the built-in controls."
+and default slots are projected after the built-in controls.  TITLE-FONT-SIZE
+is nil to inherit typography, or a positive CSS pixel size."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -335,8 +340,9 @@ and default slots are projected after the built-in controls."
                                '(shift control meta super hyper)))
                      "nil or a supported modifier" 'etaf-window-chrome)
     (etaf-check-prop :title-font-size title-font-size
-                     (and (numberp title-font-size) (> title-font-size 0))
-                     "a positive number" 'etaf-window-chrome)
+                     (or (null title-font-size)
+                         (and (numberp title-font-size) (> title-font-size 0)))
+                     "nil or a positive CSS pixel size" 'etaf-window-chrome)
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-window-chrome)
@@ -378,6 +384,7 @@ and default slots are projected after the built-in controls."
            :role 'heading :ref ref
            :width 'stretch
            :height '(lh 1) :z-index 30
+           :font-size title-font-size :font-family font-family
            :pointer 'hand :drag-lock-modifier drag-lock-modifier
            :align-items 'center :justify-content 'center
            :padding '((lh 0) (ch 0))
@@ -394,7 +401,7 @@ and default slots are projected after the built-in controls."
           (min-height '(lh 2)) max-height (resizable t)
           (resize-edges etaf-ui--window-resize-edges) resize-refs resize-use
           on-resize on-move header-style drag-lock-modifier
-          (font-size 14) font-family ref id class role use overflow)
+          font-size font-family ref id class role use overflow)
   "Render a controlled positioned panel with optional resize handles.
 
 X, Y, WIDTH, HEIGHT, Z-INDEX, visibility and CLASS are passed to Ebox as
@@ -408,7 +415,8 @@ RESIZE-EDGES is a list of edge/corner symbols.  The `header' slot, when
 supplied, owns the panel's first row between the corner cells; HEADER-STYLE
 presents those corner cells like the header so its background and rule stay
 closed across the row.  No geometry, constraints, z-order or interaction
-state is retained by this Component."
+state is retained by this Component.  FONT-SIZE is nil to inherit typography,
+or a positive CSS pixel size; FONT-FAMILY likewise inherits when nil."
   :validate
   (progn
     (etaf-check-prop :position position (memq position '(absolute relative))
@@ -448,8 +456,9 @@ state is retained by this Component."
                          (memq drag-lock-modifier '(shift control meta super hyper)))
                      "nil or a supported modifier" 'etaf-resizable-panel)
     (etaf-check-prop :font-size font-size
-                     (and (numberp font-size) (> font-size 0))
-                     "a positive number" 'etaf-resizable-panel)
+                     (or (null font-size)
+                         (and (numberp font-size) (> font-size 0)))
+                     "nil or a positive CSS pixel size" 'etaf-resizable-panel)
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-resizable-panel))
@@ -476,7 +485,7 @@ state is retained by this Component."
           :max-height (etaf-ui--reactive-value max-height)
           :color (plist-get theme :ui-window-fg)
           :background-color (plist-get theme :ui-window-bg)
-          :font-size font-size
+          :font-size font-size :font-family font-family
           :border (etaf-ui--style-border (plist-get theme :ui-window-border))
           :overflow (or overflow 'hidden) :ref ref :role (or role 'region)
           :on-drag on-move :use use :id id :drag-lock-modifier drag-lock-modifier
@@ -494,7 +503,7 @@ state is retained by this Component."
           resize-refs resize-use move-use
           on-move on-resize on-focus on-minimize on-maximize on-restore on-close
           (drag-lock-modifier 'shift)
-          (title-font-size 14) (content-font-size 14) font-family
+          title-font-size content-font-size font-family
           controls-group (controls-active t)
           (show-minimize t) (show-maximize t) (show-close t)
           ref id chrome-ref class use overflow)
@@ -508,6 +517,8 @@ content collapse as retained Host bindings without rebuilding the window; a
 title bar forwards ON-MOVE gestures; resize handles forward EDGE and gesture
 to ON-RESIZE.  DRAG-LOCK-MODIFIER applies to both the title and all resize
 handles; nil disables locking.  Action callbacks request a state transition.
+TITLE-FONT-SIZE and CONTENT-FONT-SIZE independently inherit when nil (the
+default), or accept positive CSS pixel sizes.  FONT-FAMILY inherits when nil.
 Slots are
 `header' (extra title-bar content), `actions' (extra title-bar actions),
 `default' (window body) and `footer'."
@@ -533,11 +544,13 @@ Slots are
                          (booleanp (etaf-ui--reactive-value controls-active)))
                      "a boolean" 'etaf-window)
     (etaf-check-prop :title-font-size title-font-size
-                     (and (numberp title-font-size) (> title-font-size 0))
-                     "a positive number" 'etaf-window)
+                     (or (null title-font-size)
+                         (and (numberp title-font-size) (> title-font-size 0)))
+                     "nil or a positive CSS pixel size" 'etaf-window)
     (etaf-check-prop :content-font-size content-font-size
-                     (and (numberp content-font-size) (> content-font-size 0))
-                     "a positive number" 'etaf-window)
+                     (or (null content-font-size)
+                         (and (numberp content-font-size) (> content-font-size 0)))
+                     "nil or a positive CSS pixel size" 'etaf-window)
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-window))
@@ -601,7 +614,8 @@ Slots are
                      (list (cons 'actions actions)))))
     (etaf-node 'etaf-resizable-panel
                (list :x x :y y :width width :height height :position 'absolute
-                     :font-size (max title-font-size content-font-size)
+                     :font-size (and title-font-size content-font-size
+                                     (max title-font-size content-font-size))
                      :font-family font-family
                      :z-index z-index :visible visible :min-width min-width
                      :max-width max-width :min-height min-height :max-height max-height

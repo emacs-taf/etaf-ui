@@ -105,7 +105,7 @@
               (etaf-ui-modern-test-activate runtime "Two")
               (should (eq selected 'two))
               (should (eq (etaf-value active) 'two))
-              (etaf-ui-modern-test-activate runtime "▸ Details")
+              (etaf-ui-modern-test-activate runtime "> Details")
               (should (equal (etaf-value open) '(details)))
               (should (string-match-p "More" (buffer-string)))
               (etaf-ui-modern-test-activate runtime "Home")

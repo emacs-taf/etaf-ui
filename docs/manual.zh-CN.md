@@ -144,6 +144,24 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 
 ## 受控面板与窗口
 
+面板和窗口默认继承所在环境的字体；没有上层显式覆盖时，使用 Emacs
+当前的默认字体。`etaf-resizable-panel` 的 `font-size`、
+`etaf-window-chrome` 的 `title-font-size`，以及 `etaf-window` 的
+`title-font-size` / `content-font-size` 接受 nil（继承）或正数 CSS
+参考像素。它不是 Emacs 的点数：16 CSS 像素等于 12 点。标题与正文
+独立继承，覆盖一侧不会改变另一侧的默认字号。标题控件以及正文中的
+标签、按钮、输入框和页脚继承各自区域的字体，应用显式样式仍可覆盖。
+`font-family` 同样默认为 nil；字符串值覆盖继承的字体族。
+
+定位窗口共享所在画布的物理文本行网格。显式字体必须满足画布的行高
+限制；Ebox 在发布前拒绝解析后行高更大的字体，保留此前已提交的画面
+和输入。相同 CSS 字号的自定义字形仍可能选择具有不同指标的后备字体，
+所以仅检查字号不能证明实际物理行高。参见 Ebox 手册的
+[定位组合契约](https://gitea.vhkd.top/geekinney/ebox/src/branch/main/docs/manual.zh-CN.md)。
+
+交通灯在 SVG 可用时使用受限于 frame 行高的图像；无 SVG 时使用继承
+字体的单格 ASCII `o`，悬停显示 `x`、`-`、`+`，保持同一组动作目标。
+
 `etaf-resizable-panel` 是定位面板的底层目录组件。`x`、`y`、`width`、
 `height`、`z-index`、`visible` 以及最小／最大约束会直接交给 Ebox，值可以
 是普通值、ref 或 computed。启用 `resizable` 和 `resize-edges` 后会生成边缘及
@@ -220,6 +238,12 @@ Escape 和关闭按钮调用 `on-close`，继续使用 ETAF 的焦点返回和�
 可使嵌套分割线与实际保留的间隔对齐；未传入时仍按 `:ratio` 定位。
 
 ## 基础控件
+
+内置状态标记使用 ASCII：Checkbox 和 Switch 显示 `[x]` / `[ ]`，Radio
+显示 `(o)` / `( )`，选中项用 `*`，展开状态用 `v` / `>`。标记继承控件
+字体，避免缺失符号字形触发较高的后备字体并撑高整条 Emacs 物理行。
+应用自行提供的文字仍可能触发后备字体；CSS 字号相同不能证明实际字形
+行高相同。
 
 
 Core 不会自动加载 `.etaf`。可选的 Playground 读取 inert 结构源，并显式加载

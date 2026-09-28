@@ -80,7 +80,7 @@ next expanded key list."
                   (branch (plist-get entry :branch))
                   (open (member key expanded))
                   (prefix (make-string (* 2 (plist-get entry :depth)) ?\s))
-                  (caption (concat prefix (if branch (if open "▾ " "▸ ") "  ")
+                  (caption (concat prefix (if branch (if open "v " "> ") "  ")
                                    (plist-get entry :label))))
              (etaf-view
               (etaf-button :label caption :variant (if open 'secondary 'ghost)

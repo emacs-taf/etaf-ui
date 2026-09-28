@@ -365,6 +365,26 @@
       "name": "etaf-ui-focus-scalar-props-preserve-renderable-snapshots",
       "file": "tests/etaf-ui-prepared-focus-tests.el",
       "purpose": "Controlled scalar props preserve matching rendered controls, canonical snapshots and fresh-mount appearance across focus changes."
+    },
+    {
+      "name": "etaf-ui-window-fonts-inherit-and-override-independently",
+      "file": "tests/etaf-ui-font-tests.el",
+      "purpose": "Window titles, controls, labels, buttons, inputs and footer inherit parent typography; title/body overrides are independent."
+    },
+    {
+      "name": "etaf-ui-panel-font-default-follows-buffer-face",
+      "file": "tests/etaf-ui-font-tests.el",
+      "purpose": "An unspecified panel size leaves Emacs default font height intact and an explicit family reaches rendered content."
+    },
+    {
+      "name": "etaf-ui-control-markers-keep-native-selection-behavior",
+      "file": "tests/etaf-ui-font-tests.el",
+      "purpose": "Checkbox, Switch and Radio ASCII marks preserve full labels and controlled values across native Return activation."
+    },
+    {
+      "name": "etaf-ui-traffic-lights-use-one-cell-ascii-without-svg",
+      "file": "tests/etaf-ui-font-tests.el",
+      "purpose": "Without SVG, one-cell ASCII traffic-light marks inherit the surrounding font, preserve hover widths and invoke the controlled close/minimize/zoom/restore actions."
     }
   ]
 }

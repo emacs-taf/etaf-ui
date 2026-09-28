@@ -113,7 +113,7 @@ arbitrary content anchored to a unique Host `:id`, and `etaf-dialog` for a
 modal form or task. These components compose the same Button, inputs and
 slots. Their supported props and lifecycle are listed in [the entry](../etaf-ui.el).
 Every floating surface shares one card anatomy: a one-row header with the
-title under a hairline (dialogs and drawers add a pointer-only ✕), a body
+title under a hairline (dialogs and drawers add a pointer-only x), a body
 padded by one row and two columns, and a right-aligned footer row that
 `etaf-dialog` ends with a secondary close button. For a settings form, pass a
 bounded `:height '(lh N)` and `:compact t` to `etaf-dialog`: it centers in
@@ -201,6 +201,25 @@ visible; it does not certify screenshot quality or foreground input latency.
 
 ## Controlled panels and windows
 
+Panels and windows inherit their surrounding typography by default, reaching
+Emacs's current default font when no parent supplies a font. `font-size` on
+`etaf-resizable-panel`, `title-font-size` on `etaf-window-chrome`, and
+`title-font-size` / `content-font-size` on `etaf-window` accept nil for
+inheritance or a positive number in CSS reference pixels. These are not
+Emacs point sizes: 16 CSS pixels corresponds to 12 points. A window's title
+and body inherit independently, so overriding one does not shrink the other.
+The title's controls, body labels, buttons, inputs and footer inherit their
+region's font unless the application explicitly styles them. `font-family`
+also defaults to nil; a string overrides the inherited family.
+
+Positioned windows share their containing canvas's physical text-row grid.
+Explicit font settings must fit that canvas's line height. Ebox rejects a
+larger resolved font before publication, preserving the last committed pixels
+and input. A custom glyph can still select a different fallback font at the
+same CSS size; checking the numeric size alone does not prove its physical
+row height. See the Ebox manual's [positioned composition contract](https://gitea.vhkd.top/geekinney/ebox/src/branch/main/docs/manual.md).
+
+
 `etaf-resizable-panel` is the low-level catalog shell for a positioned panel.
 `x`, `y`, `width`, `height`, `z-index`, `visible`, and the min/max constraints
 are passed to Ebox and may be ordinary values, refs, or computed values.  Set
@@ -220,7 +239,9 @@ on every geometry change.
 
 `etaf-window-controls` is the reusable macOS-style traffic-light component.
 Pass the same `group` to related instances to make Ebox update every hover
-glyph in one incremental batch. `etaf-window-chrome` composes that component
+glyph in one incremental batch. SVG lights fit the frame line; without SVG,
+one-cell ASCII `o` marks show `x`, `-` and `+` on hover, using the inherited
+text font and the same action targets. `etaf-window-chrome` composes that component
 with a centered title and controlled minimize,
 maximize/restore, and close buttons. The title bar forwards `on-move`
 gestures. `etaf-window` forwards its `drag-lock-modifier` to both the title
@@ -309,6 +330,13 @@ aligned with the allocated gap. Without it, the overlay follows `:ratio`.
 
 ## Basic controls
 
+Built-in state markers use ASCII: Checkbox and Switch show `[x]` / `[ ]`,
+Radio shows `(o)` / `( )`, selection uses `*`, and disclosure uses `v` / `>`.
+These marks inherit the control font; unlike missing symbol glyphs, they do
+not request a fallback symbol font with a taller physical text row. Explicit
+application text can still need fallback fonts: matching CSS font sizes alone
+does not prove equal glyph line heights.
+
 
 Core does not automatically load `.etaf` files. The optional Playground reads
 inert structural source and explicitly loads its registered Elisp companion;
@@ -348,7 +376,7 @@ are rejected when rendered. Errors identify the component and property.
 with the native minibuffer. `etaf-select` chooses a value from an ordinary
 alist, such as `((nil . "Pending") (t . "Done"))`, without the minibuffer:
 up to four options render as inline chips with the current one filled, more
-options render one `Caption ▾` anchor that opens a Popover listing every
+options render one `Caption v` anchor that opens a Popover listing every
 option; `:presentation 'chips` or `'dropdown` overrides the choice. Both use
 `:value` / `:on-change` or `:bind`, and `:hide-label` drops the caption when
 a grid form aligns labels in its own column. TAB reaches each pill; RET or a

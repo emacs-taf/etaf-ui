@@ -50,7 +50,7 @@ may be a value or ref; ON-CHANGE receives the selected key."
                          (selected (equal key active)))
                     (etaf-node 'etaf-button
                                (list :label (if selected
-                                                (concat "◆ " (plist-get item :label))
+                                                (concat "* " (plist-get item :label))
                                               (plist-get item :label))
                                      :variant (if selected 'secondary 'ghost)
                                      :aria-label (plist-get item :label)
@@ -93,7 +93,7 @@ section; ON-TOGGLE receives the next list of keys."
                                      'etaf-accordion)
                     (list
                      (etaf-node 'etaf-button
-                                (list :label (concat (if expanded "▾ " "▸ ")
+                                (list :label (concat (if expanded "v " "> ")
                                                      (plist-get item :label))
                                       :variant 'ghost
                                       :on-press
