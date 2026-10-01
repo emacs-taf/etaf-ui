@@ -353,7 +353,9 @@ Inside `etaf-view', use the component form with :name instead of NAME."
                    (minus . "-") (queue . "=") (lyrics . "T") (list . "=")
                    (music . "m") (settings . "*") (chevron-up . "^")
                    (chevron-down . "v") (chevron-left . "<") (chevron-right . ">")
-                   (check . "ok") (account . "u") (loading . "...")))
+                   (check . "ok") (account . "u") (loading . "...")
+                   (star . "*") (radio . "~") (disc . "o") (chart . "=")
+                   (mic . "!") (clock . "c")))
        (fonts
         `((nerd ("DroidSansMono Nerd Font" "DejaVuSansMono Nerd Font") 1.0 ,fa)
           (fa ("FontAwesome") 0.86 ,fa)
@@ -436,7 +438,13 @@ Inside `etaf-view', use the component form with :name instead of NAME."
            (chevron-right . "<path d='M5 3L9 7L5 11'/>")
            (check . "<path d='M2 7L5 10L12 3'/>")
            (account . "<circle cx='7' cy='4' r='2.5'/><path d='M2 13V11C2 6 12 6 12 11V13'/>")
-           (loading . "<path d='M7 2A5 5 0 1 1 2 7'/><path d='M2 4V2H4'/>") ))))
+           (loading . "<path d='M7 2A5 5 0 1 1 2 7'/><path d='M2 4V2H4'/>")
+           (star . "<path d='M7 1.5L8.6 5.4L12.5 7L8.6 8.6L7 12.5L5.4 8.6L1.5 7L5.4 5.4Z'/>")
+           (radio . "<circle cx='7' cy='7' r='1.6'/><path d='M3.5 10.5A5 5 0 0 1 3.5 3.5M10.5 3.5A5 5 0 0 1 10.5 10.5'/>")
+           (disc . "<circle cx='7' cy='7' r='5'/><circle cx='7' cy='7' r='1.4'/>")
+           (chart . "<path d='M2.5 12V8M5.5 12V4M8.5 12V6.5M11.5 12V2.5'/>")
+           (mic . "<rect x='5' y='2' width='4' height='6' rx='2'/><path d='M3.5 7A3.5 3.5 0 0 0 10.5 7M7 10.5V12.5M5 12.5H9'/>")
+           (clock . "<circle cx='7' cy='7' r='5'/><path d='M7 4.5V7.5L9.2 9.2'/>") ))))
 
 (provide 'etaf-ui-icon)
 ;;; etaf-ui-icon.el ends here

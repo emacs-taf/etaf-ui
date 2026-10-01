@@ -36,6 +36,9 @@
   Popover listing the options. `etaf-number-input` renders `−`/`+` steppers
   around its value pill and accepts `:hide-label`; `etaf-text-input` accepts
   `:hide-label`.
+- The shared `svg` icon set adds `star`, `radio`, `disc`, `chart`, `mic` and
+  `clock`, so applications can keep library and status surfaces in the same
+  line-icon style as their player controls.
 
 ### Changed
 
