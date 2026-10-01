@@ -242,11 +242,10 @@ BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
   :bindings ((rule (make-string 512 ?─)))
   :render
   (let* ((raw (etaf-ui--reactive-value value))
-         (top (list '% (round (/ (- 100 bar-height) 2.0))))
          (ratio (if (numberp raw)
                     (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
                   0.0))
-         (percent (list '% (round (* 100.0 ratio))))
+         (percent (list '% (* 100.0 ratio)))
          (report (lambda (gesture commit)
                    (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
                      (let ((next (etaf-ui--range-value-at-ratio ratio min max step)))
@@ -254,7 +253,7 @@ BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
                            (when on-commit (funcall on-commit next))
                          (when on-change (funcall on-change next))))))))
     (etaf-view
-     (row :class "etaf-range" :width 'stretch :height '(lh 1)
+     (flex :flex-direction 'row :class "etaf-range" :width 'stretch :height '(lh 1)
           :position 'relative :overflow 'hidden
           :role 'slider :tab-index (unless disabled 0)
           :aria-label (or label "Range")
@@ -267,13 +266,18 @@ BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
                         (lambda (gesture)
                           (funcall report gesture (eq (plist-get gesture :phase) 'end))))
           :ref ref :id (and ref (symbol-name ref))
-       (box :position 'absolute :left '(px 0) :top top
-            :width (list '% 100) :height (list '% bar-height) :overflow 'hidden
+       ;; The track is ordinary flow content: it gives the row its width and a
+       ;; measurable text span for pointer hit-testing and tests.
+       (box :height '(lh 1) :overflow 'hidden :flex-grow 1 :flex-basis '(px 0)
+            :min-width '(px 0)
             :color (or track-color (etaf-theme-token :ui-range-track "#C9CED6"))
-            :background-color (or track-color (etaf-theme-token :ui-range-track "#E9ECF0"))
          (text (expr rule)))
-       (box :position 'absolute :left '(px 0) :top top
-            :width percent :height (list '% bar-height) :overflow 'hidden
+       ;; The fill is an absolutely positioned Host: a prepared geometry update
+       ;; replaces its width without a View publication.  Flow children cannot
+       ;; be resized in place (their neighbours move), which is why the fill is
+       ;; an overlay painted above the track.
+       (box :position 'absolute :left '(px 0) :top '(lh 0)
+            :width percent :height '(lh 1) :overflow 'hidden
             :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
             :ref fill-ref :id (and fill-ref (symbol-name fill-ref))
          (text (expr rule)))))))
