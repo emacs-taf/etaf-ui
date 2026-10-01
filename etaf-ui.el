@@ -161,6 +161,12 @@
 ;;
 ;; Component: etaf-slider (&key value min max step label on-change disabled bind)
 ;; Render a controlled integer value within MIN..MAX aligned to STEP.
+;;
+;; Component: etaf-range (&key value min max step on-change on-commit disabled color track-color bar-height label ref fill-ref)
+;; Render a controlled interactive Range (progress, seek, volume) within MIN..MAX.
+;; ON-CHANGE reports intermediate values and ON-COMMIT the released one; the bar
+;; paints a Track and a percentage Fill inside one standard row. A prepared Ebox
+;; update replaces FILL-REF's width without republishing the View.
 
 ;; Component: etaf-input (&key type value label placeholder on-change disabled bind min max step)
 ;; Render one controlled native input. TYPE is text, password, email, url,
@@ -504,6 +510,78 @@
 ;; replaces only an existing example mount. Unmount or kill it to dispose.
 ;; This example is a GUI workload, not a performance certification.
 ;;
+;; Component: etaf-ui-icon (&key name set size color face lines min-width help-echo on-press id class ref)
+;; Render NAME in one standard row, or exactly two with :lines 2. SIZE defaults
+;; to 1.0 and is clamped within those rows; font ascent and descent must each
+;; fit the default baseline. MIN-WIDTH is in cells (default 2). ON-PRESS is a
+;; zero-argument callback on the complete box, with ordinary ETAF focus/events.
+;; FACE accepts a face name or plist; only foreground/background are used so
+;; caller typography cannot enlarge the icon. COLOR overrides its foreground.
+;; SVG uses currentColor and cached centered images. Two-row icons use slices
+;; of one SVG canvas, including SVG text for font sets. Without graphical SVG,
+;; reserve both rows and put a line-safe text variant in the first row.
+;; Resolve NAME in SET, then `etaf-ui-icon-default-set', then sys, then show
+;; the name as plain text (control/non-ASCII characters are escaped). Absent
+;; fonts/glyphs follow the same lookup; terminal font sets use text variants.
+;; An unknown explicitly requested/default set is a usage error, wrapped by
+;; ETAF during rendering. Invalid geometry/callback props fail before publish.
+;; Use (etaf-view (etaf-ui-icon :name 'play :set 'svg :on-press action)).
+;;
+;; Function: etaf-ui-icon (name &key set (size 1.0) color face (lines 1) (min-width 2) help-echo on-press id class ref)
+;;;###autoload (autoload 'etaf-ui-icon "etaf-ui" nil nil)
+;; Return the same typed icon View from ordinary Elisp with positional NAME.
+;; Pass it directly to etaf-mount, or use the Component's :name form in the DSL.
+;; The component contract above governs rendering, lookup and box ownership.
+;;
+;; Variable: etaf-ui-icon-default-set
+;; Registered fallback style, initially nerd. Bind or set it before rendering.
+;; Registry changes/default changes take effect on the next render; existing
+;; mounted values remain valid and are not implicitly rerendered.
+;;
+;; Function: etaf-ui-icon-set-register (name spec)
+;;;###autoload (autoload 'etaf-ui-icon-set-register "etaf-ui" nil nil)
+;; Register symbolic NAME with SPEC, replacing a previous registration, and
+;; return NAME. Font SPEC: :kind font, :family string, positive float :height
+;; relative to default, :glyphs alist of symbolic names to single glyphs.
+;; SVG SPEC: :kind svg, :viewbox four numbers with positive width/height,
+;; :paths alist of names to SVG bodies and/or :draw alist of names to nullary
+;; functions returning bodies, :inset nonnegative pixels (default 2). Bodies
+;; use currentColor; draw functions must be pure, and their output is cached.
+;; Optional :fallback alist supplies printable ASCII strings; absent entries
+;; display their name. Invalid specs signal user-error without replacement.
+;; Treat stored specs as immutable; re-register to invalidate cached variants.
+;; Font maps must contain actual glyphs, never substitute Unicode codepoints
+;; for missing icons. The GUI check enforces actual family/coverage for every
+;; registered name. Font sets share one face per frame/clamped size; SVG sets
+;; share one image sizing policy. No style-specific branches are needed.
+;;
+;; Function: etaf-ui-icon-set-remove (name)
+;;;###autoload (autoload 'etaf-ui-icon-set-remove "etaf-ui" nil nil)
+;; Remove NAME and invalidate cached variants; absent NAME is harmless.
+;; Return nil. Existing rendered values remain valid until the next render.
+;;
+;; Function: etaf-ui-icon-sets ()
+;;;###autoload (autoload 'etaf-ui-icon-sets "etaf-ui" nil nil)
+;; Return registered set names in registration order. Built-ins are nerd, fa,
+;; material, octicons, sys and svg. Their semantic coverage can differ.
+;;
+;; Function: etaf-ui-icon-set-spec (name)
+;;;###autoload (autoload 'etaf-ui-icon-set-spec "etaf-ui" nil nil)
+;; Return the stored immutable SPEC or nil for an unregistered NAME.
+;;
+;; Function: etaf-ui-icon-names (&optional set)
+;;;###autoload (autoload 'etaf-ui-icon-names "etaf-ui" nil nil)
+;; Return SET's own names, or the union of all sets when nil. This query never
+;; performs fallback lookup. Unknown non-nil SET signals user-error.
+;;
+;; Function: etaf-ui-icon-metrics (set &optional frame)
+;;;###autoload (autoload 'etaf-ui-icon-metrics "etaf-ui" nil nil)
+;; Return :family :height :line-pixel-height :line-height :fit for SET/FRAME
+;; before clamping. Font row metrics include default ascent/descent; missing
+;; fonts report nil pixel height/fit. In batch/TTY the declared relative height
+;; gives an estimate, not a font-availability guarantee. SVG reports its line
+;; box. FRAME defaults to selected-frame; an unknown SET signals user-error.
+
 ;;; Code:
 
 ;;;###autoload
@@ -516,6 +594,7 @@
                                       buffer-file-name)))))
 
 (require 'etaf-ui-basic)
+(require 'etaf-ui-icon)
 (require 'etaf-ui-input)
 (require 'etaf-ui-selection)
 (require 'etaf-ui-feedback)

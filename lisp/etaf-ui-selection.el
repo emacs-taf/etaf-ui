@@ -170,5 +170,113 @@ native prompt keeps editing accessible while the Component remains reusable."
                                            label step min max))
                              (funcall callback next)))))))))
 
+;;; ---------------------------------------------------------------------------
+;;; Range
+;;; ---------------------------------------------------------------------------
+
+(defun etaf-ui--range-ratio-at-gesture (gesture track)
+  "Return the pointer's fraction along GESTURE's TRACK Host, or nil.
+TRACK names the measured Host; GESTURE's own :host-ref is used when TRACK is
+nil, so a caller that omits the component's :ref still hit-tests the element
+the pointer pressed."
+  (let* ((window (plist-get gesture :window))
+         (buffer (or (plist-get gesture :buffer)
+                     (and (window-live-p window) (window-buffer window))))
+         (host (or track (plist-get gesture :host-ref)))
+         (xy (plist-get gesture :position))
+         (runtime (and buffer (etaf-runtime-for-buffer buffer)))
+         (bounds (and runtime host (etaf-host-ref-bounds runtime host))))
+    (when (and bounds (consp xy) (numberp (car xy)))
+      (with-current-buffer buffer
+        (let* ((start (car bounds))
+               (end (cdr bounds))
+               (origin (save-excursion (goto-char start) (line-beginning-position)))
+               ;; Pixel measurement still belongs to the engine layer; the
+               ;; ETAF wrapper lands with the framework measurement pass.
+               (left (ebox-string-pixel-width (buffer-substring origin start)))
+               (width (ebox-string-pixel-width (buffer-substring start end))))
+          (when (> width 0)
+            (max 0.0 (min 1.0 (/ (- (float (car xy)) left) width)))))))))
+
+(defun etaf-ui--range-value-at-ratio (ratio min max step)
+  "Return RATIO of the MIN..MAX span clamped to the bounds and snapped to STEP."
+  (let ((clamped (max min (min max (+ min (* ratio (- max min)))))))
+    (if (null step)
+        clamped
+      (let ((snapped (+ min (* step (fround (/ (- clamped min) (float step)))))))
+        (max min (min max (if (and (integerp min) (integerp max) (integerp step))
+                              (round snapped)
+                            snapped)))))))
+
+(etaf-define-component etaf-range
+    (&key value (min 0) (max 100) step on-change on-commit disabled
+          color track-color (bar-height 40) label ref fill-ref)
+  "Render an interactive horizontal RANGE: progress, seek or volume bar.
+
+VALUE is a number or reactive source within MIN..MAX, and is snapped to STEP
+when STEP is non-nil.  The range is controlled: it never stores the value.
+A pointer click reports the pointed value through ON-CHANGE and ON-COMMIT;
+dragging reports intermediate values through ON-CHANGE and the released value
+through ON-COMMIT.  Both callbacks receive one number.
+
+The bar paints a Track and a Fill as absolutely positioned Hosts inside one
+standard row, so it never changes the line height.  FILL-REF names the Fill
+Host and REF names the Track Host; a caller may prepare an Ebox update on
+FILL-REF and replace its `:width' percentage without republishing the View.
+BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
+  :validate
+  (progn
+    (etaf-check-prop :min min (numberp min) "a number" 'etaf-range)
+    (etaf-check-prop :max max (and (numberp max) (> max min))
+                     "a number greater than :min" 'etaf-range)
+    (etaf-check-prop :step step (or (null step) (and (numberp step) (> step 0)))
+                     "a positive number or nil" 'etaf-range)
+    (etaf-check-prop :bar-height bar-height (and (integerp bar-height) (> bar-height 0)
+                                                  (<= bar-height 100))
+                     "an integer percentage from 1 through 100" 'etaf-range)
+    (etaf-check-prop :on-change on-change (or (null on-change) (functionp on-change))
+                     "a function or nil" 'etaf-range)
+    (etaf-check-prop :on-commit on-commit (or (null on-commit) (functionp on-commit))
+                     "a function or nil" 'etaf-range)
+    (etaf-check-prop :disabled disabled (booleanp disabled) "a boolean" 'etaf-range))
+  :bindings ((rule (make-string 512 ?─)))
+  :render
+  (let* ((raw (etaf-ui--reactive-value value))
+         (top (list '% (round (/ (- 100 bar-height) 2.0))))
+         (ratio (if (numberp raw)
+                    (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
+                  0.0))
+         (percent (list '% (round (* 100.0 ratio))))
+         (report (lambda (gesture commit)
+                   (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
+                     (let ((next (etaf-ui--range-value-at-ratio ratio min max step)))
+                       (if commit
+                           (when on-commit (funcall on-commit next))
+                         (when on-change (funcall on-change next))))))))
+    (etaf-view
+     (row :class "etaf-range" :width 'stretch :height '(lh 1)
+          :position 'relative :overflow 'hidden
+          :role 'slider :tab-index (unless disabled 0)
+          :aria-label (or label "Range")
+          :disabled disabled
+          :on-press (and (not disabled)
+                         (lambda (gesture)
+                           (funcall report gesture nil)
+                           (funcall report gesture t)))
+          :on-drag (and (not disabled)
+                        (lambda (gesture)
+                          (funcall report gesture (eq (plist-get gesture :phase) 'end))))
+          :ref ref :id (and ref (symbol-name ref))
+       (box :position 'absolute :left '(px 0) :top top
+            :width (list '% 100) :height (list '% bar-height) :overflow 'hidden
+            :color (or track-color (etaf-theme-token :ui-range-track "#C9CED6"))
+            :background-color (or track-color (etaf-theme-token :ui-range-track "#E9ECF0"))
+         (text (expr rule)))
+       (box :position 'absolute :left '(px 0) :top top
+            :width percent :height (list '% bar-height) :overflow 'hidden
+            :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
+            :ref fill-ref :id (and fill-ref (symbol-name fill-ref))
+         (text (expr rule)))))))
+
 (provide 'etaf-ui-selection)
 ;;; etaf-ui-selection.el ends here

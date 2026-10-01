@@ -2,10 +2,10 @@
 .NOTPARALLEL:
 EMACS ?= emacs
 LOAD_PATH = -L . -L lisp -L ../etaf -L ../ebox -L ../ecss
-SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-input.el lisp/etaf-ui-selection.el lisp/etaf-ui-feedback.el lisp/etaf-ui-navigation.el lisp/etaf-ui-surface.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el lisp/etaf-ui-advanced.el lisp/etaf-ui-window.el lisp/etaf-ui-desktop.el etaf-ui.el
+SOURCES = lisp/etaf-ui-style.el lisp/etaf-ui-basic.el lisp/etaf-ui-icon.el lisp/etaf-ui-input.el lisp/etaf-ui-selection.el lisp/etaf-ui-feedback.el lisp/etaf-ui-navigation.el lisp/etaf-ui-surface.el lisp/etaf-ui-table.el lisp/etaf-ui-data.el lisp/etaf-ui-advanced.el lisp/etaf-ui-window.el lisp/etaf-ui-desktop.el etaf-ui.el
 
 TEST_FILES := $(wildcard tests/*-tests.el)
-SOURCES += $(wildcard examples/*.el) $(wildcard benchmarks/*.el) scripts/etaf-ui-gui.el
+SOURCES += $(wildcard examples/*.el) $(wildcard benchmarks/*.el) scripts/etaf-ui-gui.el tests/etaf-ui-icon-gui.el
 
 .PHONY: all compile check checkdoc load clean
 
@@ -30,15 +30,18 @@ check: structure-check compile acceptance api-check
 clean:
 	rm -f *.elc lisp/*.elc tests/*.elc examples/*.elc benchmarks/*.elc scripts/*.elc
 
-.PHONY: structure-check setup-hooks gui-check
+.PHONY: structure-check setup-hooks gui-check icon-check
 structure-check:
 	python3 scripts/check-repository.py
 setup-hooks:
 	git config --local core.hooksPath .githooks
 
 GUI_EXAMPLE ?= surfaces
-gui-check:
+gui-check: icon-check
 	scripts/run-gui-check.sh $(GUI_EXAMPLE)
+
+icon-check:
+	scripts/run-icon-check.sh
 
 PERF_ARGS ?=
 PERF_TOOL ?= ../scripts/performance.py

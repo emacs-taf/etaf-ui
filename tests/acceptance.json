@@ -13,6 +13,18 @@
   ],
   "support": [],
   "cases": [
+    {"name": "etaf-ui-icon-registry-replaces-removes-and-validates", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Icon registrations round-trip and replace specifications, reject invalid replacements atomically, and remove their own name/glyph inventory."},
+    {"name": "etaf-ui-icon-lookup-distinguishes-missing-name-and-set", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Partial maps resolve names through the requested/default style, preserve the provided inventory, show unknown names, and reject unknown styles."},
+    {"name": "etaf-ui-icon-svg-unavailable-has-printable-text-properties", "file": "tests/etaf-ui-icon-tests.el", "purpose": "SVG-unavailable rendering preserves the documented printable ASCII variant, text-property paint and default minimum width."},
+    {"name": "etaf-ui-icon-box-keeps-two-rows-width-and-full-target", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."},
+    {"name": "etaf-ui-icon-metrics-estimates-fit-without-gui", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Batch-safe metrics distinguish fitting from oversized declarations without requiring installed fonts or a graphical frame."},
+    {"name": "etaf-ui-icon-validates-box-and-supports-registered-draw", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Applications can add a draw-function SVG style entirely through registration; invalid sizing and callback props fail before rendering."},
+    {"name": "etaf-ui-range-registers-track-and-fill-hosts", "file": "tests/etaf-ui-range-tests.el", "purpose": "A mounted Range registers the Track and Fill Hosts that retained updates address."},
+    {"name": "etaf-ui-range-press-reports-change-and-commit", "file": "tests/etaf-ui-range-tests.el", "purpose": "A pointer click reports the pointed value through on-change and on-commit in that order."},
+    {"name": "etaf-ui-range-drag-reports-live-values-and-commits-on-release", "file": "tests/etaf-ui-range-tests.el", "purpose": "Dragging reports intermediate values, commits the released value and ignores a cancelled gesture."},
+    {"name": "etaf-ui-range-snaps-to-the-step-and-clamps-the-ends", "file": "tests/etaf-ui-range-tests.el", "purpose": "Pointer values snap to :step and never escape :min..:max."},
+    {"name": "etaf-ui-range-disabled-rejects-pointer-events", "file": "tests/etaf-ui-range-tests.el", "purpose": "A disabled Range dispatches no callback and rejects pointer events."},
+    {"name": "etaf-ui-range-validates-its-input", "file": "tests/etaf-ui-range-tests.el", "purpose": "Invalid numeric props fail before the Range paints."},
     {"name": "etaf-ui-prepared-resize-keeps-window-chrome-and-input", "file": "tests/etaf-ui-prepared-resize-tests.el", "purpose": "Controlled catalog window sizes retain title, eight handles, button targets, source snapshots and fresh-render output through prepared publication."},
     {"name": "etaf-ui-window-resize-example-uses-controlled-handles", "file": "tests/etaf-ui-prepared-resize-tests.el", "purpose": "The public catalog resize example updates controlled geometry and restores the original rectangle on cancellation."},
     {
