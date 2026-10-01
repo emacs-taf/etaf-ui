@@ -42,12 +42,12 @@
 
 ### Changed
 
-- `etaf-range` paints a track with an accent fill overlay that moves through
-  ETAF's retained Host geometry: a press or drag follows the pointer without a
-  View publication, so the caller only repaints once for its committed value.
-  The bar advertises the hand pointer.  This relies on the Ebox fix that keeps
-  absolutely positioned boxes in subtrees measured by viewport-relative flex
-  ancestors.
+- `etaf-range` is the minimal two-tone bar: the filled part paints in the
+  accent colour and the remaining track in its own, both as ordinary flow text
+  with flex ratios, so the split is visible in every context and the bar fills
+  its row.  A press or drag re-proportions the two parts through the
+  component's own ref before the caller's value arrives, and `:knob` adds an
+  optional one-cell handle.  The bar advertises the hand pointer.
 - Traffic-light controls use one-cell ASCII marks when SVG is unavailable,
   avoiding fallback symbol fonts with taller physical text rows.
 
