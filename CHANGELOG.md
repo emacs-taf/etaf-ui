@@ -42,6 +42,13 @@
 
 ### Changed
 
+- `etaf-range` is the minimal two-tone bar: the filled part paints in the
+  accent colour and the remaining track in its own, both as ordinary flow text,
+  so the split is visible even where an absolutely positioned overlay is not
+  painted.  A press or drag re-proportions the two parts through the
+  component's own ref before the caller's value arrives, painting once per
+  gesture step, and `:knob` adds an optional one-cell handle.  The bar
+  advertises the hand pointer.
 - Traffic-light controls use one-cell ASCII marks when SVG is unavailable,
   avoiding fallback symbol fonts with taller physical text rows.
 

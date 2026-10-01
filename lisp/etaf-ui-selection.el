@@ -210,7 +210,8 @@ the pointer pressed."
 
 (etaf-define-component etaf-range
     (&key value (min 0) (max 100) step on-change on-commit disabled
-          color track-color (bar-height 40) label ref fill-ref)
+          color track-color (bar-height 40) knob
+          label ref fill-ref)
   "Render an interactive horizontal RANGE: progress, seek or volume bar.
 
 VALUE is a number or reactive source within MIN..MAX, and is snapped to STEP
@@ -219,11 +220,15 @@ A pointer click reports the pointed value through ON-CHANGE and ON-COMMIT;
 dragging reports intermediate values through ON-CHANGE and the released value
 through ON-COMMIT.  Both callbacks receive one number.
 
-The bar paints a Track and a Fill as absolutely positioned Hosts inside one
-standard row, so it never changes the line height.  FILL-REF names the Fill
-Host and REF names the Track Host; a caller may prepare an Ebox update on
-FILL-REF and replace its `:width' percentage without republishing the View.
-BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
+The bar is the minimal two-tone range: the filled part paints in COLOR and the
+remaining track in TRACK-COLOR, both as ordinary flow text, so the split is
+always visible and never changes the line height.  A press or drag
+re-proportions the two parts through the component's own ref before the
+caller's value arrives, so the gesture still follows the pointer while a
+backend reply is pending.
+FILL-REF names the Fill Host and REF the Track Host for callers that measure
+them.  KNOB, when non-nil, paints a one-cell handle string on the boundary for
+a dot-style variant; the default minimal bar has none."
   :validate
   (progn
     (etaf-check-prop :min min (numberp min) "a number" 'etaf-range)
@@ -238,26 +243,41 @@ BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
                      "a function or nil" 'etaf-range)
     (etaf-check-prop :on-commit on-commit (or (null on-commit) (functionp on-commit))
                      "a function or nil" 'etaf-range)
+    (etaf-check-prop :knob knob (or (null knob) (stringp knob)) "a string or nil" 'etaf-range)
     (etaf-check-prop :disabled disabled (booleanp disabled) "a boolean" 'etaf-range))
-  :bindings ((rule (make-string 512 ?─)))
+  :bindings ((rule (make-string 512 ?─))
+             (drag (etaf-ref nil)))
   :render
   (let* ((raw (etaf-ui--reactive-value value))
-         (ratio (if (numberp raw)
-                    (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
-                  0.0))
-         (percent (list '% (* 100.0 ratio)))
+         (base (if (numberp raw)
+                   (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
+                 0.0))
+         ;; A gesture owns the painted position until the caller publishes the
+         ;; new value: the pair remembers the value the drag started from, so
+         ;; both an optimistic write and a backend reply take over immediately.
+         (live (etaf-value drag))
+         (ratio (if (and live (equal (cdr live) raw)) (car live) base))
+         (filled (max 0.0 (min 100.0 (* 100.0 ratio))))
+         ;; A press reports through both callbacks; remember the position this
+         ;; gesture already painted so it re-renders once, not twice.
+         (painted nil)
          (report (lambda (gesture commit)
                    (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
                      (let ((next (etaf-ui--range-value-at-ratio ratio min max step)))
+                       (unless (or (and live (equal (car live) ratio))
+                                   (equal painted ratio))
+                         (setq painted ratio)
+                         (setf (etaf-value drag) (cons ratio raw)))
                        (if commit
                            (when on-commit (funcall on-commit next))
                          (when on-change (funcall on-change next))))))))
     (etaf-view
      (flex :flex-direction 'row :class "etaf-range" :width 'stretch :height '(lh 1)
-          :position 'relative :overflow 'hidden
+          :overflow 'hidden
           :role 'slider :tab-index (unless disabled 0)
           :aria-label (or label "Range")
           :disabled disabled
+          :pointer 'hand
           :on-press (and (not disabled)
                          (lambda (gesture)
                            (funcall report gesture nil)
@@ -266,20 +286,24 @@ BAR-HEIGHT is the painted thickness as a percentage of that row (default 40)."
                         (lambda (gesture)
                           (funcall report gesture (eq (plist-get gesture :phase) 'end))))
           :ref ref :id (and ref (symbol-name ref))
-       ;; The track is ordinary flow content: it gives the row its width and a
-       ;; measurable text span for pointer hit-testing and tests.
-       (box :height '(lh 1) :overflow 'hidden :flex-grow 1 :flex-basis '(px 0)
-            :min-width '(px 0)
-            :color (or track-color (etaf-theme-token :ui-range-track "#C9CED6"))
-         (text (expr rule)))
-       ;; The fill is an absolutely positioned Host: a prepared geometry update
-       ;; replaces its width without a View publication.  Flow children cannot
-       ;; be resized in place (their neighbours move), which is why the fill is
-       ;; an overlay painted above the track.
-       (box :position 'absolute :left '(px 0) :top '(lh 0)
-            :width percent :height '(lh 1) :overflow 'hidden
+       ;; Filled part: ordinary flow text, so it always paints and the internal
+       ;; drag ref re-proportions it before the caller's value arrives.  The
+       ;; parts share the row through flex ratios instead of percentages,
+       ;; which resolve against the containing block rather than the range.
+       (box :flex-grow filled :flex-basis '(px 0) :min-width '(px 0)
+            :height '(lh 1) :overflow 'hidden
             :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
             :ref fill-ref :id (and fill-ref (symbol-name fill-ref))
+         (text (expr rule)))
+       ;; The handle sits exactly on the value boundary between fill and track.
+       (box :if knob :width '(ch 1) :flex-shrink 0 :height '(lh 1)
+            :text-align 'center :overflow 'hidden
+            :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
+         (text (expr knob)))
+       ;; Remaining track shares the rest of the row with the fill.
+       (box :flex-grow (- 100 filled) :flex-basis '(px 0) :min-width '(px 0)
+            :height '(lh 1) :overflow 'hidden
+            :color (or track-color (etaf-theme-token :ui-range-track "#C9CED6"))
          (text (expr rule)))))))
 
 (provide 'etaf-ui-selection)

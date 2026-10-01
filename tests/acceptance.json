@@ -13,20 +13,76 @@
   ],
   "support": [],
   "cases": [
-    {"name": "etaf-ui-icon-registry-replaces-removes-and-validates", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Icon registrations round-trip and replace specifications, reject invalid replacements atomically, and remove their own name/glyph inventory."},
-    {"name": "etaf-ui-icon-lookup-distinguishes-missing-name-and-set", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Partial maps resolve names through the requested/default style, preserve the provided inventory, show unknown names, and reject unknown styles."},
-    {"name": "etaf-ui-icon-svg-unavailable-has-printable-text-properties", "file": "tests/etaf-ui-icon-tests.el", "purpose": "SVG-unavailable rendering preserves the documented printable ASCII variant, text-property paint and default minimum width."},
-    {"name": "etaf-ui-icon-box-keeps-two-rows-width-and-full-target", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."},
-    {"name": "etaf-ui-icon-metrics-estimates-fit-without-gui", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Batch-safe metrics distinguish fitting from oversized declarations without requiring installed fonts or a graphical frame."},
-    {"name": "etaf-ui-icon-validates-box-and-supports-registered-draw", "file": "tests/etaf-ui-icon-tests.el", "purpose": "Applications can add a draw-function SVG style entirely through registration; invalid sizing and callback props fail before rendering."},
-    {"name": "etaf-ui-range-registers-track-and-fill-hosts", "file": "tests/etaf-ui-range-tests.el", "purpose": "A mounted Range registers the Track and Fill Hosts that retained updates address."},
-    {"name": "etaf-ui-range-press-reports-change-and-commit", "file": "tests/etaf-ui-range-tests.el", "purpose": "A pointer click reports the pointed value through on-change and on-commit in that order."},
-    {"name": "etaf-ui-range-drag-reports-live-values-and-commits-on-release", "file": "tests/etaf-ui-range-tests.el", "purpose": "Dragging reports intermediate values, commits the released value and ignores a cancelled gesture."},
-    {"name": "etaf-ui-range-snaps-to-the-step-and-clamps-the-ends", "file": "tests/etaf-ui-range-tests.el", "purpose": "Pointer values snap to :step and never escape :min..:max."},
-    {"name": "etaf-ui-range-disabled-rejects-pointer-events", "file": "tests/etaf-ui-range-tests.el", "purpose": "A disabled Range dispatches no callback and rejects pointer events."},
-    {"name": "etaf-ui-range-validates-its-input", "file": "tests/etaf-ui-range-tests.el", "purpose": "Invalid numeric props fail before the Range paints."},
-    {"name": "etaf-ui-prepared-resize-keeps-window-chrome-and-input", "file": "tests/etaf-ui-prepared-resize-tests.el", "purpose": "Controlled catalog window sizes retain title, eight handles, button targets, source snapshots and fresh-render output through prepared publication."},
-    {"name": "etaf-ui-window-resize-example-uses-controlled-handles", "file": "tests/etaf-ui-prepared-resize-tests.el", "purpose": "The public catalog resize example updates controlled geometry and restores the original rectangle on cancellation."},
+    {
+      "name": "etaf-ui-icon-registry-replaces-removes-and-validates",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "Icon registrations round-trip and replace specifications, reject invalid replacements atomically, and remove their own name/glyph inventory."
+    },
+    {
+      "name": "etaf-ui-icon-lookup-distinguishes-missing-name-and-set",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "Partial maps resolve names through the requested/default style, preserve the provided inventory, show unknown names, and reject unknown styles."
+    },
+    {
+      "name": "etaf-ui-icon-svg-unavailable-has-printable-text-properties",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "SVG-unavailable rendering preserves the documented printable ASCII variant, text-property paint and default minimum width."
+    },
+    {
+      "name": "etaf-ui-icon-box-keeps-two-rows-width-and-full-target",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."
+    },
+    {
+      "name": "etaf-ui-icon-metrics-estimates-fit-without-gui",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "Batch-safe metrics distinguish fitting from oversized declarations without requiring installed fonts or a graphical frame."
+    },
+    {
+      "name": "etaf-ui-icon-validates-box-and-supports-registered-draw",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "Applications can add a draw-function SVG style entirely through registration; invalid sizing and callback props fail before rendering."
+    },
+    {
+      "name": "etaf-ui-range-registers-track-and-fill-hosts",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "A mounted Range registers the Track and Fill Hosts that retained updates address."
+    },
+    {
+      "name": "etaf-ui-range-press-reports-change-and-commit",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "A pointer click reports the pointed value through on-change and on-commit in that order."
+    },
+    {
+      "name": "etaf-ui-range-drag-reports-live-values-and-commits-on-release",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "Dragging reports intermediate values, commits the released value and ignores a cancelled gesture."
+    },
+    {
+      "name": "etaf-ui-range-snaps-to-the-step-and-clamps-the-ends",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "Pointer values snap to :step and never escape :min..:max."
+    },
+    {
+      "name": "etaf-ui-range-disabled-rejects-pointer-events",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "A disabled Range dispatches no callback and rejects pointer events."
+    },
+    {
+      "name": "etaf-ui-range-validates-its-input",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "Invalid numeric props fail before the Range paints."
+    },
+    {
+      "name": "etaf-ui-prepared-resize-keeps-window-chrome-and-input",
+      "file": "tests/etaf-ui-prepared-resize-tests.el",
+      "purpose": "Controlled catalog window sizes retain title, eight handles, button targets, source snapshots and fresh-render output through prepared publication."
+    },
+    {
+      "name": "etaf-ui-window-resize-example-uses-controlled-handles",
+      "file": "tests/etaf-ui-prepared-resize-tests.el",
+      "purpose": "The public catalog resize example updates controlled geometry and restores the original rectangle on cancellation."
+    },
     {
       "name": "etaf-ui-window-chrome-uses-macos-traffic-lights",
       "file": "tests/etaf-ui-desktop-tests.el",
@@ -37,13 +93,41 @@
       "file": "tests/etaf-ui-desktop-tests.el",
       "purpose": "Traffic-light controls are independently reusable and share an explicit hover group."
     },
-    {"name": "etaf-ui-taskbar-and-workspace-bar-publish-controlled-actions", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Desktop navigation bars expose accessible controls whose selection remains caller-owned."},
-    {"name": "etaf-ui-desktop-bars-follow-selection-and-status-sources", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Ref and computed bar inputs update selection and status while retaining accessible input targets and supporting pure rendering."},
-    {"name": "etaf-ui-workspace-status-keeps-trailing-actions-visible", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Short, long, multiline and empty status values preserve a single-row region, full trailing labels and working action targets."},
-    {"name": "etaf-ui-workspace-layout-label-updates-as-prepared-text", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "A ref or computed layout label changes the control text within its fixed width while the runtime generation, bar geometry and action target stay retained."},
-    {"name": "etaf-ui-launcher-and-switcher-remain-controlled", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Launcher and switcher visibility, selection and dismissal remain controlled by the caller."},
-    {"name": "etaf-ui-splitter-projects-named-panes-and-divider", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "Splitter renders named panes and a keyboard-focusable divider that forwards gestures."},
-    {"name": "etaf-ui-splitter-overlay-uses-caller-rectangle", "file": "tests/etaf-ui-desktop-tests.el", "purpose": "An overlay splitter uses an exact caller-owned divider rectangle and forwards drag gestures."},
+    {
+      "name": "etaf-ui-taskbar-and-workspace-bar-publish-controlled-actions",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Desktop navigation bars expose accessible controls whose selection remains caller-owned."
+    },
+    {
+      "name": "etaf-ui-desktop-bars-follow-selection-and-status-sources",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Ref and computed bar inputs update selection and status while retaining accessible input targets and supporting pure rendering."
+    },
+    {
+      "name": "etaf-ui-workspace-status-keeps-trailing-actions-visible",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Short, long, multiline and empty status values preserve a single-row region, full trailing labels and working action targets."
+    },
+    {
+      "name": "etaf-ui-workspace-layout-label-updates-as-prepared-text",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "A ref or computed layout label changes the control text within its fixed width while the runtime generation, bar geometry and action target stay retained."
+    },
+    {
+      "name": "etaf-ui-launcher-and-switcher-remain-controlled",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Launcher and switcher visibility, selection and dismissal remain controlled by the caller."
+    },
+    {
+      "name": "etaf-ui-splitter-projects-named-panes-and-divider",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Splitter renders named panes and a keyboard-focusable divider that forwards gestures."
+    },
+    {
+      "name": "etaf-ui-splitter-overlay-uses-caller-rectangle",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "An overlay splitter uses an exact caller-owned divider rectangle and forwards drag gestures."
+    },
     {
       "name": "etaf-ui-window-keeps-geometry-and-mode-controlled",
       "file": "tests/etaf-ui-window-tests.el",
@@ -54,10 +138,26 @@
       "file": "tests/etaf-ui-window-tests.el",
       "purpose": "Title-bar and resize-handle gestures reach caller callbacks with their edge and phase payloads."
     },
-    {"name": "etaf-ui-resize-lock-confirms-every-edge-and-corner", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "All eight Window and standalone Panel handles accept locked resize at the confirming press and ignore subsequent motion and release positions."},
-    {"name": "etaf-ui-resize-lock-cancels-and-releases-active-targets", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "Escape cancels each locked resize handle once, clears active state and preserves the following command."},
-    {"name": "etaf-ui-resize-lock-nil-keeps-ordinary-release", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "Explicit nil and the standalone Panel default keep resize gestures ending at the first release."},
-    {"name": "etaf-ui-resize-lock-rejects-invalid-modifier", "file": "tests/etaf-ui-resize-lock-tests.el", "purpose": "Invalid lock modifiers are rejected through the public Component validation contract."},
+    {
+      "name": "etaf-ui-resize-lock-confirms-every-edge-and-corner",
+      "file": "tests/etaf-ui-resize-lock-tests.el",
+      "purpose": "All eight Window and standalone Panel handles accept locked resize at the confirming press and ignore subsequent motion and release positions."
+    },
+    {
+      "name": "etaf-ui-resize-lock-cancels-and-releases-active-targets",
+      "file": "tests/etaf-ui-resize-lock-tests.el",
+      "purpose": "Escape cancels each locked resize handle once, clears active state and preserves the following command."
+    },
+    {
+      "name": "etaf-ui-resize-lock-nil-keeps-ordinary-release",
+      "file": "tests/etaf-ui-resize-lock-tests.el",
+      "purpose": "Explicit nil and the standalone Panel default keep resize gestures ending at the first release."
+    },
+    {
+      "name": "etaf-ui-resize-lock-rejects-invalid-modifier",
+      "file": "tests/etaf-ui-resize-lock-tests.el",
+      "purpose": "Invalid lock modifiers are rejected through the public Component validation contract."
+    },
     {
       "name": "etaf-ui-resizable-panel-rejects-unknown-edge",
       "file": "tests/etaf-ui-window-tests.el",
