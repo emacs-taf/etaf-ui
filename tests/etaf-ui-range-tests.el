@@ -64,6 +64,24 @@ this batch contract covers the Host identities every retained update needs."
       (should (etaf-host-ref-bounds runtime 'range-track))
       (should (memq 'range-fill refs)))))
 
+(ert-deftest etaf-ui-range-fill-moves-through-retained-geometry ()
+  "A caller moves the Fill in place through ETAF's retained geometry update.
+The Fill is an absolutely positioned Host, so a playing position advances
+without publishing a new View."
+  (etaf-ui-range-test--with-range (entry :value 25 :ref 'range-track :fill-ref 'range-fill)
+    (pcase-let* ((`(,buffer . ,runtime) entry)
+                 (before (etaf-host-ref-bounds runtime 'range-fill))
+                 (generation (etaf-runtime-generation runtime)))
+      (should before)
+      (etaf-runtime-update-host-geometries
+       runtime (list (cons 'range-fill (list :width '(% 75)))))
+      (etaf-runtime-flush runtime)
+      (let ((after (etaf-host-ref-bounds runtime 'range-fill)))
+        (should (and after
+                     (> (- (cdr after) (car after))
+                        (- (cdr before) (car before)))))
+        (should (= (etaf-runtime-generation runtime) generation))))))
+
 (ert-deftest etaf-ui-range-press-reports-change-and-commit ()
   "A click reports the pointed value through on-change and on-commit."
   (let (events)

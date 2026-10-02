@@ -49,6 +49,11 @@
       "purpose": "A mounted Range registers the Track and Fill Hosts that retained updates address."
     },
     {
+      "name": "etaf-ui-range-fill-moves-through-retained-geometry",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "A caller grows the Fill through ETAF's retained geometry update without publishing a new View."
+    },
+    {
       "name": "etaf-ui-range-press-reports-change-and-commit",
       "file": "tests/etaf-ui-range-tests.el",
       "purpose": "A pointer click reports the pointed value through on-change and on-commit in that order."
