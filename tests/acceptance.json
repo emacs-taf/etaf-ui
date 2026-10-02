@@ -34,6 +34,11 @@
       "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."
     },
     {
+      "name": "etaf-ui-toggle-icon-switches-glyph-and-paint-through-value",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "A reactive toggle value switches the icon glyph and its paint in place while the box keeps its declared geometry, role and help text."
+    },
+    {
       "name": "etaf-ui-icon-metrics-estimates-fit-without-gui",
       "file": "tests/etaf-ui-icon-tests.el",
       "purpose": "Batch-safe metrics distinguish fitting from oversized declarations without requiring installed fonts or a graphical frame."

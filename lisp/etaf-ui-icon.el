@@ -333,6 +333,62 @@ Inside `etaf-view', use the component form with :name instead of NAME."
                    :lines lines :min-width min-width :help-echo help-echo
                    :on-press on-press :id id :class class :ref ref) nil))
 
+(etaf-define-component etaf-ui-toggle-icon
+    (&key value off on set (size 1.0) color on-color face (lines 1) (min-width 2)
+          help-echo on-press id class ref)
+  "Render OFF or ON as one icon that switches without a View publication.
+VALUE is a boolean or a reactive source.  Both variants are resolved while
+rendering; each row's text then reads VALUE directly, so a change publishes a
+retained Host text update instead of rebuilding the Component.  OFF and ON
+may name the same icon when only ON-COLOR differs, which turns a colour state
+such as shuffle or repeat into the same retained update.  ON-COLOR defaults
+to COLOR.  SET, SIZE, FACE, LINES, MIN-WIDTH, HELP-ECHO, ON-PRESS, ID, CLASS
+and REF match `etaf-ui-icon'.  The complete box is the ON-PRESS target.
+Keep the icon in a scene the framework can address for retained publication
+(for example inside an absolutely positioned panel); every other placement
+still renders correctly and simply falls back to an ordinary publication."
+  :render
+  (progn
+    (etaf-check-prop :size size (and (numberp size) (> size 0)) "a positive number" 'etaf-ui-toggle-icon)
+    (etaf-check-prop :lines lines (memq lines '(1 2)) "1 or 2" 'etaf-ui-toggle-icon)
+    (etaf-check-prop :min-width min-width (and (numberp min-width) (>= min-width 1))
+                     "at least one cell" 'etaf-ui-toggle-icon)
+    (etaf-check-prop :on-press on-press (or (null on-press) (functionp on-press))
+                     "a function or nil" 'etaf-ui-toggle-icon)
+    (etaf-check-prop :value value
+                     (or (etaf-ref-p value) (etaf-computed-p value) (booleanp value))
+                     "a boolean or a reactive source" 'etaf-ui-toggle-icon)
+    (let* ((off (etaf-ui--icon-name off))
+           (on (etaf-ui--icon-name on))
+           (paint (etaf-ui--icon-paint face color))
+           (off-values (etaf-ui--icon-content off set size lines paint))
+           (on-values (etaf-ui--icon-content on set size lines
+                                             (etaf-ui--icon-paint face (or on-color color)))))
+      (etaf-view
+       (column :id id :ref ref :class (etaf-ui--class-value "etaf-ui-icon" nil class)
+               :role (if on-press 'button 'img)
+               :aria-label (format "%s / %s" (symbol-name off) (symbol-name on))
+               :on-press on-press :tab-index (when on-press 0)
+               :help-echo help-echo
+               :width 'max-content :min-width (list 'ch min-width)
+               :height (list 'lh lines) :overflow 'hidden
+               :color (plist-get paint :foreground)
+               :background-color (plist-get paint :background)
+         (etaf-ui--toggle-icon-row :if (>= lines 1) :row 0
+                                  :value value :off off-values :on on-values)
+         (etaf-ui--toggle-icon-row :if (>= lines 2) :row 1
+                                  :value value :off off-values :on on-values))))))
+
+(etaf-define-component etaf-ui--toggle-icon-row
+    (&key row value off on)
+  "Render one centred toggle row: OFF or ON selected by VALUE.
+Internal sibling of `etaf-ui-toggle-icon'; its text reads VALUE directly so a
+change stays a retained Host update rather than a Component rerender."
+  :render
+  (etaf-view
+   (box :height '(lh 1) :width 'stretch :text-align 'center :overflow 'hidden
+     (text (expr (nth row (if (etaf-ui--reactive-value value) on off)))))))
+
 ;; Built-in maps contain only real glyphs.  A style is allowed to provide a
 ;; subset: for example the installed Octicons has no pause or music glyph.
 (let* ((fa '((play . "\uf04b") (pause . "\uf04c") (next . "\uf051")

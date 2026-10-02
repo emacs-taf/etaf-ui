@@ -4,6 +4,11 @@
 
 ### Added
 
+- `etaf-ui-toggle-icon` renders one icon that switches between two names, or
+  between two colours for one name, through retained Host text. A reactive
+  `:value` publishes a text update instead of rebuilding the view; keep it in
+  an absolutely positioned panel to use that retained path, and every other
+  placement still renders correctly through an ordinary publication.
 - `etaf-ui-window-resize-open` mounts a runnable catalog window whose title
   moves and whose eight handles resize through controlled Behaviors, with
   Shift-locked gestures and Escape restoring the starting rectangle.

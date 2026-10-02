@@ -533,6 +533,20 @@
 ;; Pass it directly to etaf-mount, or use the Component's :name form in the DSL.
 ;; The component contract above governs rendering, lookup and box ownership.
 ;;
+;; Component: etaf-ui-toggle-icon (&key value off on set size color on-color face lines min-width help-echo on-press id class ref)
+;; Render one icon that switches between OFF and ON through retained Host
+;; text instead of repainting the View. VALUE is a boolean or a reactive
+;; source; both variants resolve while rendering and each row then reads
+;; VALUE directly, so a change publishes a retained text update. OFF and ON
+;; may name the same icon when only ON-COLOR differs, which turns a colour
+;; state into the same retained update. ON-COLOR defaults to COLOR. SET,
+;; SIZE, FACE, LINES, MIN-WIDTH (cells, default 2), HELP-ECHO, ON-PRESS, ID,
+;; CLASS and REF match `etaf-ui-icon'; the complete box is the ON-PRESS
+;; target. Keep it in a scene the framework can address for retained
+;; publication (for example inside an absolutely positioned panel); other
+;; placements still render correctly through an ordinary publication.
+;; Use (etaf-view (etaf-ui-toggle-icon :value playing :off 'play :on 'pause)).
+;;
 ;; Variable: etaf-ui-icon-default-set
 ;; Registered fallback style, initially nerd. Bind or set it before rendering.
 ;; Registry changes/default changes take effect on the next render; existing

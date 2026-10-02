@@ -118,4 +118,58 @@
           (should-error (etaf-render (apply #'etaf-ui-icon 'play props)))))
     (etaf-ui-icon-set-remove 'test-draw)))
 
+(defun etaf-ui-icon-test--foregrounds (text position)
+  "Return the foreground colours recorded at POSITION in TEXT."
+  (let ((face (get-text-property position 'face text)))
+    (cl-loop for entry in (if (listp face) face (list face))
+             when (and (consp entry) (plist-get entry :foreground))
+             collect (plist-get entry :foreground))))
+
+(ert-deftest etaf-ui-toggle-icon-switches-glyph-and-paint-through-value ()
+  "A reactive VALUE switches both glyph and paint without remounting the box."
+  (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
+    (let ((buffer (generate-new-buffer " *etaf-ui-toggle-icon*"))
+          (playing (etaf-ref nil)))
+      (unwind-protect
+          (progn
+            (etaf-ui-icon-set-register
+             'test-toggle
+             '(:kind svg :viewbox [0 0 14 14] :paths ((stop . "<path/>") (play . "<path/>"))
+               :fallback ((stop . "S") (play . "P"))))
+            (etaf-mount
+             buffer
+             (etaf-view
+              (box :width '(ch 10) :height '(lh 2) :position 'relative
+                (box :position 'absolute :left '(px 0) :top '(lh 0)
+                     :width '(% 100) :height '(% 100) :z-index 0
+                  (etaf-ui-toggle-icon :value playing :off 'stop :on 'play
+                                       :set 'test-toggle :min-width 3 :color "#334455"
+                                       :on-color "#AA1122" :ref 'toggle :help-echo "Play/Pause")))))
+            (let* ((runtime (etaf-runtime-for-buffer buffer))
+                   (text (lambda () (with-current-buffer buffer (buffer-string))))
+                   (position-of (lambda (mark) (string-match mark (funcall text)))))
+              (let ((props (etaf-runtime-host-props-for runtime 'toggle)))
+                (should (equal (plist-get props :min-width) '(ch 3)))
+                (should (equal (plist-get props :height) '(lh 1)))
+                (should (eq (plist-get props :role) 'img))
+                (should (equal (plist-get props :help-echo) "Play/Pause"))
+                (should (equal (plist-get props :aria-label) "stop / play")))
+              (should (string-match-p "S" (funcall text)))
+              (should-not (string-match-p "P" (funcall text)))
+              (should (member "#334455"
+                              (etaf-ui-icon-test--foregrounds
+                               (funcall text) (funcall position-of "S"))))
+              (etaf-set-value playing t)
+              (should (string-match-p "P" (funcall text)))
+              (should-not (string-match-p "S" (funcall text)))
+              (should (member "#AA1122"
+                              (etaf-ui-icon-test--foregrounds
+                               (funcall text) (funcall position-of "P"))))
+              ;; A plain boolean is a settled variant, not a reactive source.
+              (should (equal (plist-get (etaf-runtime-host-props-for runtime 'toggle) :height)
+                             '(lh 1)))))
+        (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+        (kill-buffer buffer)
+        (etaf-ui-icon-set-remove 'test-toggle)))))
+
 ;;; etaf-ui-icon-tests.el ends here
