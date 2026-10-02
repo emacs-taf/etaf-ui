@@ -298,7 +298,7 @@ forms.  Selection never opens the minibuffer."
                 (etaf-node
                  'etaf-button
                  (list :key (cdr option)
-                       :label (concat (if selected "* " "  ") (cdr option))
+                       :label (cdr option)
                        :aria-label (cdr option)
                        :class (etaf-ui--class-value
                                "etaf-select-option" (if selected "selected" "unselected") nil)

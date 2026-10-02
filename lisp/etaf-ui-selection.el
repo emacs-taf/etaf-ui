@@ -120,7 +120,9 @@ the writable BIND ref owns the selected value; the Component owns no state."
            (let* ((key (car option)) (caption (cdr option))
                   (selected (equal key current)))
              (etaf-view
-              (etaf-button :label (if selected (concat "* " caption) caption)
+              ;; Selection is the button variant's job; a `* ' prefix would
+              ;; change the label width and jump the whole segment on switch.
+              (etaf-button :label caption
                            :aria-label caption
                            :variant (if selected 'secondary 'ghost)
                            :disabled disabled

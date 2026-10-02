@@ -383,7 +383,6 @@ crisp while the shell behind the picker is dimmed."
                (is-selected (and selected (equal key selected)))
                (caption (etaf-ui--desktop-item-caption item :label))
                (description (plist-get item :description))
-               (marker (cond (is-selected "* ") (t "  ")))
                (bg (if is-selected
                        (plist-get tokens :ui-button-secondary-bg)
                      (plist-get tokens :ui-picker-item-bg))))
@@ -409,7 +408,7 @@ crisp while the shell behind the picker is dimmed."
                    (list (etaf-node 'text
                                     (list :font-weight
                                           (if is-selected 'bold 'normal))
-                                    (list (concat marker caption))))
+                                    (list caption)))
                    (when description
                      (list (etaf-node
                             'text

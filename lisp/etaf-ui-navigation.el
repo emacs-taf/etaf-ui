@@ -48,10 +48,11 @@ may be a value or ref; ON-CHANGE receives the selected key."
                 (lambda (item)
                   (let* ((key (plist-get item :key))
                          (selected (equal key active)))
+                    ;; The active tab is shown by its variant and tokens, never
+                    ;; by a prefix glyph: a marker changes the label's width and
+                    ;; makes the whole strip shift on every switch.
                     (etaf-node 'etaf-button
-                               (list :label (if selected
-                                                (concat "* " (plist-get item :label))
-                                              (plist-get item :label))
+                               (list :label (plist-get item :label)
                                      :variant (if selected 'secondary 'ghost)
                                      :aria-label (plist-get item :label)
                                      :on-press (lambda () (funcall on-change key)))
