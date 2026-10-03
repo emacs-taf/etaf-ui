@@ -14,6 +14,16 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-tile-grid-controls-coordinates-and-retains-neighbors",
+      "file": "tests/etaf-ui-tile-grid-tests.el",
+      "purpose": "Coordinate callbacks activate the correct tile; local color/text writes preserve neighboring Host identity and geometry."
+    },
+    {
+      "name": "etaf-ui-tile-grid-read-only-and-invalid-input",
+      "file": "tests/etaf-ui-tile-grid-tests.el",
+      "purpose": "Read-only grids expose no activation callbacks and reject invalid dimensions, callback types and overflowing labels before publication."
+    },
+    {
       "name": "etaf-ui-icon-registry-replaces-removes-and-validates",
       "file": "tests/etaf-ui-icon-tests.el",
       "purpose": "Icon registrations round-trip and replace specifications, reject invalid replacements atomically, and remove their own name/glyph inventory."

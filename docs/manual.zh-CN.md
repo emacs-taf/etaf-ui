@@ -54,6 +54,32 @@ Gallery，不重置状态。如果页面来自上一次测量，先通过 emacsc
 操作顺序为 Actions 两次、Review 两次、More 两次、Review 两次。混合流程用于诊断，
 Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 
+## 受控格子网格
+
+`etaf-tile-grid` 可用于棋盘、热力图或座位图，不持有业务数据。行数、列数和
+格子宽度是正整数；坐标回调接收从零开始的行、列。`cell-text` 返回能装进
+固定字符宽度的单行文字。把 ref 的读取放在 `cell-background` 和 `cell-text`
+回调内，每个格子就保留自己的颜色和文字更新边界；相关写入用 `etaf-batch`。
+`cell-ref` 可提供显式的公共焦点和事件地址，不传时使用实例独立的引用。
+`on-cell-press` 同时用于点击和 TAB/RET；不传时网格只读。
+
+```elisp
+(let ((color (etaf-ref "#334155")))
+  (etaf-mount "*Tiles*"
+    (etaf-view
+      (etaf-tile-grid
+        :rows 6 :columns 12
+        :cell-background (lambda (row column)
+                           (if (and (= row 2) (= column 3))
+                               (etaf-value color) "#172033"))
+        :cell-text (lambda (_row _column) ".")
+        :on-cell-press (lambda (row column)
+                         (message "选择 %d,%d" row column))))))
+```
+
+定时器、搜索算法和数据保存归调用方所有。网格尺寸超过窗口时沿用正常的
+布局和视口处理。完整属性契约见[根入口](../etaf-ui.el)。
+
 ## 选择 `:view` 还是 `:render`
 
 两种写法都会返回同一种带类型的 ETAF View。通常应优先使用 `:view`：它用

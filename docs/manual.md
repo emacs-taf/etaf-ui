@@ -66,6 +66,36 @@ and leaves it mounted. Its sequence is Actions twice, Review twice, More twice,
 Review twice. Use these mixed operations for diagnosis; the separate Review and
 menu workloads keep their respective 50 ms and 100 ms acceptance budgets.
 
+## Controlled tile grids
+
+`etaf-tile-grid` projects a rectangular board, heatmap or seat map without
+owning its data. Dimensions are positive integers. Coordinate callbacks use
+zero-based row/column; text fits the fixed character width. Put ref reads inside
+`cell-background` and `cell-text`, not outside the grid in a parent render.
+Each cell then retains its own color/text dependency, and related writes can
+share one `etaf-batch`. Use `cell-ref` for explicit public focus/event addresses;
+omitted references are local to each mounted instance. Click and TAB/RET use
+`on-cell-press`; omit it for read-only heatmaps. Use ordinary Ebox flow/viewport
+handling when the board is larger than its containing window.
+
+```elisp
+(let ((color (etaf-ref "#334155")))
+  (etaf-mount "*Tiles*"
+    (etaf-view
+      (etaf-tile-grid
+        :rows 6 :columns 12
+        :cell-background (lambda (row column)
+                           (if (and (= row 2) (= column 3))
+                               (etaf-value color) "#172033"))
+        :cell-text (lambda (_row _column) ".")
+        :on-cell-press (lambda (row column)
+                         (message "Selected %d,%d" row column))))))
+```
+
+The grid supplies no animation scheduler, search algorithm or persisted board.
+Their lifecycle belongs to the consumer. The complete prop contract is in
+[the package entry](../etaf-ui.el).
+
 ## Choosing `:view` or `:render`
 
 Both forms return the same typed ETAF View. Use `:view` as the normal authoring

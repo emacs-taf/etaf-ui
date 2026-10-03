@@ -51,6 +51,19 @@
 ;; the control's handlers and subscriptions without owning the caller's ref.
 ;; Use inside (etaf-view (etaf-checkbox ...)); keyword arguments are component props.
 ;;
+;; Component: etaf-tile-grid (&key rows columns cell-width cell-background cell-text cell-ref on-cell-press)
+;; Render ROWS by COLUMNS fixed cells with stable coordinate identities.
+;; Dimensions and CELL-WIDTH (character columns, default 2) are positive integers.
+;; Optional callbacks take zero-based ROW and COLUMN. CELL-BACKGROUND returns
+;; a color or nil; CELL-TEXT returns one line fitting CELL-WIDTH (default space).
+;; Read caller refs inside those callbacks to retain property/text boundaries.
+;; ON-CELL-PRESS handles keyboard and mouse activation. Without it cells are
+;; read-only. CELL-REF returns a distinct supported Host reference per cell;
+;; omitted references are instance-local. Caller owns data and lifecycle;
+;; the grid does not run timers or maintain a second selection/board state.
+;; Invalid dimensions, callbacks or text signal etaf-component-call-error.
+;; Use (etaf-view (etaf-tile-grid :rows 8 :columns 12 ...)).
+;;
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
 ;; Render DATA CONTROLLER state through the public Component DSL.
 ;;
@@ -625,6 +638,7 @@
 (require 'etaf-ui-surface)
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
+(require 'etaf-ui-tile-grid)
 (require 'etaf-ui-advanced)
 (require 'etaf-ui-window)
 (require 'etaf-ui-desktop)

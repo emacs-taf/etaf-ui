@@ -4,6 +4,10 @@
 
 ### Added
 
+- `etaf-tile-grid` provides caller-controlled rectangular cells with stable
+  coordinate identities, local reactive color/text, and shared keyboard/mouse
+  activation. It contains no board state, algorithms or animation timers.
+
 - `etaf-ui-icon-lines` exposes the existing line-safe icon text resolver for
   retained text cells, without requiring a positioned icon overlay.
 
