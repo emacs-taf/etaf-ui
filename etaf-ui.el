@@ -533,6 +533,15 @@
 ;; Pass it directly to etaf-mount, or use the Component's :name form in the DSL.
 ;; The component contract above governs rendering, lookup and box ownership.
 ;;
+;; Function: etaf-ui-icon-lines (name &key set (size 1.0) color face (lines 1))
+;;;###autoload (autoload 'etaf-ui-icon-lines "etaf-ui" nil nil)
+;; Return owned propertized strings for one or two standard icon rows.
+;; Resolution, fallback and colouring match etaf-ui-icon. SIZE must be positive;
+;; LINES must be 1 or 2. Invalid names/sets follow the icon component contract.
+;; Resolve once in a Component binding and select these strings from retained
+;; Host text expressions instead of adding a positioned overlay. Returned
+;; strings are independent; shared image values must not be mutated.
+;;
 ;; Component: etaf-ui-toggle-icon (&key value off on set size color on-color face lines min-width help-echo on-press id class ref)
 ;; Render one icon that switches between OFF and ON through retained Host
 ;; text instead of repainting the View. VALUE is a boolean or a reactive

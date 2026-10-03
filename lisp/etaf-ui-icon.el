@@ -294,6 +294,17 @@ single centered canvas, sliced at standard row boundaries by the caller."
           (push value values)))
       (nreverse values))))
 
+(cl-defun etaf-ui-icon-lines (name &key set (size 1.0) color face (lines 1))
+  "Return owned propertized strings for icon NAME in LINES standard rows.
+SET, SIZE, COLOR and FACE use the same resolution as `etaf-ui-icon'. Resolve
+once in a Component binding, then choose the text in retained Host expressions
+without introducing an overlapping positioned icon. Images are shared and
+must not be mutated; each returned string can be changed independently."
+  (etaf-check-prop :size size (and (numberp size) (> size 0)) "a positive number" 'etaf-ui-icon-lines)
+  (etaf-check-prop :lines lines (memq lines '(1 2)) "1 or 2" 'etaf-ui-icon-lines)
+  (etaf-ui--icon-content (etaf-ui--icon-name name) set size lines
+                         (etaf-ui--icon-paint face color)))
+
 (etaf-define-component etaf-ui-icon
     (&key name set (size 1.0) color face (lines 1) (min-width 2)
           help-echo on-press id class ref)

@@ -57,7 +57,16 @@
       (should position)
       (should-not (get-text-property position 'display output))
       (should (get-text-property position 'face output))
-      (should (>= (string-width (car (split-string output "\n"))) 2)))))
+      (should (>= (string-width (car (split-string output "\n"))) 2)))
+    (let ((lines (etaf-ui-icon-lines 'play :set 'svg :lines 2 :color "#123456")))
+      (should (= 2 (length lines)))
+      (should (string-match-p ">" (car lines)))
+      (should (get-text-property 0 'face (car lines)))
+      (put-text-property 0 1 'test-owned t (car lines))
+      (should-not (get-text-property 0 'test-owned (car (etaf-ui-icon-lines 'play :set 'svg)))))
+    (should-error (etaf-ui-icon-lines 'play :lines 0))
+    (should-error (etaf-ui-icon-lines 'play :size 0))
+    (should-error (etaf-ui-icon-lines 'play :set 'never-a-set))))
 
 (ert-deftest etaf-ui-icon-box-keeps-two-rows-width-and-full-target ()
   "The two-row icon reserves both rows and a minimum-width pressable Host."

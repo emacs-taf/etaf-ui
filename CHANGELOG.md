@@ -4,6 +4,9 @@
 
 ### Added
 
+- `etaf-ui-icon-lines` exposes the existing line-safe icon text resolver for
+  retained text cells, without requiring a positioned icon overlay.
+
 - `etaf-ui-toggle-icon` renders one icon that switches between two names, or
   between two colours for one name, through retained Host text. A reactive
   `:value` publishes a text update instead of rebuilding the view; keep it in
