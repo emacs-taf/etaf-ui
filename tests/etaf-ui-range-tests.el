@@ -98,11 +98,12 @@ without publishing a new View."
 
 (ert-deftest etaf-ui-range-drag-reports-live-values-and-commits-on-release ()
   "Dragging reports intermediate values, commits at the end and drops a cancel."
-  (let (changes commits)
+  (let ((value (etaf-ref 0)) changes commits handler)
     (etaf-ui-range-test--with-range
-        (entry :value 0 :ref 'range-track :fill-ref 'range-fill
+        (entry :value value :ref 'range-track :fill-ref 'range-fill
                :on-change (lambda (value) (push value changes))
                :on-commit (lambda (value) (push value commits)))
+      (setq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag))
       (etaf-ui-range-test--dispatch entry 'range-track 'drag 0.25 'start)
       (etaf-ui-range-test--dispatch entry 'range-track 'drag 0.5 'move)
       (etaf-ui-range-test--dispatch entry 'range-track 'drag 0.6 'cancel)
@@ -111,7 +112,15 @@ without publishing a new View."
       (should (= (length changes) 3))
       (should (= (length commits) 1))
       (should (< (abs (- (car (last changes)) 25)) 1.5))
-      (should (< (abs (- (car commits) 75)) 1.5)))))
+      (should (< (abs (- (car commits) 75)) 1.5))
+      (etaf-runtime-flush (cdr entry))
+      (should (eq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag)))
+      (let ((before (etaf-host-ref-bounds (cdr entry) 'range-fill)))
+        (etaf-set-value value 20)
+        (etaf-runtime-flush (cdr entry))
+        (let ((after (etaf-host-ref-bounds (cdr entry) 'range-fill)))
+          (should (< (- (cdr after) (car after)) (- (cdr before) (car before))))))
+      (should (eq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag))))))
 
 (ert-deftest etaf-ui-range-snaps-to-the-step-and-clamps-the-ends ()
   "Pointer values snap to :step and never escape :min..:max."

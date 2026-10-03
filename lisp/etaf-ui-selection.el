@@ -250,26 +250,22 @@ percentage of the row (default 40)."
   :bindings ((rule (make-string 512 ?─))
              (drag (etaf-ref nil)))
   :render
-  (let* ((raw (etaf-ui--reactive-value value))
-         (base (if (numberp raw)
-                   (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
-                 0.0))
-         ;; A gesture owns the painted position until the caller publishes the
-         ;; new value: the pair remembers the value the drag started from, so
-         ;; both an optimistic write and a backend reply take over immediately.
-         (live (etaf-value drag))
-         (ratio (if (and live (equal (cdr live) raw)) (car live) base))
-         (filled (list '% (* 100.0 ratio)))
-         ;; A press reports through both callbacks; remember the position this
-         ;; gesture already painted so it re-renders once, not twice.
-         (painted nil)
+  (let* (;; Read controlled/drag sources inside the Host getter, not the
+         ;; Component render. A pointer move then changes only Fill geometry.
+         (filled (lambda ()
+                   (let* ((raw (etaf-ui--reactive-value value))
+                          (base (if (numberp raw)
+                                    (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
+                                  0.0))
+                          (live (etaf-value drag)))
+                     (list '% (* 100.0 (if (and live (equal (cdr live) raw)) (car live) base))))))
          (report (lambda (gesture commit)
                    (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
-                     (let ((next (etaf-ui--range-value-at-ratio ratio min max step)))
-                       (unless (or (and live (equal (car live) ratio))
-                                   (equal painted ratio))
-                         (setq painted ratio)
-                         (setf (etaf-value drag) (cons ratio raw)))
+                     (let* ((raw (etaf-ui--reactive-value value))
+                            (next (etaf-ui--range-value-at-ratio ratio min max step))
+                            (live (cons ratio raw)))
+                       (unless (equal (etaf-value drag) live)
+                         (etaf-set-value drag live))
                        (if commit
                            (when on-commit (funcall on-commit next))
                          (when on-change (funcall on-change next))))))))
@@ -298,7 +294,7 @@ percentage of the row (default 40)."
        ;; geometry, so a playing second or a drag step resizes one Host
        ;; instead of publishing a new View.
        (box :position 'absolute :left '(px 0) :top '(lh 0)
-            :width filled :height '(lh 1) :overflow 'hidden
+            :width (funcall filled) :height '(lh 1) :overflow 'hidden
             :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
             :ref fill-ref :id (and fill-ref (symbol-name fill-ref))
          (text (expr rule)))))))
