@@ -411,6 +411,7 @@ change stays a retained Host update rather than a Component rerender."
                    (chevron-down . "v") (chevron-left . "<") (chevron-right . ">")
                    (check . "ok") (account . "u") (loading . "...")
                    (more . "...")
+                   (download . "v")
                    (star . "*") (radio . "~") (disc . "o") (chart . "=")
                    (mic . "!") (clock . "c")))
        (fonts
@@ -502,7 +503,8 @@ change stays a retained Host update rather than a Component rerender."
            (chart . "<path d='M2.5 12V8M5.5 12V4M8.5 12V6.5M11.5 12V2.5'/>")
            (mic . "<rect x='5' y='2' width='4' height='6' rx='2'/><path d='M3.5 7A3.5 3.5 0 0 0 10.5 7M7 10.5V12.5M5 12.5H9'/>")
            (clock . "<circle cx='7' cy='7' r='5'/><path d='M7 4.5V7.5L9.2 9.2'/>")
-           (more . "<circle cx='3' cy='7' r='1.2' fill='currentColor'/><circle cx='7' cy='7' r='1.2' fill='currentColor'/><circle cx='11' cy='7' r='1.2' fill='currentColor'/>")))))
+           (more . "<circle cx='3' cy='7' r='1.2' fill='currentColor'/><circle cx='7' cy='7' r='1.2' fill='currentColor'/><circle cx='11' cy='7' r='1.2' fill='currentColor'/>")
+           (download . "<path d='M7 2V9M3.5 5.5L7 9L10.5 5.5M2 12H12'/>")))))
 
 (provide 'etaf-ui-icon)
 ;;; etaf-ui-icon.el ends here
