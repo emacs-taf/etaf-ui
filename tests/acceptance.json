@@ -94,6 +94,11 @@
       "purpose": "A disabled Range dispatches no callback and rejects pointer events."
     },
     {
+      "name": "etaf-ui-range-reactive-bound-reproportions-in-place",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "A reactive :max bound re-proportions the Fill without a Component re-render."
+    },
+    {
       "name": "etaf-ui-range-validates-its-input",
       "file": "tests/etaf-ui-range-tests.el",
       "purpose": "Invalid numeric props fail before the Range paints."

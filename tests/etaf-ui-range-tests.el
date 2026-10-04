@@ -120,7 +120,13 @@ without publishing a new View."
         (etaf-runtime-flush (cdr entry))
         (let ((after (etaf-host-ref-bounds (cdr entry) 'range-fill)))
           (should (< (- (cdr after) (car after)) (- (cdr before) (car before))))))
-      (should (eq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag))))))
+      (should (eq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag)))
+      ;; Display-only previews must not leave stale authored values behind:
+      ;; a later viewport refit still paints the controlled backend value.
+      (etaf-runtime-refit (cdr entry) 320 8)
+      (let ((track (cadr (etaf-ui-range-test--pixels entry 'range-track)))
+            (fill (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
+        (should (< (abs (- (/ (float fill) track) 0.2)) 0.02))))))
 
 (ert-deftest etaf-ui-range-snaps-to-the-step-and-clamps-the-ends ()
   "Pointer values snap to :step and never escape :min..:max."
@@ -141,6 +147,20 @@ without publishing a new View."
                :on-commit (lambda (value) (push value reported)))
       (should-error (etaf-ui-range-test--dispatch entry 'range-track 'press 0.5))
       (should (null reported)))))
+
+(ert-deftest etaf-ui-range-reactive-bound-reproportions-in-place ()
+  "A reactive :max re-proportions the Fill without a Component re-render.
+A duration source changes when the playing track changes; the Range clamps
+with the live bound so its caller never reads the source during render."
+  (let ((maximum (etaf-ref 200)))
+    (etaf-ui-range-test--with-range
+        (entry :value 50 :min 0 :max maximum :ref 'range-track :fill-ref 'range-fill)
+      (pcase-let* ((`(,buffer . ,runtime) entry)
+                   (before (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
+        (etaf-set-value maximum 100)
+        (etaf-runtime-flush runtime)
+        (let ((after (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
+          (should (< (abs (- after (* 2.0 before))) 4.0)))))))
 
 (ert-deftest etaf-ui-range-validates-its-input ()
   "Invalid numeric props fail before the Range paints."

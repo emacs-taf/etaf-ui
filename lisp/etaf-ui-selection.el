@@ -200,6 +200,10 @@ the pointer pressed."
           (when (> width 0)
             (max 0.0 (min 1.0 (/ (- (float (car xy)) left) width)))))))))
 
+(defun etaf-ui--range-bound-p (value)
+  "Return non-nil when VALUE is a static number or a reactive range bound."
+  (or (numberp value) (etaf-ref-p value) (etaf-computed-p value)))
+
 (defun etaf-ui--range-value-at-ratio (ratio min max step)
   "Return RATIO of the MIN..MAX span clamped to the bounds and snapped to STEP."
   (let ((clamped (max min (min max (+ min (* ratio (- max min)))))))
@@ -228,15 +232,19 @@ context, and the track gives the row its measurable width.  FILL-REF names that
 Fill Host (its `:id` mirrors the name); a caller may move it with
 `etaf-runtime-update-host-geometries' and a `:width' percentage without
 republishing the View, which is how a playing position advances in place.  A
-press or drag re-proportions the two parts through the component's own ref
+press or drag re-proportions the two parts through retained Host geometry
 before the caller's value arrives, so the gesture still follows the pointer
 while a backend reply is pending.  BAR-HEIGHT is the painted thickness as a
 percentage of the row (default 40)."
   :validate
   (progn
-    (etaf-check-prop :min min (numberp min) "a number" 'etaf-range)
-    (etaf-check-prop :max max (and (numberp max) (> max min))
-                     "a number greater than :min" 'etaf-range)
+    (etaf-check-prop :min min (etaf-ui--range-bound-p min) "a number or reactive source" 'etaf-range)
+    (etaf-check-prop :max max (etaf-ui--range-bound-p max)
+                     "a number or reactive source" 'etaf-range)
+    (let ((low (etaf-ui--reactive-value min)) (high (etaf-ui--reactive-value max)))
+      (when (and (numberp low) (numberp high))
+        (etaf-check-prop :max high (>= high low)
+                         "greater than or equal to :min" 'etaf-range)))
     (etaf-check-prop :step step (or (null step) (and (numberp step) (> step 0)))
                      "a positive number or nil" 'etaf-range)
     (etaf-check-prop :bar-height bar-height (and (integerp bar-height) (> bar-height 0)
@@ -248,30 +256,43 @@ percentage of the row (default 40)."
                      "a function or nil" 'etaf-range)
     (etaf-check-prop :disabled disabled (booleanp disabled) "a boolean" 'etaf-range))
   :bindings ((rule (make-string 512 ?─))
-             (drag (etaf-ref nil)))
+             (drag (list nil))
+             (fill-target (or fill-ref (gensym "etaf-range-fill-"))))
   :render
   (let* (;; Read controlled/drag sources inside the Host getter, not the
          ;; Component render. A pointer move then changes only Fill geometry.
+         ;; MIN and MAX follow the same contract: a reactive bound keeps a
+         ;; duration change on the retained width binding instead of
+         ;; subscribing this Component to the source.
          (filled (lambda ()
                    (let* ((raw (etaf-ui--reactive-value value))
-                          (base (if (numberp raw)
-                                    (max 0.0 (min 1.0 (/ (float (- raw min)) (- max min))))
+                          (low (etaf-ui--reactive-value min))
+                          (high (etaf-ui--reactive-value max))
+                          (span (and (numberp low) (numberp high) (- high low)))
+                          (base (if (and (numberp raw) span (> span 0))
+                                    (max 0.0 (min 1.0 (/ (float (- raw low)) span)))
                                   0.0))
-                          (live (etaf-value drag)))
+                          (live (car drag)))
                      (list '% (* 100.0 (if (and live (equal (cdr live) raw)) (car live) base))))))
          (report (lambda (gesture commit)
                    (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
                      (let* ((raw (etaf-ui--reactive-value value))
-                            (next (etaf-ui--range-value-at-ratio ratio min max step))
+                            (low (etaf-ui--reactive-value min))
+                            (high (etaf-ui--reactive-value max))
+                            (next (and (numberp low) (numberp high)
+                                       (etaf-ui--range-value-at-ratio ratio low high step)))
                             (live (cons ratio raw)))
-                       (unless (equal (etaf-value drag) live)
-                         (etaf-set-value drag live))
+                       (unless (equal (car drag) live)
+                         (setcar drag live)
+                         (when-let* ((runtime (etaf-current-runtime)))
+                           (etaf-runtime-update-host-geometries
+                            runtime (list (cons fill-target (list :width (list '% (* 100.0 ratio))))))))
                        (if commit
-                           (when on-commit (funcall on-commit next))
-                         (when on-change (funcall on-change next))))))))
+                           (when (and next on-commit) (funcall on-commit next))
+                         (when (and next on-change) (funcall on-change next))))))))
     (etaf-view
      (flex :flex-direction 'row :class "etaf-range" :width 'stretch :height '(lh 1)
-          :position 'relative :overflow 'hidden
+          :position 'relative :z-index 0 :overflow 'hidden
           :role 'slider :tab-index (unless disabled 0)
           :aria-label (or label "Range")
           :disabled disabled
@@ -286,17 +307,17 @@ percentage of the row (default 40)."
           :ref ref :id (and ref (symbol-name ref))
        ;; The track is ordinary flow content: it gives the row its width and a
        ;; measurable text span for pointer hit-testing and tests.
-       (box :height '(lh 1) :overflow 'hidden :flex-grow 1 :flex-basis '(px 0)
+       (box :height '(lh 1) :overflow 'hidden :wrap-mode 'none :flex-grow 1 :flex-basis '(px 0)
             :min-width '(px 0)
             :color (or track-color (etaf-theme-token :ui-range-track "#C9CED6"))
          (text (expr rule)))
        ;; The fill paints above the track and moves through its retained
        ;; geometry, so a playing second or a drag step resizes one Host
        ;; instead of publishing a new View.
-       (box :position 'absolute :left '(px 0) :top '(lh 0)
-            :width (funcall filled) :height '(lh 1) :overflow 'hidden
+       (box :position 'absolute :z-index 0 :left '(px 0) :top '(lh 0)
+            :width (funcall filled) :height '(lh 1) :overflow 'hidden :wrap-mode 'none
             :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
-            :ref fill-ref :id (and fill-ref (symbol-name fill-ref))
+            :ref fill-target :id (symbol-name fill-target)
          (text (expr rule)))))))
 
 (provide 'etaf-ui-selection)
