@@ -399,11 +399,6 @@
       "purpose": "Pending reads/writes, cancellation and failure retain accepted rows and actions with valid focus."
     },
     {
-      "name": "etaf-ui-text-input-shares-values-and-preserves-cancelled-drafts",
-      "file": "tests/etaf-ui-input-tests.el",
-      "purpose": "Text editing emits once, follows external updates and cancels on unmount."
-    },
-    {
       "name": "etaf-ui-select-maps-labels-to-controlled-values",
       "file": "tests/etaf-ui-input-tests.el",
       "purpose": "Selection preserves nil values, handles cancellation and disables empty lists."
@@ -567,6 +562,46 @@
       "name": "etaf-ui-traffic-lights-use-one-cell-ascii-without-svg",
       "file": "tests/etaf-ui-font-tests.el",
       "purpose": "Without SVG, one-cell ASCII traffic-light marks inherit the surrounding font, preserve hover widths and invoke the controlled close/minimize/zoom/restore actions."
+    },
+    {
+      "name": "etaf-ui-text-input-edits-the-application-buffer-in-place",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Activation edits the field's own buffer text; typing updates the controlled value and ending republishes it."
+    },
+    {
+      "name": "etaf-ui-text-input-cancel-restores-the-activation-value",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Cancelling restores the value captured at activation through the change callback."
+    },
+    {
+      "name": "etaf-ui-text-input-submits-on-return-for-one-row",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "A single-line field submits its text on Return and ends the session."
+    },
+    {
+      "name": "etaf-ui-text-input-multiline-inserts-newlines-until-submit",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "A multi-line field inserts newlines on Return and submits only explicitly."
+    },
+    {
+      "name": "etaf-ui-text-input-placeholder-is-never-the-value",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "The placeholder is display-only: editing starts from empty text and cancelling restores the placeholder."
+    },
+    {
+      "name": "etaf-ui-text-input-defers-publication-until-the-session-ends",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Changes elsewhere stay pending while the field owns part of the buffer and publish when the session ends."
+    },
+    {
+      "name": "etaf-ui-text-input-disabled-and-read-only-are-not-editable",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Disabled fields refuse activation and read-only fields stay focusable without opening a session."
+    },
+    {
+      "name": "etaf-ui-text-input-validates-props-and-unmounts-cleanly",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Invalid props report the component and property; unmount closes the session without losing accepted text."
     }
   ]
 }

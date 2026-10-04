@@ -16,7 +16,7 @@ ETAF View、props、slot、生命周期和 Ebox 宿主交互契约，因此可�
 | 桌面导航与平铺 | `etaf-taskbar`、`etaf-workspace-bar`、`etaf-launcher`、`etaf-switcher`、`etaf-splitter` | Ebox 焦点和 Host；调用方持有应用、窗口及布局状态 |
 | 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-tag`、`etaf-kbd`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton` | Ebox 文本和盒子绘制；调用方持有状态值 |
 | 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-context-menu`、`etaf-toast`、`etaf-dialog`、`etaf-drawer` | Ebox 锚点、分层、遮挡和共享面板焦点 |
-| 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-input`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
+| 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
 | 导航与集合 | `etaf-tabs`、`etaf-accordion`、`etaf-breadcrumb`、`etaf-steps`、`etaf-tree` | Ebox flow 和焦点；ETAF 发布调用方持有的选择回调 |
 | 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination`、`etaf-list`、`etaf-avatar`、`etaf-timeline`、`etaf-calendar` | ETAF Data Controller 和 Ebox 保留行 |
 | 高级组合 | `etaf-date-picker`、`etaf-command-palette` | 复用输入和 Dialog/List；调用方持有值和关闭状态 |
@@ -112,10 +112,11 @@ View 或合法的 View 序列。
 这不是两套渲染模型，而是编译边界：两者使用同一套 props、slot、保留身份
 以及 Ebox 宿主生命周期。
 
-表单需要统一输入契约时使用 `etaf-input`。它通过 `:type` 选择 `text`、
-`password`、`email`、`url`、数字或 ISO 日期；所有类型都使用相同的 `:bind`
-或 `value`/`on-change`。`etaf-text-input` 和 `etaf-number-input` 仍作为
-两个常用场景的可读特化入口。
+`etaf-text-input` 是目录里唯一的文本字段：`:bind` 或 `value`/`:on-change`
+提供受控字符串，`:rows` 区分单行输入与多行文本区。激活后直接编辑该字段
+在应用 buffer 里的已发布文本，输入法、光标、选区和撤销都是原生的，
+不打开 minibuffer、frame 或额外窗口。`etaf-number-input` 与
+`etaf-date-picker` 是同一值契约在数字和 ISO 日期上的特化。
 
 ## 浮层与模态组合
 
@@ -325,7 +326,13 @@ Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`�
 指定时 `:min` 不能大于 `:max`。无效配置在初始化或新 props 发布前拒绝，
 无效实时值在渲染时拒绝，错误会指出组件和属性。
 
-`etaf-text-input` 使用原生 minibuffer 编辑字符串，`etaf-select` 从普通 alist
+`etaf-text-input` 原地显示值：激活后在已发布文本上开启原生编辑会话，
+输入法、光标、选区和撤销由 Emacs 管理，值仍归应用。单行字段按 RET 提交；
+Shift+RET 与 C-j 换行；C-c C-c 或 Ctrl+Return 提交；Escape、C-c C-k 和
+C-g 取消并恢复激活时的值。会话期间发布会推迟，结束后用接受的值重新发布。
+`etaf-text-input-begin`、`etaf-text-input-end` 与 `etaf-text-input-active-p`
+可用于程序化控制会话。
+`etaf-select` 从普通 alist
 选择值，例如 `((nil . "进行中") (t . "已完成"))`。两者使用 `:value`／
 `:on-change` 或 `:bind`，组合相同的 Button 入口。TAB 到达入口，RET 或鼠标
 打开原生输入；`C-g` 取消且不触发修改回调或附加的 press 观察者。关闭后焦点

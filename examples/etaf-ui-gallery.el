@@ -310,8 +310,8 @@
              (etaf-panel :title "Studio preferences" :flex-grow 2
                          :flex-basis '(ch 60) :min-width '(px 0)
                (etaf-label :text "Make this space yours." :variant 'muted)
-               (etaf-input :type 'text :bind workspace :label "Studio name")
-               (etaf-input :type 'number :bind capacity :label "Project capacity" :min 1 :max 24)
+               (etaf-text-input :bind workspace :label "Studio name")
+               (etaf-number-input :bind capacity :label "Project capacity" :min 1 :max 24)
                (etaf-switch :bind notifications :label "Live notifications")
                (etaf-segmented :bind density
                                :options '((compact . "Compact") (cozy . "Cozy") (airy . "Airy")))
@@ -342,7 +342,7 @@
       (etaf-dialog :open dialog :title "Make something new" :close-label "Cancel"
                    :on-close (lambda () (setf (etaf-value dialog) nil))
         (etaf-label :text "Give your next idea a home." :variant 'muted)
-        (etaf-input :type 'text :bind project-name :label "Project name")
+        (etaf-text-input :bind project-name :label "Project name")
         (etaf-select :bind project-type :label "Collection"
                      :options '((brand . "Brand system") (product . "Product") (notes . "Studio notes")))
         (etaf-button :label "Create project" :on-press

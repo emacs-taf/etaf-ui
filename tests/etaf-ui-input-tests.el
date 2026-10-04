@@ -44,47 +44,6 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
-(ert-deftest etaf-ui-text-input-shares-values-and-preserves-cancelled-drafts ()
-  "Text editing emits once, follows external updates and cancels on unmount."
-  (let ((buffer (generate-new-buffer " *text-input*"))
-        (value (etaf-ref "原始标题")) (disabled (etaf-ref nil)) observed)
-    (unwind-protect
-        (progn
-          (etaf-mount
-           buffer
-           (etaf-view
-            (column
-             (etaf-text-input :ref 'title :value value :label "标题"
-                              :disabled (etaf-value disabled)
-                              :on-change (lambda (next)
-                                           (setf (etaf-value value) next)
-                                           (push next observed)))
-             (etaf-text-input :ref 'explicit :bind value :label "镜像"))))
-          (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (cl-letf (((symbol-function 'read-string)
-                       (lambda (_prompt initial &rest _) (should (equal initial "原始标题")) "中文新标题")))
-              (etaf-dispatch-event runtime 'title 'press))
-            (should (equal observed '("中文新标题")))
-            (should (eq (etaf-focused-host-ref runtime) 'title))
-            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) (signal 'quit nil))))
-              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'title 'press)
-                                      (quit 'cancelled)))))
-            (should (equal observed '("中文新标题")))
-            (should (equal (etaf-value value) "中文新标题"))
-            (setf (etaf-value value) "外部修改")
-            (should (string-match-p "镜像.*外部修改" (with-current-buffer buffer (buffer-string))))
-            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "")))
-              (etaf-dispatch-event runtime 'explicit 'press))
-            (should (equal (etaf-value value) ""))
-            (setf (etaf-value disabled) t)
-            (should-error (etaf-dispatch-event runtime 'title 'press) :type 'etaf-event-error)
-            (cl-letf (((symbol-function 'read-string) (lambda (&rest _) (etaf-unmount runtime) "discard")))
-              (should (eq 'cancelled (condition-case nil (etaf-dispatch-event runtime 'explicit 'press)
-                                      (quit 'cancelled)))))
-            (should (equal (etaf-value value) ""))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
 (defun etaf-ui-input-test--control (runtime label)
   "Find the visible control with LABEL in RUNTIME's public Host properties."
   (car (cl-find-if

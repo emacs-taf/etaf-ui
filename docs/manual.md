@@ -17,7 +17,7 @@ View, props, slots, lifecycle and Ebox host interaction contracts.
 | Desktop navigation and tiling | `etaf-taskbar`, `etaf-workspace-bar`, `etaf-launcher`, `etaf-switcher`, `etaf-splitter` | Ebox focus and Hosts; caller owns applications, windows and layout state |
 | Feedback and status | `etaf-label`, `etaf-badge`, `etaf-tag`, `etaf-kbd`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton` | Ebox text and box paint; caller owns the status value |
 | Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-context-menu`, `etaf-toast`, `etaf-dialog`, `etaf-drawer` | Ebox anchor/layer/occlusion plus shared panel focus |
-| Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-input`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
+| Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
 | Navigation and collections | `etaf-tabs`, `etaf-accordion`, `etaf-breadcrumb`, `etaf-steps`, `etaf-tree` | Ebox flow and focus; ETAF publishes caller-owned selection callbacks |
 | Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination`, `etaf-list`, `etaf-avatar`, `etaf-timeline`, `etaf-calendar` | ETAF Data Controller and Ebox retained rows |
 | Advanced composition | `etaf-date-picker`, `etaf-command-palette` | Shared input and Dialog/List composition; caller owns values and dismissal |
@@ -130,10 +130,13 @@ same DSL while using ordinary Elisp for a conditional and a list traversal;
 This is a compiler boundary, not a second rendering model: both definitions
 participate in the same props, slots, retained identity and Ebox host lifecycle.
 
-Use `etaf-input` when a form needs one shared field contract. Its `:type`
-selects `text`, `password`, `email`, `url`, `number` or ISO `date`; `:bind` or
-`value`/`on-change` remains the same for every type. `etaf-text-input` and
-`etaf-number-input` remain readable convenience names for the common cases.
+`etaf-text-input` is the catalog's one text field: `:bind` or `value`/
+`on-change` supplies the controlled string, and `:rows` selects a single-line
+input or a text area. Activation edits the field's own published text in the
+application buffer, so input methods, point, selection and undo stay native
+with no minibuffer, frame or extra window. `etaf-number-input` and
+`etaf-date-picker` specialize the same value contract for numbers and ISO
+dates.
 
 ## Floating content and modal composition
 
@@ -442,8 +445,15 @@ when both are present, `:min` must not exceed `:max`. Invalid configuration is
 rejected before initialization or updated props publish; invalid live values
 are rejected when rendered. Errors identify the component and property.
 
-`etaf-text-input` shows the current string as a pill that reads a new value
-with the native minibuffer. `etaf-select` chooses a value from an ordinary
+`etaf-text-input` renders its value in place: activating it opens a native
+editing session over that text, so Emacs owns input methods, point, selection
+and undo while the application keeps the value. Return submits a single-row
+field; Shift+Return and C-j insert newlines; C-c C-c or Ctrl+Return submits;
+Escape, C-c C-k and C-g cancel and restore the activation value. Publication
+stays deferred while the session is active and the accepted value republishes
+when it ends. `etaf-text-input-begin`, `etaf-text-input-end` and
+`etaf-text-input-active-p` drive sessions programmatically.
+`etaf-select` chooses a value from an ordinary
 alist, such as `((nil . "Pending") (t . "Done"))`, without the minibuffer:
 up to four options render as inline chips with the current one filled, more
 options render one `Caption v` anchor that opens a Popover listing every

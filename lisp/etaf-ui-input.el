@@ -80,71 +80,6 @@ Each item has a unique scalar :key, nonempty string :label and optional
   (and (stringp value)
        (string-match-p "\\`[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\'" value)))
 
-(etaf-define-component etaf-input
-    (&key (type 'text) (value etaf-ui--unsupplied) (label "Input")
-          placeholder (on-change etaf-ui--unsupplied) disabled bind min max step)
-  "Render one controlled native INPUT specialized by TYPE.
-TYPE is one of `text', `password', `email', `url', `number' or `date'.
-VALUE/ON-CHANGE or writable BIND owns the value; MIN, MAX and STEP apply to
-number inputs.  Date values use ISO `YYYY-MM-DD' strings."
-  :validate
-  (progn
-    (etaf-check-prop :type type (memq type '(text password email url number date))
-                     "text, password, email, url, number or date" 'etaf-input)
-    (etaf-check-prop :label label (stringp label) "a string" 'etaf-input)
-    (etaf-check-prop :placeholder placeholder (or (null placeholder) (stringp placeholder))
-                     "a string or nil" 'etaf-input)
-    (etaf-check-prop :min min (or (null min) (numberp min)) "a number or nil" 'etaf-input)
-    (etaf-check-prop :max max (or (null max) (numberp max)) "a number or nil" 'etaf-input)
-    (etaf-check-prop :max max (or (null min) (null max) (<= min max))
-                     "nil or a bound greater than or equal to :min" 'etaf-input)
-    (etaf-check-prop :step step (or (null step) (numberp step)) "a number or nil" 'etaf-input))
-  :render
-  (let* ((input (etaf-ui--controlled-input 'etaf-input :value bind value on-change))
-         (current (etaf-ui--reactive-value (car input)))
-         (callback (cdr input))
-         (display (if (or (null current) (equal current ""))
-                      (or placeholder "—")
-                    (if (eq type 'password) "••••••" (format "%s" current))))
-         (prompt (format "%s: " label)))
-    (etaf-check-prop :value current
-                     (pcase type
-                       ('number (or (null current) (numberp current)))
-                       (_ (or (null current) (stringp current))))
-                     "a value compatible with :type" 'etaf-input)
-    (etaf-view
-     (etaf-button
-      :label (format "%s %s" label display)
-      :aria-label label :disabled disabled :variant 'secondary
-      :width 'stretch :padding '((lh 0) (ch 1))
-      :on-press
-      (and (not disabled)
-           (lambda ()
-             (let ((next
-                    (etaf-call-with-input
-                     (lambda ()
-                       (pcase type
-                         ('number (read-number prompt (or current 0)))
-                         ('password (read-passwd prompt))
-                         (_ (read-string prompt (or current ""))))))))
-               (when (eq type 'date)
-                 (unless (etaf-ui--input-date-p next)
-                   (user-error "%s must use YYYY-MM-DD" label)))
-               (when (eq type 'email)
-                 (unless (and (stringp next) (string-match-p "@" next))
-                   (user-error "%s must contain @" label)))
-               (when (eq type 'number)
-                 (unless (and (numberp next)
-                              (or (null min) (>= next min))
-                              (or (null max) (<= next max))
-                              (or (null step) (zerop (% (- next (or min 0)) step))))
-                   (user-error "%s is outside its numeric constraints" label)))
-               (when callback (funcall callback next)))))
-      (flex :column-gap '(ch 2) :flex-wrap 'wrap
-        (etaf-label :text label :variant 'muted :width '(ch 20))
-        (etaf-label :text display :variant 'strong
-                    :flex-grow 1 :min-width '(px 0) :wrap-mode 'word))))))
-
 (defun etaf-ui--input-field (label hide-label controls &optional ref)
   "Return one field row holding LABEL and CONTROLS.
 A field is a single row: a muted caption unless HIDE-LABEL, then the
@@ -163,40 +98,6 @@ non-nil, names the row itself."
                        (list :text label :variant 'muted :class "etaf-field-label")
                        nil)))
     controls)))
-
-(etaf-define-component etaf-text-input
-    (&key (value etaf-ui--unsupplied) (label "Text") (placeholder "—")
-          (on-change etaf-ui--unsupplied) disabled bind hide-label ref)
-  "Edit a controlled string through a value pill.
-Use VALUE/ON-CHANGE or writable ref BIND.  Nil VALUE displays PLACEHOLDER.
-Pressing the pill reads the new text natively; REF names that pill.
-HIDE-LABEL omits the caption for callers that align labels in their own column."
-  :render
-  (let* ((input (etaf-ui--controlled-input 'etaf-text-input :value bind value on-change))
-         (current (etaf-ui--reactive-value (car input)))
-         (callback (cdr input)))
-    (etaf-check-prop :value current (or (null current) (stringp current))
-                     "a string or nil" 'etaf-text-input)
-    (etaf-check-prop :label label (stringp label) "a string"
-                     'etaf-text-input)
-    (etaf-check-prop :placeholder placeholder (stringp placeholder)
-                     "a string" 'etaf-text-input)
-    (etaf-ui--input-field
-     label hide-label
-     (list
-      (etaf-node
-       'etaf-button
-       (list :ref ref
-             :label (if (or (null current) (equal current "")) placeholder current)
-             :aria-label label :disabled disabled :variant 'secondary
-             :class "etaf-text-input-value"
-             :on-press
-             (unless disabled
-               (lambda ()
-                 (let ((next (etaf-call-with-input
-                              (lambda () (read-string (concat label ": ") (or current ""))))))
-                   (when callback (funcall callback next))))))
-       nil)))))
 
 (defconst etaf-ui--select-chip-limit 4
   "Largest option count that `etaf-select' presents as inline chips.")

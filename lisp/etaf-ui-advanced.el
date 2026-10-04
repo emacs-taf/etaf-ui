@@ -15,14 +15,34 @@
 (require 'etaf-ui-table)
 
 (etaf-define-component etaf-date-picker
-    (&key (value etaf-ui--unsupplied) (label "Date")
+    (&key (value etaf-ui--unsupplied) (label "Date") (placeholder "YYYY-MM-DD")
           (on-change etaf-ui--unsupplied) disabled bind)
-  "Render a semantic DATE-PICKER through the shared date input boundary."
+  "Render a semantic DATE-PICKER on the catalog's native text field.
+The controlled value is an ISO `YYYY-MM-DD' string or nil.  Editing is native
+and in place: typing a partial date keeps the last accepted value, and
+submitting rejects an invalid date with a readable error instead of writing
+it."
   :render
-  (etaf-node 'etaf-input
-             (list :type 'date :value value :label label :disabled disabled
-                   :on-change on-change :bind bind)
-             nil))
+  (let* ((input (etaf-ui--controlled-input 'etaf-date-picker :value bind value on-change))
+         (current (etaf-ui--reactive-value (car input)))
+         (callback (cdr input)))
+    (etaf-check-prop :value current
+                     (or (null current)
+                         (and (stringp current) (etaf-ui--input-date-p current)))
+                     "nil or an ISO YYYY-MM-DD string" 'etaf-date-picker)
+    (etaf-node
+     'etaf-text-input
+     (list :value (or current "") :label label :placeholder placeholder
+           :disabled disabled
+           :on-change
+           (lambda (text)
+             (when (or (equal text "") (etaf-ui--input-date-p text))
+               (when callback (funcall callback (if (equal text "") nil text)))))
+           :on-submit
+           (lambda (text)
+             (unless (or (equal text "") (etaf-ui--input-date-p text))
+               (user-error "%s must use YYYY-MM-DD" label))))
+     nil)))
 
 (defun etaf-ui--tree-items (items expanded)
   "Validate all ITEMS and return visible entries under EXPANDED keys."

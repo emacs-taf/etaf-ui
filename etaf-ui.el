@@ -144,19 +144,47 @@
 ;; reentrant replacement signal user-error; observer errors leave accepted
 ;; text intact. Native hooks still run, and this mode observes the final value.
 ;;
-;; Component: etaf-text-input (&key value label placeholder on-change disabled bind hide-label ref)
-;; Edit a controlled string through a value pill that reads with `read-string'.
-;; REF names the pill; HIDE-LABEL omits the muted caption.  Nil VALUE is empty.
-;; LABEL defaults to "Text"; PLACEHOLDER defaults to "—" for empty values.
-;; Both must be strings. VALUE may also be a ref/computed holding string or nil.
-;; ON-CHANGE receives the accepted string, including empty input. Use :bind
-;; for a writable ref under Checkbox's conflict and ownership rules.
-;; Application validation belongs in ON-CHANGE or in the form's draft logic.
-;; The Button entry supports TAB, RET and mouse activation. Native Emacs owns
-;; editing and quit; Ebox owns focus return and retained target validity.
-;; Cancel, error or invalidated ownership emits neither change nor observer.
-;; Invalid props signal `etaf-view-error' identifying the Component/property.
-;; Use inside (etaf-view (etaf-text-input ...)); no explicit Host ref is needed.
+;; Function: etaf-text-input-begin (runtime ref)
+;;;###autoload (autoload 'etaf-text-input-begin "etaf-ui" nil nil)
+;; Begin native editing of mounted text input REF in RUNTIME and return it, or
+;; nil when REF is unknown, disabled or already editing. Activation calls this
+;; from the field's own callback; call it directly to focus a composer or open
+;; a grid cell. Editing another field in the same buffer finishes the previous
+;; session first. While a session is active the Runtime defers publication.
+;;
+;; Function: etaf-text-input-end (&optional cancel)
+;;;###autoload (autoload 'etaf-text-input-end "etaf-ui" nil nil)
+;; Finish the active text input and return its user text, or nil when none is
+;; active. CANCEL restores the value captured at activation through the change
+;; callback; otherwise the accepted text stays the application's value. The
+;; field's :on-submit (or :on-cancel) runs with the text and the Runtime then
+;; publishes every deferred change.
+;;
+;; Function: etaf-text-input-active-p (&optional runtime)
+;;;###autoload (autoload 'etaf-text-input-active-p "etaf-ui" nil nil)
+;; Return the text input currently editing in RUNTIME, or nil. RUNTIME defaults
+;; to the active field's Runtime, so the query works from any buffer.
+;;
+;; Component: etaf-text-input (&key value bind on-change label placeholder rows width disabled read-only submit-on-return on-submit on-cancel completion-functions keymap hide-label ref)
+;; Edit text directly in the application's layout. VALUE/ON-CHANGE or a
+;; writable BIND supplies the controlled string; ROWS (default 1) sets the
+;; minimum visible lines, so one Component covers single-line inputs and text
+;; areas. LABEL defaults to "Text" and HIDE-LABEL omits its muted caption.
+;; PLACEHOLDER (default "") shows while the value is empty and never becomes
+;; its content. Activation starts a native editing session over the field's own
+;; published text, so input methods, point, selection and undo stay native with
+;; no minibuffer, frame or extra window. Return submits when
+;; :submit-on-return is non-nil (default for one row); Shift+Return and C-j
+;; insert a newline; C-c C-c and Ctrl+Return submit; C-c C-k, Escape and C-g
+;; cancel and restore the activation value; TAB/backtab finish and move
+;; application focus; M-TAB completes.
+;; ON-SUBMIT and ON-CANCEL receive the session text. READ-ONLY stays focusable
+;; without a session; DISABLED also removes activation. COMPLETION-FUNCTIONS
+;; configures CAPF during the session and KEYMAP adds field-local bindings.
+;; Publication stays deferred while editing and republishes the accepted value
+;; when the session ends. Invalid props signal contextual `etaf-view-error'.
+;; Use inside (etaf-view (etaf-text-input ...)); companion functions above drive
+;; it programmatically.
 ;;
 ;; Component: etaf-menu (&key label items on-select disabled)
 ;; Render a Button opening native completion for an action. LABEL defaults to
@@ -215,10 +243,6 @@
 ;; MIN/MAX accept numbers or reactive sources. Live bounds are checked by the
 ;; retained Fill getter; invalid bounds reject publication until corrected.
 
-;; Component: etaf-input (&key type value label placeholder on-change disabled bind min max step)
-;; Render one controlled native input. TYPE is text, password, email, url,
-;; number or date; specialized input components use the same value contract.
-;;
 ;; Component: etaf-pagination (&key controller previous-ref next-ref previous-label next-label class color bgcolor border padding aria-label)
 ;; Render a controlled pager whose callbacks follow its committed CONTROLLER.
 ;; PREVIOUS-LABEL and NEXT-LABEL override the complete Button captions.
@@ -484,8 +508,11 @@
 ;; Each row composes one Button with title/description content. ON-SELECT is
 ;; optional; no selection state is created by the List.
 ;;
-;; Component: etaf-date-picker (&key value label on-change disabled bind)
-;; Semantic date input backed by `etaf-input' and its ISO date contract.
+;; Component: etaf-date-picker (&key value label placeholder on-change disabled bind)
+;; Semantic date input on the catalog's native text field. The controlled
+;; value is an ISO `YYYY-MM-DD' string or nil; typing a partial date keeps the
+;; last accepted value and submitting rejects an invalid date with a readable
+;; error instead of writing it.
 ;;
 ;; Component: etaf-tree (&key items expanded on-toggle on-select)
 ;; Render nested items with caller-owned expanded keys and selection callbacks.
@@ -666,6 +693,7 @@
 (require 'etaf-ui-basic)
 (require 'etaf-ui-icon)
 (require 'etaf-ui-input)
+(require 'etaf-ui-field)
 (require 'etaf-ui-editor)
 (require 'etaf-ui-selection)
 (require 'etaf-ui-feedback)
