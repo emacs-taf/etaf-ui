@@ -584,6 +584,11 @@
       "purpose": "A multi-line field inserts newlines on Return and submits only explicitly."
     },
     {
+      "name": "etaf-ui-text-input-shift-return-keeps-editing-in-session",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Shift+Return inserts a newline without electric indentation escaping the session."
+    },
+    {
       "name": "etaf-ui-text-input-placeholder-is-never-the-value",
       "file": "tests/etaf-ui-field-tests.el",
       "purpose": "The placeholder is display-only: editing starts from empty text and cancelling restores the placeholder."

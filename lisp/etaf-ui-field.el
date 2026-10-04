@@ -17,7 +17,9 @@
 (require 'etaf-ui-input)
 
 (cl-defstruct (etaf-ui--text-input (:constructor etaf-ui--text-input-create))
-  runtime ref text-ref props-fn session snapshot last-text active)
+  runtime ref text-ref props-fn session snapshot last-text active span)
+(defvar-local etaf-ui--field-line-overlays nil
+  "Continuation-line indents owned by the active field session.")
 (defvar etaf-ui--text-inputs (make-hash-table :test #'eq)
   "Mounted text inputs keyed by Runtime, then by public Host reference.")
 (defvar-local etaf-ui--field-active nil
@@ -63,8 +65,8 @@ meanwhile so ordinary typing reaches the session."
             (define-key map (kbd "C-c C-k") #'etaf-ui-field--cancel)
             (define-key map (kbd "C-g") #'etaf-ui-field--cancel)
             (define-key map (kbd "<escape>") #'etaf-ui-field--cancel)
-            (define-key map (kbd "<S-return>") #'newline)
-            (define-key map (kbd "C-j") #'newline)
+            (define-key map (kbd "<S-return>") #'etaf-ui-field--newline)
+            (define-key map (kbd "C-j") #'etaf-ui-field--newline)
             (define-key map (kbd "TAB") #'etaf-ui-field--next)
             (define-key map (kbd "<backtab>") #'etaf-ui-field--previous)
             (define-key map (kbd "M-TAB") #'completion-at-point)
@@ -81,13 +83,18 @@ meanwhile so ordinary typing reaches the session."
   "Return the text input currently editing, from any buffer."
   (or etaf-ui--field-active etaf-ui--active-text-input))
 
+(defun etaf-ui-field--newline ()
+  "Insert a newline in the active field without application indentation."
+  (interactive)
+  (let ((electric-indent-mode nil)) (newline)))
+
 (defun etaf-ui-field--return ()
   "Submit the active field when it submits on Return, else insert a newline."
   (interactive)
   (if (and (etaf-ui-field--active)
            (etaf-ui--text-input-submit-on-return-p (etaf-ui-field--active)))
       (etaf-ui-field--submit)
-    (newline)))
+    (etaf-ui-field--newline)))
 
 (defun etaf-ui-field--submit ()
   "Submit the active field."
@@ -113,6 +120,35 @@ meanwhile so ordinary typing reaches the session."
     (etaf-text-input-end)
     (when runtime (etaf-focus-previous runtime))))
 
+(defun etaf-ui--text-input-indent-lines (field)
+  "Indent FIELD's continuation lines to its own visual column.
+The published layout positions the field with pixel-width display spaces, so
+text inserted after a newline would otherwise start at the window edge.  A
+before-string display space keeps every line at the field's column without
+touching the buffer text or the session value."
+  (let ((buffer (etaf-runtime-buffer (etaf-ui--text-input-runtime field))))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (dolist (overlay etaf-ui--field-line-overlays) (delete-overlay overlay))
+        (setq etaf-ui--field-line-overlays nil)
+        (let* ((span (etaf-ui--text-input-span field))
+               (window (get-buffer-window buffer t))
+               (start (and span (marker-position (car span))))
+               (end (and span (marker-position (cdr span)))))
+          (when (and window start end (> end start))
+            (save-excursion
+              (goto-char start)
+              (let* ((line-start (line-beginning-position))
+                     (indent (car (window-text-pixel-size window line-start start))))
+                (when (and (integerp indent) (> indent 0))
+                  (goto-char start)
+                  (while (search-forward "\n" end t)
+                    (let ((overlay (make-overlay (point) (point))))
+                      (overlay-put overlay 'before-string
+                                   (propertize " " 'display
+                                               (list 'space :width (list indent))))
+                      (push overlay etaf-ui--field-line-overlays))))))))))))
+
 (defun etaf-ui--text-input-changed (&rest _change)
   "Publish accepted native edits to the active field's owner.
 Only the buffer's own change hook calls this.  Unmount erases the buffer
@@ -125,6 +161,7 @@ because publication is deferred during the session."
               ((buffer-live-p (etaf-runtime-buffer runtime)))
               ((etaf-host-ref-bounds runtime
                                      (etaf-ui--text-input-text-ref field))))
+    (etaf-ui--text-input-indent-lines field)
     (let ((text (etaf-input-text session)))
       (unless (equal text (etaf-ui--text-input-last-text field))
         (setf (etaf-ui--text-input-last-text field) text)
@@ -168,13 +205,20 @@ field in the same buffer finishes the previous session first."
                                            ebox-buffer-mode)
                     :emulation-mode-map-alists emulation-mode-map-alists
                     :completion-at-point-functions completion-at-point-functions
+                    :electric-indent-mode (and (boundp 'electric-indent-mode)
+                                               electric-indent-mode)
+                    :electric-indent-local (and (boundp 'electric-indent-mode)
+                                                (local-variable-p 'electric-indent-mode))
                     :local-map (current-local-map))))
       (setq-local truncate-lines t)
       ;; Application or terminal emulation maps would otherwise intercept the
-      ;; ordinary characters this session exists to collect.
+      ;; ordinary characters this session exists to collect, and electric
+      ;; indentation would reindent the application's own layout line.  The
+      ;; application's local map would shadow them through its own bindings,
+      ;; so the session keeps only the field map and the declared :keymap.
       (setq-local emulation-mode-map-alists nil)
-      (when-let* ((keymap (plist-get props :keymap)))
-        (use-local-map (make-composed-keymap keymap (current-local-map))))
+      (setq-local electric-indent-mode nil)
+      (use-local-map (plist-get props :keymap))
       (when-let* ((functions (plist-get props :completion-functions)))
         (setq-local completion-at-point-functions functions))
       (when (bound-and-true-p ebox-buffer-mode) (ebox-buffer-mode -1)))
@@ -194,11 +238,14 @@ field in the same buffer finishes the previous session first."
           (when (equal (or value "") "")
             (delete-region start end)
             (setq end start))
-          (goto-char (+ start (length (or value "")))))))
+          (goto-char (+ start (length (or value ""))))
+          (setf (etaf-ui--text-input-span field)
+                (cons (copy-marker start) (copy-marker end t))))))
     (with-current-buffer buffer
       (add-hook 'after-change-functions #'etaf-ui--text-input-changed nil t)
       (etaf-ui-field-mode 1))
     (setf (etaf-ui--text-input-last-text field) (etaf-input-text session))
+    (etaf-ui--text-input-indent-lines field)
     field))
 
 ;;;###autoload
@@ -221,6 +268,12 @@ is active."
       (with-current-buffer buffer
         (remove-hook 'after-change-functions #'etaf-ui--text-input-changed t)
         (etaf-ui-field-mode -1)
+        (dolist (overlay etaf-ui--field-line-overlays) (delete-overlay overlay))
+        (setq etaf-ui--field-line-overlays nil)
+        (when-let* ((span (etaf-ui--text-input-span field)))
+          (set-marker (car span) nil)
+          (set-marker (cdr span) nil)
+          (setf (etaf-ui--text-input-span field) nil))
         (when (eq etaf-ui--field-active field) (setq etaf-ui--field-active nil))
         (when etaf-ui--field-restore
           (setq-local truncate-lines (plist-get etaf-ui--field-restore :truncate-lines))
@@ -228,6 +281,10 @@ is active."
                       (plist-get etaf-ui--field-restore :emulation-mode-map-alists))
           (setq-local completion-at-point-functions
                       (plist-get etaf-ui--field-restore :completion-at-point-functions))
+          (kill-local-variable 'electric-indent-mode)
+          (when (plist-get etaf-ui--field-restore :electric-indent-local)
+            (setq-local electric-indent-mode
+                        (plist-get etaf-ui--field-restore :electric-indent-mode)))
           (use-local-map (plist-get etaf-ui--field-restore :local-map))
           (when (plist-get etaf-ui--field-restore :ebox-buffer-mode)
             (ebox-buffer-mode 1))

@@ -106,6 +106,27 @@
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(ert-deftest etaf-ui-text-input-shift-return-keeps-editing-in-session ()
+  "Shift+Return inserts a newline without electric indentation leaving the session."
+  (let* ((mounted (etaf-ui-field-test--mount :rows 3))
+         (buffer (car mounted)) (value (cdr mounted)))
+    (unwind-protect
+        (let ((runtime (etaf-runtime-for-buffer buffer)))
+          (with-current-buffer buffer (setq-local electric-indent-mode t))
+          (etaf-dispatch-event runtime 'field 'press)
+          (with-current-buffer buffer
+            (insert "第一行")
+            (call-interactively (key-binding (kbd "<S-return>")))
+            (insert "第二行")
+            (should (etaf-text-input-active-p runtime)))
+          (should (equal (etaf-value value) "初始第一行\n第二行"))
+          (etaf-text-input-end t)
+          (with-current-buffer buffer
+            (should (local-variable-p 'electric-indent-mode))
+            (should electric-indent-mode)))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-text-input-placeholder-is-never-the-value ()
   "An empty field shows its placeholder and starts editing from empty text."
   (let* ((buffer (generate-new-buffer " *field placeholder*"))
@@ -208,19 +229,29 @@
   "Ordinary characters reach the session even when the app binds them."
   (let* ((mounted (etaf-ui-field-test--mount))
          (buffer (car mounted))
+         (value (cdr mounted))
          (map (let ((map (make-sparse-keymap)))
-                (define-key map (kbd "j") #'ignore) map)))
+                (define-key map (kbd "j") #'ignore)
+                (define-key map (kbd "第") #'ignore)
+                map)))
     (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (with-current-buffer buffer
-            (setq-local emulation-mode-map-alists (list (list (cons t map)))))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (should (eq (key-binding (kbd "j")) #'self-insert-command))
-            (execute-kbd-macro (kbd "j")))
-          (etaf-text-input-end t)
-          (with-current-buffer buffer
-            (should (eq (key-binding (kbd "j")) #'ignore))))
+        (save-window-excursion
+          (set-window-buffer (selected-window) buffer)
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (with-current-buffer buffer
+              (setq-local emulation-mode-map-alists (list (list (cons t map))))
+              (use-local-map map))
+            (etaf-dispatch-event runtime 'field 'press)
+            (with-current-buffer buffer
+              (should (eq (key-binding (kbd "j")) #'self-insert-command))
+              (should (eq (key-binding (string-to-vector "第")) #'self-insert-command)))
+            (execute-kbd-macro (kbd "j"))
+            (execute-kbd-macro (string-to-vector "第"))
+            (should (equal (etaf-value value) "初始j第"))
+            (etaf-text-input-end t)
+            (with-current-buffer buffer
+              (should (eq (key-binding (kbd "j")) #'ignore))
+              (should (eq (key-binding (string-to-vector "第")) #'ignore)))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
