@@ -4,6 +4,11 @@
 
 ### Added
 
+- Native editor integrations can share an empty hint, edit observation and
+  revision-guarded value replacement through `etaf-ui-editor-mode`. Existing
+  editing keys, completion, selection and undo remain native; stale external
+  updates cannot erase newer edits, even after undo restores identical text.
+
 - `etaf-tile-grid` provides caller-controlled rectangular cells with stable
   coordinate identities, local reactive color/text, and shared keyboard/mouse
   activation. It contains no board state, algorithms or animation timers.

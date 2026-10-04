@@ -14,6 +14,46 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-editor-preserves-native-editing-state",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "Enabling/configuring/disabling UI editing preserves multiline Unicode text, native keymaps, completion, point, selection, modification state and undo."
+    },
+    {
+      "name": "etaf-ui-editor-placeholder-never-becomes-text",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "An empty hint never becomes copied or submitted text; only text mutations notify and disabling detaches the observer."
+    },
+    {
+      "name": "etaf-ui-editor-replacement-is-undoable-and-coalesced",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "External replacements produce a final-value event and one undoable edit, while equal values preserve edit state silently."
+    },
+    {
+      "name": "etaf-ui-editor-stale-update-preserves-edit-then-undo",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "A delayed update cannot erase newer edits even when undo has restored the original text; a current tick permits replacement."
+    },
+    {
+      "name": "etaf-ui-editor-copy-narrowing-and-read-only",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "Exported text is detached and property-free across narrowing; read-only blocks typing while explicit updates remain possible."
+    },
+    {
+      "name": "etaf-ui-editor-observer-failure-preserves-accepted-text",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "Observer errors propagate without deleting accepted text; reentrant replacement is rejected without overwriting the edit."
+    },
+    {
+      "name": "etaf-ui-editor-configuration-is-validated-before-change",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "Invalid settings do not detach the installed observer, and invalid editor handles, text and ticks are rejected."
+    },
+    {
+      "name": "etaf-ui-editor-instance-and-mode-lifecycle",
+      "file": "tests/etaf-ui-editor-tests.el",
+      "purpose": "Independent editors do not share callbacks or content; changing major mode and killing a buffer retire their behavior."
+    },
+    {
       "name": "etaf-ui-tile-grid-controls-coordinates-and-retains-neighbors",
       "file": "tests/etaf-ui-tile-grid-tests.el",
       "purpose": "Coordinate callbacks activate the correct tile; local color/text writes preserve neighboring Host identity and geometry."

@@ -263,6 +263,38 @@ Escape 和关闭按钮调用 `on-close`，继续使用 ETAF 的焦点返回和�
 使用 `(px N)`，`:top`、`:height` 使用 `(lh N)`。矩形相对于定位父节点，
 可使嵌套分割线与实际保留的间隔对齐；未传入时仍按 `:ratio` 定位。
 
+## 应用内原生编辑行为
+
+ETAF Pi 等已有编辑窗格的集成可在可编辑 buffer 上复用 `etaf-ui-editor-mode`。
+它提供空内容提示和编辑观察，保留原有 major mode、快捷键、补全、光标、选区和撤销；
+不打开 minibuffer，也不在每次输入字符时调度渲染。
+
+```elisp
+(require 'etaf-ui)
+(let ((buffer (get-buffer-create "*Embedded editor example*")))
+  (with-current-buffer buffer
+    (text-mode)
+    (etaf-ui-editor-mode 1)
+    (etaf-ui-editor-configure
+     :placeholder "在这里输入"
+     :on-change (lambda (editor)
+                  (message "%d characters" (length (etaf-ui-editor-value editor))))))
+```
+
+集成方拥有该 buffer 的显示和释放。关闭行为或切换 major mode 时移除其提示和回调，
+不删除正文。配置变化不触发编辑事件。观察回调收到 buffer 而非每次预先复制的字符串，
+需要正文时再取；回调错误向上传播，已经接受的编辑仍保留，不得在回调里再次替换该编辑器。
+
+异步操作由应用捕获正文及 `buffer-chars-modified-tick`，并决定成功后是否清空。
+向 `etaf-ui-editor-replace` 传入该 tick，可拒绝修改之后才到达的更新，
+即使用户编辑后撤销回相同字符串也不误清；失败时无需替换。
+外部值与现值相同时保留选区、撤销和修改标记；真正的替换可以撤销。
+显式更新可修改只读正文，用户原生输入仍受 `buffer-read-only` 保护。
+
+这是共享的编辑行为，**尚不是可在任意布局中挂载的 Input/Textarea 组件**。
+编辑窗格的位置仍由集成方管理。发送、确认及持久草稿属于应用，Ebox 不拥有编辑器或发送状态。
+完整接口签名以根入口为准。
+
 ## 基础控件
 
 内置状态标记使用 ASCII：Checkbox 和 Switch 显示 `[x]` / `[ ]`，Radio

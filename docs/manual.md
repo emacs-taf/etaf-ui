@@ -358,6 +358,46 @@ its own split geometry passes `:overlay-rect` with `:left` and `:width` as
 the positioned parent and keeps nested or minimum-size-constrained dividers
 aligned with the allocated gap. Without it, the overlay follows `:ratio`.
 
+## Embedded native editing behavior
+
+Native-pane integrations such as ETAF Pi can reuse `etaf-ui-editor-mode` in
+an editable buffer. It adds an empty hint and edit observation while leaving
+the existing major mode, keymap, completion, point, selection and undo intact.
+It does not open a minibuffer or schedule rendering for each character.
+
+```elisp
+(require 'etaf-ui)
+(let ((buffer (get-buffer-create "*Embedded editor example*")))
+  (with-current-buffer buffer
+    (text-mode)
+    (etaf-ui-editor-mode 1)
+    (etaf-ui-editor-configure
+     :placeholder "Write here"
+     :on-change (lambda (editor)
+                  (message "%d characters" (length (etaf-ui-editor-value editor))))))
+```
+
+The embedding owner displays and releases this buffer. Disabling the behavior
+or changing major mode removes its overlay and callback, never the text.
+Configuration does not emit a change. The observer receives the buffer rather
+than an eagerly copied value; obtain text only when needed. Observer errors
+propagate after the native edit, leaving the user's accepted text available.
+Do not replace the same editor from its change observer.
+
+For an asynchronous operation, the application captures both its text and
+`buffer-chars-modified-tick`. It decides whether success permits clearing;
+`etaf-ui-editor-replace` with that tick rejects late updates after any text
+edit, including edit-then-undo back to the same string. Failure requires no
+replacement. Equal external values preserve selection, undo and modification
+state, and changed values are undoable. Explicit updates may change read-only
+text; ordinary native typing still respects `buffer-read-only`.
+
+This is the shared native editing behavior, **not yet a layout-mounted
+Input/Textarea Component**. Native pane placement still belongs to the
+embedding integration. Message sending, acknowledgements and persistent
+drafts remain application responsibilities; Ebox owns no editor or send state.
+See the root entry for the supported signatures.
+
 ## Basic controls
 
 Built-in state markers use ASCII: Checkbox and Switch show `[x]` / `[ ]`,

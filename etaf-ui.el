@@ -112,6 +112,38 @@
 ;; Target removal, unmount or a disabled/inaccessible entry cancels the result
 ;; before ON-CHANGE or an additive ON-PRESS observer runs.
 ;;
+;; Function: etaf-ui-editor-mode (&optional arg)
+;;;###autoload (autoload 'etaf-ui-editor-mode "etaf-ui" nil t)
+;; Enable or disable native editing behavior in a caller-owned UI buffer.
+;; The mode preserves text, the major-mode keymap, undo, selection and CAPF.
+;; It owns an empty hint and edit observation, not window layout or transport.
+;; No minibuffer is opened. Disabling removes its overlay/hooks, never text.
+;; Framework/native-pane integrations configure it through the functions below.
+;; This behavior is not yet a layout-mounted Input/Textarea Component.
+;;
+;; Function: etaf-ui-editor-configure (&key (placeholder nil placeholder-p) (placeholder-face nil face-p) (on-change nil callback-p))
+;;;###autoload (autoload 'etaf-ui-editor-configure "etaf-ui" nil nil)
+;; Configure the current editor's hint string, face and edit observer.
+;; Enable etaf-ui-editor-mode first. Omitted fields retain existing values;
+;; explicit nil ON-CHANGE detaches it. The observer receives the buffer after
+;; text changes and must not edit it. Errors propagate without erasing text.
+;; Configuration and point movement produce no edit notifications.
+;;
+;; Function: etaf-ui-editor-value (&optional buffer)
+;;;###autoload (autoload 'etaf-ui-editor-value "etaf-ui" nil nil)
+;; Return a detached, property-free, widened text value without changing edit
+;; state. BUFFER defaults to current and must have the editor behavior enabled.
+;;
+;; Function: etaf-ui-editor-replace (buffer text &optional expected-tick)
+;;;###autoload (autoload 'etaf-ui-editor-replace "etaf-ui" nil nil)
+;; Replace native editor text, preserving markers where possible and making
+;; one undoable replacement. Return t if accepted; nil on a stale optional
+;; buffer-chars-modified-tick. Equal text changes nothing and emits no callback.
+;; Applications, not this behavior, decide when a reply permits replacement.
+;; Explicit updates may change read-only text. Invalid/stale handles and
+;; reentrant replacement signal user-error; observer errors leave accepted
+;; text intact. Native hooks still run, and this mode observes the final value.
+;;
 ;; Component: etaf-text-input (&key value label placeholder on-change disabled bind hide-label ref)
 ;; Edit a controlled string through a value pill that reads with `read-string'.
 ;; REF names the pill; HIDE-LABEL omits the muted caption.  Nil VALUE is empty.
@@ -634,6 +666,7 @@
 (require 'etaf-ui-basic)
 (require 'etaf-ui-icon)
 (require 'etaf-ui-input)
+(require 'etaf-ui-editor)
 (require 'etaf-ui-selection)
 (require 'etaf-ui-feedback)
 (require 'etaf-ui-navigation)

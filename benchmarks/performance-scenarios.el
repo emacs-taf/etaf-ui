@@ -431,4 +431,42 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
  :description "Real catalog window corner through native press, movement and release"
  :setup (lambda (_mode) (etaf-ui-resize-benchmark--native-fixture)))
 
+(defun etaf-ui-editor-benchmark--typing (shared)
+  "Compare native typing with SHARED editing behavior on the same text size."
+  (let ((buffer (generate-new-buffer " *Editor typing benchmark*"))
+        (initial (make-string 4096 ?x)))
+    (with-current-buffer buffer
+      (text-mode)
+      (buffer-enable-undo)
+      (insert initial)
+      (visual-line-mode 1)
+      (when shared
+        (etaf-ui-editor-mode 1)
+        (etaf-ui-editor-configure :placeholder "Write here"))
+      (goto-char (point-max)))
+    (list :buffer buffer
+          :invoke (lambda (_sample)
+                    (with-current-buffer buffer
+                      (goto-char (point-max))
+                      (let ((last-command-event ?字))
+                        (call-interactively #'self-insert-command))
+                      (redisplay t)))
+          :verify (lambda ()
+                    (with-current-buffer buffer
+                      (and (> (buffer-size) 4096) (eq (char-before (point-max)) ?字))))
+          :cleanup (lambda ()
+                     (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(taf-benchmark-register
+ "editor.native.typing" :version 1 :modes '(batch gui) :budget-ms 10
+ :impact 'local :isolation 'series
+ :description "Native self-insert plus redisplay on a 4 KiB multiline draft"
+ :setup (lambda (_mode) (etaf-ui-editor-benchmark--typing nil)))
+
+(taf-benchmark-register
+ "editor.shared.typing" :version 1 :modes '(batch gui) :budget-ms 10
+ :impact 'local :isolation 'series
+ :description "Shared UI editing behavior on the same native 4 KiB draft"
+ :setup (lambda (_mode) (etaf-ui-editor-benchmark--typing t)))
+
 ;;; performance-scenarios.el ends here
