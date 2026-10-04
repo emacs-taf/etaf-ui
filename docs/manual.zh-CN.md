@@ -332,6 +332,20 @@ Shift+RET 与 C-j 换行；C-c C-c 或 Ctrl+Return 提交；Escape、C-c C-k 和
 C-g 取消并恢复激活时的值。会话期间发布会推迟，结束后用接受的值重新发布。
 `etaf-text-input-begin`、`etaf-text-input-end` 与 `etaf-text-input-active-p`
 可用于程序化控制会话。
+
+字段嵌入应用时的集成注意：
+
+- 会话期间该 Runtime 的发布保持 pending（不发布、不报错），结束时才用接受的值
+  重新发布。值、草稿与提交策略归应用，框架不存应用值。
+- unmount 先清空 surface buffer，再跑组件的 unmount 钩子，会话跨度随之
+  塌缩：只有在宿主仍有已发布跨度（`etaf-host-ref-bounds` 非 nil）时才上报本次
+  文本，否则 change 钩子会把空串写回应用值。
+- 宿主自己的激活 keymap 藏在 text property 里，优先级高于 minor mode map：
+  在编辑跨度内摘除 `keymap`/`local-map`，会话结束时随原始文本一起还原，否则
+  RET 会走宿主的激活而不是字段的提交/换行。
+- 键位表与 minor mode 在应用 buffer 里启用/停用（`define-minor-mode` 只在当前
+  buffer 生效），不要在回调当时所在的 buffer 上切。
+
 `etaf-select` 从普通 alist
 选择值，例如 `((nil . "进行中") (t . "已完成"))`。两者使用 `:value`／
 `:on-change` 或 `:bind`，组合相同的 Button 入口。TAB 到达入口，RET 或鼠标

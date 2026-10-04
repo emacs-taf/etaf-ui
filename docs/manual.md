@@ -453,6 +453,24 @@ Escape, C-c C-k and C-g cancel and restore the activation value. Publication
 stays deferred while the session is active and the accepted value republishes
 when it ends. `etaf-text-input-begin`, `etaf-text-input-end` and
 `etaf-text-input-active-p` drive sessions programmatically.
+
+Integration notes when embedding a field in an application:
+
+- An active session defers that runtime's publications (no publish, no error);
+  the accepted value republishes when the session ends. Values, drafts and
+  commit policy stay with the application; the framework stores no values.
+- Unmount clears the surface buffer before the component's unmount hooks, so
+  the session span has already collapsed. Report session text only while the
+  host still has a published span (`etaf-host-ref-bounds` non-nil); otherwise
+  the change hook writes an empty string back to the application value.
+- The host's activation keymap lives in a text property and outranks any
+  minor-mode map: remove `keymap`/`local-map` inside the editing span and
+  restore them with the original text when the session ends, or RET runs the
+  host activation instead of the field's submit or newline.
+- Enable and disable keymaps and the minor mode in the application buffer
+  (`define-minor-mode` only affects the current buffer), not in whatever buffer
+  the callback currently runs in.
+
 `etaf-select` chooses a value from an ordinary
 alist, such as `((nil . "Pending") (t . "Done"))`, without the minibuffer:
 up to four options render as inline chips with the current one filled, more
