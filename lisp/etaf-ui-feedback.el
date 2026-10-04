@@ -41,7 +41,7 @@
             :background-color (etaf-theme-token :ui-border "#687386")))
     (etaf-view
      (flex :class "etaf-divider" :width 'stretch :align-items 'center
-           :column-gap '(ch 1)
+           :column-gap (when label '(ch 1))
        (box :flex-grow 1 :flex-basis '(px 0) :min-width '(px 0)
             :height '(lh 1) :border-bottom
             (etaf-ui--style-border (etaf-theme-token :ui-border "#687386")))

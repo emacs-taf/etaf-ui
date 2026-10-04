@@ -107,6 +107,9 @@
 
 ### Fixed
 
+- `etaf-divider` keeps an unlabelled horizontal rule continuous: the one
+  character column gap is reserved only when a label is present.
+
 - A disabled button keeps its variant's padding and, for `ghost`, its
   transparent surface, so disabling a stepper or chip no longer widens it
   or fills it with the disabled surface.
@@ -229,6 +232,9 @@
   Update ETAF together with UI for the asynchronous Data status contract.
 
 ### Fixed
+
+- `etaf-divider` keeps an unlabelled horizontal rule continuous: the one
+  character column gap is reserved only when a label is present.
 
 - Passive Tooltip and Toast surfaces no longer move focus to an empty panel
   root after mounting. Their dismissal keymap remains active while the extra
