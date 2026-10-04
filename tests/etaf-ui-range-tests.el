@@ -152,15 +152,33 @@ without publishing a new View."
   "A reactive :max re-proportions the Fill without a Component re-render.
 A duration source changes when the playing track changes; the Range clamps
 with the live bound so its caller never reads the source during render."
-  (let ((maximum (etaf-ref 200)))
+  (let* ((maximum (etaf-ref 200))
+         (bound (etaf-computed (lambda () (etaf-value maximum)))))
     (etaf-ui-range-test--with-range
-        (entry :value 50 :min 0 :max maximum :ref 'range-track :fill-ref 'range-fill)
+        (entry :value 50 :min 0 :max bound :ref 'range-track :fill-ref 'range-fill)
       (pcase-let* ((`(,buffer . ,runtime) entry)
                    (before (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
         (etaf-set-value maximum 100)
         (etaf-runtime-flush runtime)
         (let ((after (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
-          (should (< (abs (- after (* 2.0 before))) 4.0)))))))
+          (should (< (abs (- after (* 2.0 before))) 4.0)))
+      ;; Invalid live bounds reject publication, retaining the last accepted
+      ;; picture.  Fixing the source must recover without remounting.
+      (let ((accepted (with-current-buffer (car entry) (buffer-string))))
+        (should-error (etaf-set-value maximum -1))
+        (should (equal-including-properties
+                 accepted (with-current-buffer (car entry) (buffer-string))))
+        (etaf-set-value maximum nil)
+        (etaf-runtime-flush (cdr entry))
+        (should (equal '(% 0.0)
+                       (plist-get (etaf-runtime-host-props-for
+                                   (cdr entry) 'range-fill) :width)))
+        (etaf-set-value maximum 200)
+        (etaf-runtime-flush (cdr entry))
+        (should (< (abs (- (/ (float (cadr (etaf-ui-range-test--pixels entry 'range-fill)))
+                             (cadr (etaf-ui-range-test--pixels entry 'range-track)))
+                          0.25))
+                   0.02)))))))
 
 (ert-deftest etaf-ui-range-validates-its-input ()
   "Invalid numeric props fail before the Range paints."

@@ -204,6 +204,21 @@ the pointer pressed."
   "Return non-nil when VALUE is a static number or a reactive range bound."
   (or (numberp value) (etaf-ref-p value) (etaf-computed-p value)))
 
+(defun etaf-ui--range-live-bounds (min max)
+  "Read and validate MIN and MAX at their retained consumer boundary."
+  (let ((low (etaf-ui--reactive-value min))
+        (high (etaf-ui--reactive-value max)))
+    ;; A source may be pending (nil) until backend metadata arrives; the
+    ;; Fill already paints an empty span for that state.
+    (etaf-check-prop :min low (or (null low) (numberp low))
+                     "a number or pending nil" 'etaf-range)
+    (etaf-check-prop :max high (or (null high) (numberp high))
+                     "a number or pending nil" 'etaf-range)
+    (when (and (numberp low) (numberp high))
+      (etaf-check-prop :max high (>= high low)
+                       "greater than or equal to :min" 'etaf-range))
+    (cons low high)))
+
 (defun etaf-ui--range-value-at-ratio (ratio min max step)
   "Return RATIO of the MIN..MAX span clamped to the bounds and snapped to STEP."
   (let ((clamped (max min (min max (+ min (* ratio (- max min)))))))
@@ -241,10 +256,13 @@ percentage of the row (default 40)."
     (etaf-check-prop :min min (etaf-ui--range-bound-p min) "a number or reactive source" 'etaf-range)
     (etaf-check-prop :max max (etaf-ui--range-bound-p max)
                      "a number or reactive source" 'etaf-range)
-    (let ((low (etaf-ui--reactive-value min)) (high (etaf-ui--reactive-value max)))
-      (when (and (numberp low) (numberp high))
-        (etaf-check-prop :max high (>= high low)
-                         "greater than or equal to :min" 'etaf-range)))
+    ;; Reactive bounds belong to the retained Fill getter.  Reading them in
+    ;; input validation subscribes the Component input even though its props
+    ;; retain the same source identities, forcing unrelated Host work through
+    ;; a declarative publication on every bound change.
+    (when (and (numberp min) (numberp max))
+      (etaf-check-prop :max max (>= max min)
+                       "greater than or equal to :min" 'etaf-range))
     (etaf-check-prop :step step (or (null step) (and (numberp step) (> step 0)))
                      "a positive number or nil" 'etaf-range)
     (etaf-check-prop :bar-height bar-height (and (integerp bar-height) (> bar-height 0)
@@ -266,8 +284,9 @@ percentage of the row (default 40)."
          ;; subscribing this Component to the source.
          (filled (lambda ()
                    (let* ((raw (etaf-ui--reactive-value value))
-                          (low (etaf-ui--reactive-value min))
-                          (high (etaf-ui--reactive-value max))
+                          (bounds (etaf-ui--range-live-bounds min max))
+                          (low (car bounds))
+                          (high (cdr bounds))
                           (span (and (numberp low) (numberp high) (- high low)))
                           (base (if (and (numberp raw) span (> span 0))
                                     (max 0.0 (min 1.0 (/ (float (- raw low)) span)))
@@ -277,8 +296,9 @@ percentage of the row (default 40)."
          (report (lambda (gesture commit)
                    (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
                      (let* ((raw (etaf-ui--reactive-value value))
-                            (low (etaf-ui--reactive-value min))
-                            (high (etaf-ui--reactive-value max))
+                            (bounds (etaf-ui--range-live-bounds min max))
+                            (low (car bounds))
+                            (high (cdr bounds))
                             (next (and (numberp low) (numberp high)
                                        (etaf-ui--range-value-at-ratio ratio low high step)))
                             (live (cons ratio raw)))

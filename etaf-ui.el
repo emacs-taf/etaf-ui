@@ -180,6 +180,8 @@
 ;; ON-CHANGE reports intermediate values and ON-COMMIT the released one; the bar
 ;; paints a Track and a percentage Fill inside one standard row. A prepared Ebox
 ;; update replaces FILL-REF's width without republishing the View.
+;; MIN/MAX accept numbers or reactive sources. Live bounds are checked by the
+;; retained Fill getter; invalid bounds reject publication until corrected.
 
 ;; Component: etaf-input (&key type value label placeholder on-change disabled bind min max step)
 ;; Render one controlled native input. TYPE is text, password, email, url,
