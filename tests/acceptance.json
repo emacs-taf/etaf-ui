@@ -602,6 +602,21 @@
       "name": "etaf-ui-text-input-validates-props-and-unmounts-cleanly",
       "file": "tests/etaf-ui-field-tests.el",
       "purpose": "Invalid props report the component and property; unmount closes the session without losing accepted text."
+    },
+    {
+      "name": "etaf-ui-text-input-session-preserves-sibling-host-interaction",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Beginning and ending one field's session leaves another host's interaction properties untouched."
+    },
+    {
+      "name": "etaf-ui-text-input-session-suspends-application-keymaps",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Application emulation keymaps do not intercept ordinary characters while a session is active and return afterwards."
+    },
+    {
+      "name": "etaf-ui-text-input-session-installs-completion-and-keymap",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Completion functions and extra field bindings apply only during the session and are removed on end."
     }
   ]
 }

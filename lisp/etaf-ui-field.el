@@ -165,22 +165,35 @@ field in the same buffer finishes the previous session first."
         (setq etaf-ui--field-restore
               (list :truncate-lines truncate-lines
                     :ebox-buffer-mode (and (boundp 'ebox-buffer-mode)
-                                           ebox-buffer-mode))))
+                                           ebox-buffer-mode)
+                    :emulation-mode-map-alists emulation-mode-map-alists
+                    :completion-at-point-functions completion-at-point-functions
+                    :local-map (current-local-map))))
       (setq-local truncate-lines t)
+      ;; Application or terminal emulation maps would otherwise intercept the
+      ;; ordinary characters this session exists to collect.
+      (setq-local emulation-mode-map-alists nil)
+      (when-let* ((keymap (plist-get props :keymap)))
+        (use-local-map (make-composed-keymap keymap (current-local-map))))
+      (when-let* ((functions (plist-get props :completion-functions)))
+        (setq-local completion-at-point-functions functions))
       (when (bound-and-true-p ebox-buffer-mode) (ebox-buffer-mode -1)))
-    (when-let* ((bounds (etaf-host-ref-bounds runtime (etaf-ui--text-input-text-ref field))))
-      (let ((start (car bounds)) (end (cdr bounds)))
+    (when-let* ((box-bounds (etaf-host-ref-bounds runtime (etaf-ui--text-input-ref field)))
+                (bounds (etaf-host-ref-bounds runtime (etaf-ui--text-input-text-ref field))))
+      (let ((box-start (car box-bounds)) (box-end (cdr box-bounds))
+            (start (car bounds)) (end (cdr bounds)))
         (with-current-buffer buffer
+          ;; The edited Host's activation keymap sits in a text property across
+          ;; its whole box, padding included, and would otherwise shadow the
+          ;; field's own Return/TAB bindings.  Strip only that box so sibling
+          ;; hosts keep their interaction maps.
+          (remove-text-properties box-start box-end '(keymap nil local-map nil))
           ;; The published text may be the placeholder; start from an empty
           ;; draft.  Clearing before the change hook runs keeps a no-op empty
           ;; value from notifying the owner.
           (when (equal (or value "") "")
             (delete-region start end)
             (setq end start))
-          ;; The Host's activation keymap sits in a text property and would
-          ;; otherwise shadow the field's own Return/TAB bindings.  The
-          ;; session's restore brings the original properties back.
-          (remove-text-properties (point-min) (point-max) '(keymap nil local-map nil))
           (goto-char (+ start (length (or value "")))))))
     (with-current-buffer buffer
       (add-hook 'after-change-functions #'etaf-ui--text-input-changed nil t)
@@ -211,6 +224,11 @@ is active."
         (when (eq etaf-ui--field-active field) (setq etaf-ui--field-active nil))
         (when etaf-ui--field-restore
           (setq-local truncate-lines (plist-get etaf-ui--field-restore :truncate-lines))
+          (setq-local emulation-mode-map-alists
+                      (plist-get etaf-ui--field-restore :emulation-mode-map-alists))
+          (setq-local completion-at-point-functions
+                      (plist-get etaf-ui--field-restore :completion-at-point-functions))
+          (use-local-map (plist-get etaf-ui--field-restore :local-map))
           (when (plist-get etaf-ui--field-restore :ebox-buffer-mode)
             (ebox-buffer-mode 1))
           (setq etaf-ui--field-restore nil)))

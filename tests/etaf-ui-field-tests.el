@@ -170,6 +170,85 @@
         (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-text-input-session-preserves-sibling-host-interaction ()
+  "Editing one field must not strip another host's activation properties."
+  (let ((buffer (generate-new-buffer " *field siblings*")))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-node 'column (list :width '(ch 40))
+                      (list (etaf-node 'etaf-button
+                                       (list :ref 'sibling :label "Sibling"
+                                             :on-press #'ignore)
+                                       nil)
+                            (etaf-node 'etaf-text-input
+                                       (list :ref 'field :bind (etaf-ref "初始")
+                                             :label "标题")
+                                       nil)))
+           (list :viewport-width 600 :viewport-height 20))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (bounds (etaf-host-ref-bounds runtime 'sibling)))
+            (should bounds)
+            (cl-flet ((sibling-interactive-p ()
+                        (with-current-buffer buffer
+                          (save-restriction
+                            (widen)
+                            (text-property-not-all (car bounds) (cdr bounds)
+                                                   'keymap nil)))))
+              (should (sibling-interactive-p))
+              (etaf-dispatch-event runtime 'field 'press)
+              (with-current-buffer buffer (goto-char (point-max)) (insert "!"))
+              (etaf-text-input-end)
+              (should (sibling-interactive-p)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-text-input-session-suspends-application-keymaps ()
+  "Ordinary characters reach the session even when the app binds them."
+  (let* ((mounted (etaf-ui-field-test--mount))
+         (buffer (car mounted))
+         (map (let ((map (make-sparse-keymap)))
+                (define-key map (kbd "j") #'ignore) map)))
+    (unwind-protect
+        (let ((runtime (etaf-runtime-for-buffer buffer)))
+          (with-current-buffer buffer
+            (setq-local emulation-mode-map-alists (list (list (cons t map)))))
+          (etaf-dispatch-event runtime 'field 'press)
+          (with-current-buffer buffer
+            (should (eq (key-binding (kbd "j")) #'self-insert-command))
+            (execute-kbd-macro (kbd "j")))
+          (etaf-text-input-end t)
+          (with-current-buffer buffer
+            (should (eq (key-binding (kbd "j")) #'ignore))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-text-input-session-installs-completion-and-keymap ()
+  "Completion functions and field bindings are active only during the session."
+  (let* ((completions (lambda () (list 1 1 '("alpha"))))
+         (key-ran nil)
+         (field-key (lambda () (interactive) (setq key-ran t)))
+         (extra (let ((map (make-sparse-keymap)))
+                  (define-key map (kbd "C-c z") field-key) map))
+         (mounted (etaf-ui-field-test--mount
+                   :completion-functions (list completions) :keymap extra))
+         (buffer (car mounted)))
+    (unwind-protect
+        (let ((runtime (etaf-runtime-for-buffer buffer)))
+          (etaf-dispatch-event runtime 'field 'press)
+          (with-current-buffer buffer
+            (should (equal completion-at-point-functions (list completions)))
+            (should (eq (key-binding (kbd "C-c z")) field-key))
+            (call-interactively (key-binding (kbd "C-c z")))
+            (should key-ran))
+          (etaf-text-input-end t)
+          (with-current-buffer buffer
+            (should-not (equal completion-at-point-functions (list completions)))
+            (should-not (eq (key-binding (kbd "C-c z")) field-key))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-text-input-validates-props-and-unmounts-cleanly ()
   "Invalid props are reported in context; unmount closes any session."
   (dolist (props '((:rows 0) (:rows "3") (:label 7) (:placeholder 7)
