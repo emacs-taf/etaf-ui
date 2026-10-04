@@ -216,10 +216,13 @@ forms.  Selection never opens the minibuffer."
   "Render a stepper NumberInput using VALUE/ON-CHANGE or writable ref BIND.
 Non-nil BIND cannot be combined with explicit VALUE or ON-CHANGE, even nil.
 The current value is an integer or nil; LABEL is a string or nil. MIN and
-MAX are numbers or nil with MIN <= MAX.  The − and + steppers change the
-value by one within the bounds; pressing the value pill, which REF names,
-reads a number natively.  HIDE-LABEL omits the caption.  Invalid inputs signal
-`etaf-component-call-error' identifying the Component and property."
+MAX are numbers or nil with MIN <= MAX.  The ± steppers change the value by
+one within the bounds.  The value itself is edited in place by the catalog's
+text field, so REF names that field: typing accepts only a complete in-range
+integer or an empty value, and submitting anything else reports a readable
+error without changing the value.  HIDE-LABEL omits the caption.  Invalid
+inputs signal `etaf-component-call-error' identifying the Component and
+property."
   :validate
   (progn
     (etaf-check-prop :label label (or (null label) (stringp label)) "a string or nil")
@@ -234,10 +237,14 @@ reads a number natively.  HIDE-LABEL omits the caption.  Invalid inputs signal
          (current-value (etaf-ui--reactive-value (car input)))
          (minimum min)
          (maximum max)
+         (integer-text-p (lambda (text)
+                           (and (string-match-p "\\`-?[0-9]+\\'" text)
+                                (string-to-number text))))
+         (in-bounds-p (lambda (number)
+                        (and (or (null minimum) (>= number minimum))
+                             (or (null maximum) (<= number maximum)))))
          (accept (lambda (next)
-                   (unless (and (integerp next)
-                                (or (null minimum) (>= next minimum))
-                                (or (null maximum) (<= next maximum)))
+                   (unless (and (integerp next) (funcall in-bounds-p next))
                      (user-error "%s must be an integer from %s to %s"
                                  label (or minimum "—") (or maximum "—")))
                    (when callback (funcall callback next))))
@@ -259,18 +266,25 @@ reads a number natively.  HIDE-LABEL omits the caption.  Invalid inputs signal
              :on-press (unless disabled (funcall step -1)))
        nil)
       (etaf-node
-       'etaf-button
-       (list :ref ref :label (format "%s" (or current-value "—"))
-             :aria-label label :class "etaf-number-input-value"
-             :disabled disabled :variant 'secondary
-             :on-press
-             (unless disabled
-               (lambda ()
-                 (funcall accept
-                          (etaf-call-with-input
-                           (lambda ()
-                             (read-number (format "%s: " label)
-                                          (or current-value 0))))))))
+       'etaf-text-input
+       (list :ref ref :value (if (null current-value) "" (format "%s" current-value))
+             :label label :hide-label t :placeholder "—"
+             :width '(ch 6) :submit-on-return t
+             :disabled disabled
+             ;; Intermediate text stays a draft: only a complete in-range
+             ;; integer updates the controlled value.  Clearing the text does
+             ;; not clear the value; submitting an empty field does.
+             :on-change
+             (lambda (text)
+               (when (funcall integer-text-p text)
+                 (let ((number (string-to-number text)))
+                   (when (funcall in-bounds-p number)
+                     (when callback (funcall callback number))))))
+             :on-submit
+             (lambda (text)
+               (cond ((equal text "") (when callback (funcall callback nil)))
+                     ((funcall integer-text-p text) (funcall accept (string-to-number text)))
+                     (t (funcall accept nil)))))
        nil)
       (etaf-node
        'etaf-button

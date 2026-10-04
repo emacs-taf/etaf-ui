@@ -95,20 +95,31 @@
                       (etaf-view (etaf-number-input
                                   :bind value :label "Rows" :ref 'rows :min 1 :max 10
                                   :disabled (etaf-value disabled))))
-          (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (cl-letf (((symbol-function 'read-number) (lambda (&rest _) 7)))
-              (etaf-dispatch-event runtime 'rows 'press))
+          (let ((runtime (etaf-runtime-for-buffer buffer))
+                (old "3"))
+            (etaf-dispatch-event runtime 'rows 'press)
+            (with-current-buffer buffer
+              (delete-region (- (point) (length old)) (point))
+              (insert "7"))
+            (etaf-text-input-end)
             (should (= 7 (etaf-value value)))
             (should (string-match-p "Rows[^0-9]*7" (with-current-buffer buffer (buffer-string))))
-            (dolist (invalid '(0 11 3.5))
-              (cl-letf (((symbol-function 'read-number) (lambda (&rest _) invalid)))
-                (should-error (etaf-dispatch-event runtime 'rows 'press) :type 'user-error))
-              (should (= 7 (etaf-value value))))
-            (cl-letf (((symbol-function 'read-number) (lambda (&rest _) (signal 'quit nil))))
-              (should (eq 'canceled
-                          (condition-case nil
-                              (etaf-dispatch-event runtime 'rows 'press)
-                            (quit 'canceled)))))
+            ;; Out-of-range and non-integer submissions report an error and
+            ;; leave the accepted value alone.
+            (dolist (invalid '("0" "11" "3.5"))
+              (etaf-dispatch-event runtime 'rows 'press)
+              (with-current-buffer buffer
+                (delete-region (- (point) (length "7")) (point))
+                (insert invalid))
+              (should-error (etaf-text-input-end) :type 'user-error)
+              (should (= 7 (etaf-value value)))
+              (let ((old invalid)) (ignore old)))
+            ;; Cancelling restores the value captured at activation.
+            (etaf-dispatch-event runtime 'rows 'press)
+            (with-current-buffer buffer
+              (delete-region (- (point) (length "7")) (point))
+              (insert "9"))
+            (should (equal (etaf-text-input-end t) "9"))
             (should (= 7 (etaf-value value)))
             (setf (etaf-value value) 4)
             (should (string-match-p "Rows[^0-9]*4" (with-current-buffer buffer (buffer-string))))

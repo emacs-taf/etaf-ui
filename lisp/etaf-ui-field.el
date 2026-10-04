@@ -143,6 +143,9 @@ field in the same buffer finishes the previous session first."
               (props (etaf-ui--text-input-props field)))
     (unless (or (etaf-ui--text-input-active field) (plist-get props :disabled))
       (when etaf-ui--active-text-input (etaf-text-input-end))
+      ;; Start from a clean committed state: a publication left pending by an
+      ;; earlier aborted submit must not land while the new session is open.
+      (etaf-runtime-flush runtime)
       (etaf-ui--text-input-open field props))))
 
 (defun etaf-ui--text-input-open (field props)

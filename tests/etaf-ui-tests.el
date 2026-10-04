@@ -44,7 +44,7 @@
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-number-input-validates-and-emits-value ()
-  "Prompt-backed number input owns bounds and emits the accepted value."
+  "In-place value editing emits the accepted in-range integer."
   (let ((buffer-name " *etaf-ui-number-input-test*")
         (value 3))
     (unwind-protect
@@ -53,13 +53,17 @@
            buffer-name
            (etaf-view
             (etaf-number-input :label "Rows" :value value :ref 'rows
-                          :min 1 :max 10
-                          :on-change (lambda (next) (setq value next)))))
-          (cl-letf (((symbol-function 'read-number)
-                     (lambda (&rest _args) 7)))
-            (etaf-dispatch-event (etaf-runtime-for-buffer buffer-name)
-                                 'rows 'press))
-          (should (= 7 value)))
+                               :min 1 :max 10
+                               :on-change (lambda (next) (setq value next)))))
+          (let ((runtime (etaf-runtime-for-buffer buffer-name))
+                (buffer (get-buffer buffer-name)))
+            (etaf-dispatch-event runtime 'rows 'press)
+            (should (etaf-text-input-active-p runtime))
+            (with-current-buffer buffer
+              (delete-region (- (point) (length "3")) (point))
+              (insert "7"))
+            (etaf-text-input-end)
+            (should (= 7 value))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (when-let* ((buffer (get-buffer buffer-name)))
