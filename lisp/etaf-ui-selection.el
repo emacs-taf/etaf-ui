@@ -274,7 +274,7 @@ percentage of the row (default 40)."
                      "a function or nil" 'etaf-range)
     (etaf-check-prop :disabled disabled (booleanp disabled) "a boolean" 'etaf-range))
   :bindings ((rule (make-string 512 ?─))
-             (drag (list nil))
+             (drag (etaf-ref nil))
              (fill-target (or fill-ref (gensym "etaf-range-fill-"))))
   :render
   (let* (;; Read controlled/drag sources inside the Host getter, not the
@@ -291,7 +291,7 @@ percentage of the row (default 40)."
                           (base (if (and (numberp raw) span (> span 0))
                                     (max 0.0 (min 1.0 (/ (float (- raw low)) span)))
                                   0.0))
-                          (live (car drag)))
+                          (live (etaf-value drag)))
                      (list '% (* 100.0 (if (and live (equal (cdr live) raw)) (car live) base))))))
          (report (lambda (gesture commit)
                    (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
@@ -302,11 +302,10 @@ percentage of the row (default 40)."
                             (next (and (numberp low) (numberp high)
                                        (etaf-ui--range-value-at-ratio ratio low high step)))
                             (live (cons ratio raw)))
-                       (unless (equal (car drag) live)
-                         (setcar drag live)
-                         (when-let* ((runtime (etaf-current-runtime)))
-                           (etaf-runtime-update-host-geometries
-                            runtime (list (cons fill-target (list :width (list '% (* 100.0 ratio))))))))
+                       ;; Preview and authoritative value changes share the
+                       ;; same retained Fill binding and atomic publication.
+                       (unless (equal (etaf-value drag) live)
+                         (etaf-set-value drag live))
                        (if commit
                            (when (and next on-commit) (funcall on-commit next))
                          (when (and next on-change) (funcall on-change next))))))))
