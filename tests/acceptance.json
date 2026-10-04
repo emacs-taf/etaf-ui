@@ -39,6 +39,11 @@
       "purpose": "SVG-unavailable rendering preserves the documented printable ASCII variant, text-property paint and default minimum width."
     },
     {
+      "name": "etaf-ui-icon-renders-without-a-default-face-font",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "An icon row keeps its one-line height contract when a graphical frame reports no resolved default face font instead of failing in font-info."
+    },
+    {
       "name": "etaf-ui-icon-box-keeps-two-rows-width-and-full-target",
       "file": "tests/etaf-ui-icon-tests.el",
       "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."

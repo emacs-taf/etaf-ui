@@ -68,6 +68,19 @@
     (should-error (etaf-ui-icon-lines 'play :size 0))
     (should-error (etaf-ui-icon-lines 'play :set 'never-a-set))))
 
+(ert-deftest etaf-ui-icon-renders-without-a-default-face-font ()
+  "A graphical frame without a resolved default font still renders a row.
+`face-font' is nil in a batch or daemon frame while the frame can still
+report graphics; the icon row must keep its one-line height contract instead
+of signaling from `font-info'."
+  (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _frame) t))
+            ((symbol-function 'image-type-available-p) (lambda (_type) nil))
+            ((symbol-function 'face-font) (lambda (&optional _face _frame) nil)))
+    (let ((output (ebox-render (etaf-render (etaf-ui-icon 'play :set 'svg :color "#123456")))))
+      (should (stringp output))
+      (should (string-match-p ">" output))
+      (should (= 1 (length (split-string output "\n")))))))
+
 (ert-deftest etaf-ui-icon-box-keeps-two-rows-width-and-full-target ()
   "The two-row icon reserves both rows and a minimum-width pressable Host."
   (let ((buffer (generate-new-buffer " *etaf-ui-icon-test*")) (count 0))

@@ -116,9 +116,13 @@ invented from other sets; use the component for fallback lookup."
     (delete-dups (cl-mapcan #'etaf-ui-icon-names (etaf-ui-icon-sets)))))
 
 (defun etaf-ui--icon-default-info (frame)
-  "Return the default font's native metrics on FRAME, or nil in a terminal."
-  (when (display-graphic-p frame)
-    (font-info (face-font 'default frame) frame)))
+  "Return the default font's native metrics on FRAME, or nil without one.
+A frame can report graphics while its default face font is still unresolved,
+as a batch or daemon frame does; callers then keep the one-line icon height
+contract instead of asking `font-info' about a nil font."
+  (when-let* (((display-graphic-p frame))
+              (font (face-font 'default frame)))
+    (font-info font frame)))
 
 (defun etaf-ui--icon-font (spec pixels frame)
   "Open SPEC's exact family at PIXELS on FRAME, without font substitution."
