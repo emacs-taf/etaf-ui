@@ -12,7 +12,8 @@
 (require 'etaf-ui-basic)
 
 (defun etaf-ui--navigation-items (items component)
-  "Validate navigation ITEMS for COMPONENT and return them unchanged."
+  "Validate navigation ITEMS for COMPONENT and return them unchanged.
+An item may carry an optional scalar `:count' shown after its label."
   (etaf-check-prop :items items (proper-list-p items)
                    "a list of item plists" component)
   (let (keys labels)
@@ -22,9 +23,11 @@
                             (plist-get item :key)
                             (stringp (plist-get item :label))
                             (not (string-empty-p (plist-get item :label)))
+                            (let ((count (plist-get item :count)))
+                              (or (null count) (numberp count) (stringp count)))
                             (not (member (plist-get item :key) keys))
                             (not (member (plist-get item :label) labels)))
-                       "unique non-nil :key and nonempty string :label"
+                       "unique non-nil :key, nonempty string :label and scalar :count"
                        component)
       (push (plist-get item :key) keys)
       (push (plist-get item :label) labels))
@@ -33,11 +36,13 @@
 (etaf-define-component etaf-tabs
     (&key items active on-change (variant 'underline))
   "Render controlled navigation TABS.
-ITEMS are plists with unique scalar :key and nonempty string :label. ACTIVE
-may be a value or ref; ON-CHANGE receives the selected key."
+ITEMS are plists with unique scalar :key and nonempty string :label; an
+optional scalar :count renders after the label in the muted token color.
+ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
   :render
   (let* ((items (etaf-ui--navigation-items items 'etaf-tabs))
-         (active (etaf-ui--reactive-value active)))
+         (active (etaf-ui--reactive-value active))
+         (count-color (etaf-theme-token :ui-muted-fg "#687386")))
     (etaf-check-prop :active active (cl-some (lambda (item) (equal active (plist-get item :key))) items)
                      "a key present in :items" 'etaf-tabs)
     (etaf-check-prop :on-change on-change (functionp on-change)
@@ -47,16 +52,31 @@ may be a value or ref; ON-CHANGE receives the selected key."
                (mapcar
                 (lambda (item)
                   (let* ((key (plist-get item :key))
-                         (selected (equal key active)))
+                         (label (plist-get item :label))
+                         (count (plist-get item :count))
+                         (selected (equal key active))
+                         (content (when count
+                                    ;; A nested compiled view: deferred Theme
+                                    ;; tokens resolve on Hosts built through
+                                    ;; the View DSL.
+                                    (etaf-view
+                                     (row :item-gap '(ch 1)
+                                       (text (expr label))
+                                       (box :color count-color
+                                         (text (expr (if (numberp count)
+                                                         (number-to-string count)
+                                                       count)))))))))
                     ;; The active tab is shown by its variant and tokens, never
                     ;; by a prefix glyph: a marker changes the label's width and
                     ;; makes the whole strip shift on every switch.
                     (etaf-node 'etaf-button
-                               (list :label (plist-get item :label)
+                               (list :label label
                                      :variant (if selected 'secondary 'ghost)
-                                     :aria-label (plist-get item :label)
+                                     :aria-label (if count
+                                                     (format "%s %s" label count)
+                                                   label)
                                      :on-press (lambda () (funcall on-change key)))
-                               nil)))
+                               (when count (list content)))))
                 items))))
 
 (etaf-define-component etaf-accordion

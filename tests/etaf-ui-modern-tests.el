@@ -87,7 +87,8 @@
              (etaf-view
               (column :width '(ch 80) :height '(lh 25)
                 (etaf-alert :title "Notice" :message "Ready" :variant 'info)
-                (etaf-tabs :items '((:key one :label "One") (:key two :label "Two"))
+                (etaf-tabs :items '((:key one :label "One" :count 17)
+                                    (:key two :label "Two"))
                            :active active
                            :on-change (lambda (key) (setf selected key (etaf-value active) key)))
                 (etaf-accordion
@@ -102,6 +103,7 @@
               (should (string-match-p "Notice" (buffer-string)))
               (should (etaf-runtime-mounted-p runtime))
               (should (string-match-p "Progress" (buffer-string)))
+              (should (string-match-p "17" (buffer-string)))
               (etaf-ui-modern-test-activate runtime "Two")
               (should (eq selected 'two))
               (should (eq (etaf-value active) 'two))
@@ -195,6 +197,8 @@
   (dolist (view '((etaf-kbd :keys ("Ctrl" 2))
                   (etaf-list :items ((:key same :title "First")
                                      (:key same :title "Second")))
+                  (etaf-tabs :items ((:key one :label "One" :count (1 2)))
+                             :active one :on-change ignore)
                   (etaf-steps :items ((:key one :label "Plan")) :current missing)))
     (with-temp-buffer
       (should-error (etaf-mount (current-buffer) (etaf-node (car view) (cdr view) nil))
