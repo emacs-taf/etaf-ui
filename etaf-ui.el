@@ -177,7 +177,9 @@
 ;; :submit-on-return is non-nil (default for one row); Shift+Return and C-j
 ;; insert a newline; C-c C-c and Ctrl+Return submit; C-c C-k, Escape and C-g
 ;; cancel and restore the activation value; TAB/backtab finish and move
-;; application focus; M-TAB completes.
+;; application focus; M-TAB completes.  Boundary motion and deletion stay
+;; inside the field's own published text: C-a/C-e, Home/End, C-k, C-w,
+;; M-d/M-DEL and Backspace/Delete never touch the surrounding canvas.
 ;; ON-SUBMIT and ON-CANCEL receive the session text. READ-ONLY stays focusable
 ;; without a session; DISABLED also removes activation. COMPLETION-FUNCTIONS
 ;; configures CAPF during the session and KEYMAP adds field-local bindings.

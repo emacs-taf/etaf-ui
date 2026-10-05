@@ -627,6 +627,31 @@
       "name": "etaf-ui-text-input-session-installs-completion-and-keymap",
       "file": "tests/etaf-ui-field-tests.el",
       "purpose": "Completion functions and extra field bindings apply only during the session and are removed on end."
+    },
+    {
+      "name": "etaf-ui-text-input-outside-press-finishes-the-session",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "A press on another Host finishes the editing session with cancel semantics, clears the Runtime finisher and returns the activation value."
+    },
+    {
+      "name": "etaf-ui-text-input-refit-waits-for-the-session",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "A viewport refit requested during editing is held until the session ends and then publishes the settled viewport."
+    },
+    {
+      "name": "etaf-ui-text-input-session-shows-a-caret-and-restores-state",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Editing shows a visible caret and never changes truncation behavior; ending restores the local cursor state."
+    },
+    {
+      "name": "etaf-ui-text-input-boundary-keys-stay-inside-the-field",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Home/End, C-k and boundary deletion stay inside the field's published text so the surrounding canvas is never invalidated."
+    },
+    {
+      "name": "etaf-ui-text-input-end-is-idempotent",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Ending the session twice releases it once and removes every session hook and the Runtime finisher."
     }
   ]
 }
