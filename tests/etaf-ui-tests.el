@@ -69,6 +69,37 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-number-input-stays-inline-in-a-wrapping-row ()
+  "A number input keeps its steppers and value on one row in a grid form.
+The settings grid places the control beside its caption; Ebox measures a
+stretching flex child at the whole row, so the number input's embedded field
+sizes its row to its own content instead of wrapping."
+  (let ((buffer-name " *etaf-ui-number-input-row-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-node
+            'grid
+            (list :width 'stretch :grid-template-columns '((ch 18) (fr 1))
+                  :column-gap '(ch 2) :align-items 'center)
+            (list (etaf-node 'etaf-label
+                             (list :text "Outer gap" :variant 'muted) nil)
+                  (etaf-node 'etaf-number-input
+                             (list :label "Outer gap" :value 1
+                                   :min 0 :max 4 :hide-label t)
+                             nil)))
+           '(:viewport-width 600 :viewport-height 20))
+          (with-current-buffer (get-buffer buffer-name)
+            (should (= 1 (length (split-string
+                                  (buffer-substring-no-properties
+                                   (point-min) (point-max))
+                                  "\n" t))))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-button-disabled-preserves-explicit-theme-surface ()
   "A disabled Button keeps explicit dark presentation props in its surface."
   (let ((buffer-name " *etaf-ui-themed-disabled-button-test*"))

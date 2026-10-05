@@ -415,7 +415,13 @@ accepted value when it ends."
                     :color (if empty
                                (etaf-ui--style-token :ui-muted-fg)
                              (etaf-ui--style-token :ui-panel-fg)))
-              (list (etaf-ui--text-input-display props)))))))))
+              (list (etaf-ui--text-input-display props))))))
+     nil
+     ;; A field nested in another wrapping row must measure at its own width:
+     ;; Ebox measures a stretching flex child at the whole row, which would
+     ;; push a number input's steppers onto separate lines.  An explicit
+     ;; field width sizes this row to its content instead.
+     (when (consp width) (list :width 'max-content)))))
 
 (provide 'etaf-ui-field)
 ;;; etaf-ui-field.el ends here

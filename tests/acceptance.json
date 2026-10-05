@@ -329,6 +329,11 @@
       "purpose": "Prompt-backed number input owns bounds and emits the accepted value."
     },
     {
+      "name": "etaf-ui-number-input-stays-inline-in-a-wrapping-row",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "A number input nested in another wrapping row keeps its steppers and value on one line."
+    },
+    {
       "name": "etaf-ui-button-disabled-preserves-explicit-theme-surface",
       "file": "tests/etaf-ui-tests.el",
       "purpose": "A disabled Button keeps explicit dark presentation props in its surface."

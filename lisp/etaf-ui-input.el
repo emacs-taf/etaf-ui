@@ -80,17 +80,23 @@ Each item has a unique scalar :key, nonempty string :label and optional
   (and (stringp value)
        (string-match-p "\\`[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\'" value)))
 
-(defun etaf-ui--input-field (label hide-label controls &optional ref)
+(defun etaf-ui--input-field (label hide-label controls &optional ref row-props)
   "Return one field row holding LABEL and CONTROLS.
 A field is a single row: a muted caption unless HIDE-LABEL, then the
 controls separated by one column.  Grid forms pass HIDE-LABEL and render
 the caption in their own column so every control aligns.  REF, when
-non-nil, names the row itself."
+non-nil, names the row itself.  ROW-PROPS, when non-nil, is appended to the
+row frame; a field nested inside another wrapping row passes an explicit
+size here, because Ebox measures a stretching flex child at the whole row
+and would then break the parent into one item per line."
   (etaf-node
    'flex
    (append
     (list :class "etaf-field" :flex-direction 'row :align-items 'center
-          :flex-wrap 'wrap :gap '((lh 0) (ch 1)) :width 'stretch)
+          :flex-wrap 'wrap :gap '((lh 0) (ch 1)))
+    row-props
+    (unless (plist-member row-props :width)
+      (list :width 'stretch))
     (when ref (list :ref ref)))
    (append
     (unless hide-label

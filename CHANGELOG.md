@@ -112,6 +112,11 @@
 
 ### Fixed
 
+- `etaf-number-input` keeps its `−`/`+` steppers and value on one line inside
+  another wrapping row, such as the desktop settings grid. Ebox measures a
+  field that stretches inside a wrapping parent at the whole row, so an
+  embedded field with an explicit width sizes its own row to that width
+  instead of forcing every stepper onto its own line.
 - `etaf-divider` keeps an unlabelled horizontal rule continuous: the one
   character column gap is reserved only when a label is present.
 
