@@ -250,7 +250,7 @@ Explicit font settings must fit that canvas's line height. Ebox rejects a
 larger resolved font before publication, preserving the last committed pixels
 and input. A custom glyph can still select a different fallback font at the
 same CSS size; checking the numeric size alone does not prove its physical
-row height. See the Ebox manual's [positioned composition contract](https://gitea.vhkd.top/geekinney/ebox/src/branch/main/docs/manual.md).
+row height. See the Ebox manual's [positioned composition contract](https://forgejo.vhkd.top/emacs-taf/ebox/src/branch/main/docs/manual.md).
 
 
 `etaf-resizable-panel` is the low-level catalog shell for a positioned panel.
@@ -611,7 +611,7 @@ controls block pointer activation from falling through to their parent row.
 Disabled input Behaviors are not installed. A conflicting fallthrough `:role`
 or owned aria state, such as `:aria-checked`, is an input error; accessible
 `:aria-label` and `:aria-description` remain caller-overridable. See the
-[interaction and migration rules](https://gitea.gklazycat.heiyu.space/geekinney/etaf/src/branch/main/docs/manual.md#interaction-migration)
+[interaction and migration rules](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf/src/branch/main/docs/manual.md#interaction-migration)
 for the complete contract.
 
 `etaf-label` accepts `:text`, `:class`, `:color`, `:bgcolor`, `:font-weight`,
