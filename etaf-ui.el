@@ -240,8 +240,8 @@
 ;; Component: etaf-range (&key value min max step on-change on-commit disabled color track-color bar-height label ref fill-ref)
 ;; Render a controlled interactive Range (progress, seek, volume) within MIN..MAX.
 ;; ON-CHANGE reports intermediate values and ON-COMMIT the released one; the bar
-;; paints a Track and a percentage Fill inside one standard row. A prepared Ebox
-;; update replaces FILL-REF's width without republishing the View.
+;; paints a Track and a percentage Fill inside one standard row. A retained
+;; binding updates FILL-REF's width without re-rendering the Component.
 ;; MIN/MAX accept numbers or reactive sources. Live bounds are checked by the
 ;; retained Fill getter; invalid bounds reject publication until corrected.
 
@@ -338,7 +338,7 @@
 ;; ACTIVE accepts a scalar key, nil, ref or computed.  STATUS accepts a string,
 ;; nil, ref or computed; nil clears status text.  LAYOUT-LABEL accepts a
 ;; string, ref or computed of strings; the layout control keeps a fixed width
-;; so a changed label publishes as a prepared Text update.  Reactive sources
+;; so a changed label rewrites only its own text.  Reactive sources
 ;; remain caller-owned and are read at their retained Host properties or Text
 ;; payload.  Status occupies the remaining single-row space and clips excess
 ;; text; layout and settings actions stay at the right edge as status length
@@ -627,9 +627,7 @@
 ;; state into the same retained update. ON-COLOR defaults to COLOR. SET,
 ;; SIZE, FACE, LINES, MIN-WIDTH (cells, default 2), HELP-ECHO, ON-PRESS, ID,
 ;; CLASS and REF match `etaf-ui-icon'; the complete box is the ON-PRESS
-;; target. Keep it in a scene the framework can address for retained
-;; publication (for example inside an absolutely positioned panel); other
-;; placements still render correctly through an ordinary publication.
+;; target.
 ;; Use (etaf-view (etaf-ui-toggle-icon :value playing :off 'play :on 'pause)).
 ;;
 ;; Variable: etaf-ui-icon-default-set

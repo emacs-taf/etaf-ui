@@ -32,9 +32,9 @@
             (setf (etaf-value label) "B")
             (etaf-dispatch-event runtime 'button-commit 'press)
             (let ((published (with-current-buffer buffer (buffer-string)))
-                  (generation (etaf-runtime-current-generation runtime)))
+                  (generation (etaf-runtime-revision runtime)))
               (should-error (setf (etaf-value label) "Rejected"))
-              (should (eq generation (etaf-runtime-current-generation runtime)))
+              (should (eq generation (etaf-runtime-revision runtime)))
               (should (equal-including-properties
                        published (with-current-buffer buffer (buffer-string)))))
             (etaf-dispatch-event runtime 'button-commit 'press)

@@ -81,11 +81,11 @@
   (dolist (columns '(((:key :name :width 12))
                      ((:key :name :width 12 :cell etaf-ui-cell-test--name))))
     (should
-     (ebox-canonical-input-p
+     (stringp (ebox-render
       (etaf-render
        (etaf-view
         (etaf-table :columns columns :rows '((:id 1 :name "Ada"))
-                    :row-key #'etaf-ui-cell-test--row-key)))))))
+                    :row-key #'etaf-ui-cell-test--row-key))))))))
 
 (ert-deftest etaf-ui-cell-factory-rejects-ref-and-watch-creation ()
   "A factory cannot allocate persistent state or subscriptions during render."
@@ -256,12 +256,12 @@
         (etaf-table :rows (etaf-value rows) :columns columns
                     :row-key #'etaf-ui-cell-test--row-key)))
       (let* ((runtime (etaf-runtime-for-buffer buffer))
-             (generation (etaf-runtime-current-generation runtime))
+             (generation (etaf-runtime-revision runtime))
              (text (with-current-buffer buffer (buffer-string))))
         (should-error
          (setf (etaf-value rows)
                '((:id 1 :name "Candidate") (:id 2 :name "Failure" :fail t))))
-        (should (eq generation (etaf-runtime-current-generation runtime)))
+        (should (eq generation (etaf-runtime-revision runtime)))
         (should (equal-including-properties
                  text (with-current-buffer buffer (buffer-string))))
         (etaf-dispatch-event runtime first-ref 'press)

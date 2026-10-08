@@ -27,7 +27,7 @@
             (etaf-pagination :controller controller
                              :previous-ref 'previous :next-ref 'next)))
           (dolist (width '(280 180 140))
-            (ebox-surface-update-buffer-viewport buffer width 30)
+            (etaf-runtime-refit (etaf-runtime-for-buffer buffer) width 30)
             (with-current-buffer buffer
               (let ((text (buffer-string)))
                 (dolist (label '("‹ Previous" "Next ›" "Page 1 / 3" "1–1 of 3"))

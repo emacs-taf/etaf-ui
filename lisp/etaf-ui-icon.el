@@ -351,17 +351,14 @@ Inside `etaf-view', use the component form with :name instead of NAME."
 (etaf-define-component etaf-ui-toggle-icon
     (&key value off on set (size 1.0) color on-color face (lines 1) (min-width 2)
           help-echo on-press id class ref)
-  "Render OFF or ON as one icon that switches without a View publication.
+  "Render OFF or ON as one icon that switches without re-rendering.
 VALUE is a boolean or a reactive source.  Both variants are resolved while
 rendering; each row's text then reads VALUE directly, so a change publishes a
 retained Host text update instead of rebuilding the Component.  OFF and ON
 may name the same icon when only ON-COLOR differs, which turns a colour state
 such as shuffle or repeat into the same retained update.  ON-COLOR defaults
 to COLOR.  SET, SIZE, FACE, LINES, MIN-WIDTH, HELP-ECHO, ON-PRESS, ID, CLASS
-and REF match `etaf-ui-icon'.  The complete box is the ON-PRESS target.
-Keep the icon in a scene the framework can address for retained publication
-(for example inside an absolutely positioned panel); every other placement
-still renders correctly and simply falls back to an ordinary publication."
+and REF match `etaf-ui-icon'.  The complete box is the ON-PRESS target."
   :render
   (progn
     (etaf-check-prop :size size (and (numberp size) (> size 0)) "a positive number" 'etaf-ui-toggle-icon)

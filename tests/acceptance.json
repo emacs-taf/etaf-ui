@@ -144,13 +144,13 @@
       "purpose": "Invalid numeric props fail before the Range paints."
     },
     {
-      "name": "etaf-ui-prepared-resize-keeps-window-chrome-and-input",
-      "file": "tests/etaf-ui-prepared-resize-tests.el",
-      "purpose": "Controlled catalog window sizes retain title, eight handles, button targets, source snapshots and fresh-render output through prepared publication."
+      "name": "etaf-ui-window-resize-keeps-chrome-and-input",
+      "file": "tests/etaf-ui-window-resize-tests.el",
+      "purpose": "Controlled catalog window sizes keep the title, eight handles and button targets, commit once per batch and match a fresh mount."
     },
     {
       "name": "etaf-ui-window-resize-example-uses-controlled-handles",
-      "file": "tests/etaf-ui-prepared-resize-tests.el",
+      "file": "tests/etaf-ui-window-resize-tests.el",
       "purpose": "The public catalog resize example updates controlled geometry and restores the original rectangle on cancellation."
     },
     {
@@ -534,19 +534,19 @@
       "purpose": "Traffic-light active colors update while their input targets remain valid."
     },
     {
-      "name": "etaf-ui-prepared-focus-publishes-real-ui-batches-once",
-      "file": "tests/etaf-ui-prepared-focus-tests.el",
-      "purpose": "Taskbar selection, traffic lights, stacking and variable status publish together with fresh-render parity and detached snapshots."
+      "name": "etaf-ui-focus-composition-batches-match-fresh-ui",
+      "file": "tests/etaf-ui-focus-composition-tests.el",
+      "purpose": "Taskbar selection, traffic lights, stacking and variable status commit together in one revision and match a fresh mount."
     },
     {
-      "name": "etaf-ui-prepared-focus-rejection-keeps-accepted-ui-until-retry",
-      "file": "tests/etaf-ui-prepared-focus-tests.el",
+      "name": "etaf-ui-focus-composition-rejection-keeps-committed-ui-until-retry",
+      "file": "tests/etaf-ui-focus-composition-tests.el",
       "purpose": "A rejected coordinated focus update preserves accepted UI, then publishes the requested appearance on retry."
     },
     {
-      "name": "etaf-ui-focus-scalar-props-preserve-renderable-snapshots",
-      "file": "tests/etaf-ui-prepared-focus-tests.el",
-      "purpose": "Controlled scalar props preserve matching rendered controls, canonical snapshots and fresh-mount appearance across focus changes."
+      "name": "etaf-ui-focus-scalar-props-match-fresh-ui",
+      "file": "tests/etaf-ui-focus-composition-tests.el",
+      "purpose": "Controlled scalar props keep rendered controls matching a fresh mount across focus changes."
     },
     {
       "name": "etaf-ui-window-fonts-inherit-and-override-independently",

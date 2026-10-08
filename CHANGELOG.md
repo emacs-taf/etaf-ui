@@ -18,15 +18,14 @@
 
 - `etaf-ui-toggle-icon` renders one icon that switches between two names, or
   between two colours for one name, through retained Host text. A reactive
-  `:value` publishes a text update instead of rebuilding the view; keep it in
-  an absolutely positioned panel to use that retained path, and every other
-  placement still renders correctly through an ordinary publication.
+  `:value` publishes a text update instead of rebuilding the view in every
+  placement.
 - `etaf-ui-window-resize-open` mounts a runnable catalog window whose title
   moves and whose eight handles resize through controlled Behaviors, with
   Shift-locked gestures and Escape restoring the starting rectangle.
   `benchmarks/performance-scenarios.el` registers `window.resize.*`
-  workloads comparing direct Ebox geometry publication with mounted
-  reactive state, plus the native corner gesture.
+  workloads comparing a direct `etaf-runtime-update-host-geometry` commit
+  with mounted reactive state, plus the native corner gesture.
 - `etaf-ui-dismiss-outside-press` closes every mounted floating surface whose
   panel the current press missed. A shell root calls it from `:on-press` and
   `:on-press-capture` to give unpainted modals and popovers click-outside
@@ -58,6 +57,12 @@
   line-icon style as their player controls.
 
 ### Changed
+
+- The catalog runs on ETAF's fine-grained retained runtime and requires it.
+  Component APIs are unchanged; each reactive prop now updates only its own
+  retained node, and a failing update leaves the committed controls in place
+  until the next write retries it.  Interactions report
+  `etaf-runtime-revision` rather than generation or publication counters.
 
 - `etaf-range` paints a track with an accent Fill overlay: the Fill is an
   absolutely positioned Host painted above the track, so the split is visible

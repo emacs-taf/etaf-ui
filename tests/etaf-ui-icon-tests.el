@@ -75,7 +75,7 @@ report graphics; the icon row must keep its one-line height contract instead
 of signaling from `font-info'."
   (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _frame) t))
             ((symbol-function 'image-type-available-p) (lambda (_type) nil))
-            ((symbol-function 'face-font) (lambda (&optional _face _frame) nil)))
+            ((symbol-function 'face-font) (lambda (_face &optional _frame _character) nil)))
     (let ((output (ebox-render (etaf-render (etaf-ui-icon 'play :set 'svg :color "#123456")))))
       (should (stringp output))
       (should (string-match-p ">" output))

@@ -145,7 +145,7 @@ sizes its row to its own content instead of wrapping."
           (should (string-match-p "Next ›" (etaf-ui-test--text buffer-name)))
           ;; Live Ebox windows reserve two pixels for the exclusive display
           ;; boundary; the pager must stay inside the corresponding 360px row.
-          (ebox-surface-update-buffer-viewport (get-buffer buffer-name) 358 20)
+          (etaf-runtime-refit (etaf-runtime-for-buffer (get-buffer buffer-name)) 358 20)
           (with-current-buffer buffer-name
             (goto-char (point-min))
             (while (< (point) (point-max))

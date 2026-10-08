@@ -302,15 +302,12 @@ touching the buffer text or the session value."
 (defun etaf-ui--text-input-changed (&rest _change)
   "Publish accepted native edits to the active field's owner.
 Only the buffer's own change hook calls this.  Unmount erases the buffer
-before component cleanup, so ignore changes once the field's Host no longer
-has a committed span; a user clearing the field keeps its published span
-because publication is deferred during the session."
+before component cleanup, so ignore changes once the Runtime is unmounted."
   (when-let* ((field etaf-ui--field-active)
               (session (etaf-ui--text-input-session field))
               (runtime (etaf-ui--text-input-runtime field))
-              ((buffer-live-p (etaf-runtime-buffer runtime)))
-              ((etaf-host-ref-bounds runtime
-                                     (etaf-ui--text-input-text-ref field))))
+              ((etaf-runtime-mounted-p runtime))
+              ((buffer-live-p (etaf-runtime-buffer runtime))))
     (etaf-ui--text-input-indent-lines field)
     (let ((text (etaf-input-text session)))
       (unless (equal text (etaf-ui--text-input-last-text field))

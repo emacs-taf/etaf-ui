@@ -141,8 +141,8 @@ It holds labels up to eight characters plus the control's padding.")
 
 (etaf-define-component etaf-ui--desktop-layout-label (&key label)
   "Render the workspace bar's layout control LABEL as one reactive Text payload.
-The control keeps a fixed width so a changed label publishes as a prepared
-Text update instead of re-rendering the bar."
+The control keeps a fixed width so a changed label rewrites only its own
+text instead of laying out the bar again."
   :view
   (text (expr (let ((value (etaf-ui--reactive-value label)))
                 (etaf-check-prop :layout-label value (stringp value)
@@ -327,8 +327,8 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                                :ref 'etaf-workspace-layout
                                :variant 'secondary
                                :class "etaf-workspace-layout"
-                               ;; A fixed allocation lets a reactive label
-                               ;; change as a prepared Text update.
+                               ;; A fixed allocation keeps a reactive label
+                               ;; change inside its own relayout boundary.
                                :width (list 'ch etaf-ui--desktop-layout-label-width)
                                :flex-shrink 0 :overflow 'hidden
                                :pointer 'hand
@@ -524,7 +524,7 @@ RECT holds :left/:top/:width/:height scalars or reactive sources,
 DIVIDER-CONTENT is a string or a reactive source of one and VISIBLE hides the
 divider while keeping its retained node.  Every geometry, content and
 visibility read happens inside a Host property expression, so a caller-owned
-layout policy republishes the divider through prepared bindings."
+layout policy updates the divider through its retained bindings."
   :view
   (box :class "etaf-splitter-divider" :role 'separator :tab-index 0
        :aria-label (if (eq orientation 'horizontal) "Resize columns" "Resize rows")

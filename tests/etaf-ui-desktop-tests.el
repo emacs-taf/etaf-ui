@@ -95,13 +95,13 @@
         (progn
           (dolist (value '(notes files nil))
             (should
-             (ebox-canonical-input-p
+             (stringp (ebox-render
               (etaf-render
                (etaf-view
                 (column
                  (etaf-taskbar :items '((:key notes :label "Notes")) :active value)
                  (etaf-workspace-bar :workspaces '(main dev) :active 'main
-                                     :status "Pure status")))))))
+                                     :status "Pure status"))))))))
           (etaf-mount
            buffer
            (etaf-view
@@ -230,14 +230,15 @@
                      :width '(ch 20) :height '(lh 2) :z-index 1
                   (text "Panel"))))))
           (let* ((runtime (etaf-runtime-for-buffer buffer))
-                 (generation (etaf-runtime-current-generation runtime))
+                 (generation (etaf-runtime-revision runtime))
                  (refs '(etaf-workspace-layout etaf-workspace-settings panel))
                  (geometry
                   (mapcar (lambda (ref)
                             (etaf-ui-desktop-test--host-geometry runtime buffer ref)) refs)))
             (dolist (value '("Tiled" "Floating" "Tiled"))
               (etaf-set-value label value)
-              (should (eq generation (etaf-runtime-current-generation runtime)))
+              ;; One in-place text commit, with the same Host geometry.
+              (should (= (cl-incf generation) (etaf-runtime-revision runtime)))
               (should (equal geometry
                              (mapcar (lambda (ref)
                                        (etaf-ui-desktop-test--host-geometry runtime buffer ref))
@@ -381,8 +382,8 @@
 (ert-deftest etaf-ui-window-controls-react-to-active-paint-and-retain-targets ()
   "Active-state paint changes preserve each traffic light's native input target."
   (dolist (active '(t nil))
-    (should (ebox-canonical-input-p
-             (etaf-render (etaf-view (etaf-window-controls :active active)))))
+    (should (stringp (ebox-render
+             (etaf-render (etaf-view (etaf-window-controls :active active))))))
     (should (string-match-p
              "Pure title"
              (ebox-render
@@ -443,9 +444,9 @@
             (should (equal '(1 1 1) (list closed minimized maximized)))
             ;; Zoom follows the live mode: a maximized window restores, and
             ;; the mode change keeps the same retained control target.
-            (let ((revision (ebox-surface-buffer-revision buffer)))
+            (let ((revision (etaf-runtime-revision runtime)))
               (etaf-set-value mode 'maximized)
-              (should (= revision (ebox-surface-buffer-revision buffer)))
+              (should (= revision (etaf-runtime-revision runtime)))
               (should (etaf-host-ref-position runtime (nth 2 refs)))
               (etaf-dispatch-event runtime (nth 2 refs) 'press)
               (should (equal '(1 1 1 1) (list closed minimized maximized restored))))))

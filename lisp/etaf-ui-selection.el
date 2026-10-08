@@ -258,8 +258,8 @@ percentage of the row (default 40)."
                      "a number or reactive source" 'etaf-range)
     ;; Reactive bounds belong to the retained Fill getter.  Reading them in
     ;; input validation subscribes the Component input even though its props
-    ;; retain the same source identities, forcing unrelated Host work through
-    ;; a declarative publication on every bound change.
+    ;; retain the same source identities, re-running the Component's input on
+    ;; every bound change.
     (when (and (numberp min) (numberp max))
       (etaf-check-prop :max max (>= max min)
                        "greater than or equal to :min" 'etaf-range))
@@ -303,7 +303,7 @@ percentage of the row (default 40)."
                                        (etaf-ui--range-value-at-ratio ratio low high step)))
                             (live (cons ratio raw)))
                        ;; Preview and authoritative value changes share the
-                       ;; same retained Fill binding and atomic publication.
+                       ;; same retained Fill binding and atomic commit.
                        (unless (equal (etaf-value drag) live)
                          (etaf-set-value drag live))
                        (if commit

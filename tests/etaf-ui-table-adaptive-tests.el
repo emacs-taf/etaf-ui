@@ -97,7 +97,7 @@
              :rows (etaf-value rows) :columns (etaf-value columns)
              :theme theme :selected selected)))
           (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (ebox-surface-update-buffer-viewport buffer 420 30)
+            (etaf-runtime-refit (etaf-runtime-for-buffer buffer) 420 30)
             (etaf-dispatch-event runtime 'adaptive-complete-1 'press)
             ;; Width is geometry, not cell ownership.  Keep the same keys and
             ;; action Component through both fixed-to-fr and fr-to-fixed paths.
@@ -113,11 +113,11 @@
             (should (= 2 (length etaf-ui-adaptive-test--states)))
             (should-not etaf-ui-adaptive-test--removed)
             (let ((text (with-current-buffer buffer (buffer-string)))
-                  (generation (etaf-runtime-current-generation runtime)))
+                  (generation (etaf-runtime-revision runtime)))
               (should-error
                (setf (etaf-value rows)
                      '((:id 1 :title "Candidate") (:id 2 :title "Rejected" :fail t))))
-              (should (eq generation (etaf-runtime-current-generation runtime)))
+              (should (eq generation (etaf-runtime-revision runtime)))
               (should (equal-including-properties text (with-current-buffer buffer (buffer-string)))))
             (etaf-dispatch-event runtime 'adaptive-complete-1 'press)
             (should (= 2 (etaf-value (cadr (assq 1 etaf-ui-adaptive-test--states)))))

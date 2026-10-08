@@ -45,7 +45,7 @@
                                 :wrap-mode 'word :color "#234567")
                     (text "After"))))
           (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (ebox-surface-update-buffer-viewport buffer 8 30)
+            (etaf-runtime-refit (etaf-runtime-for-buffer buffer) 8 30)
             (let ((narrow (with-current-buffer buffer (buffer-substring-no-properties (point-min) (point-max)))))
               (should (string-match-p "alpha *\nbeta *\ngamma *\nAfter" narrow))
               (should (etaf-host-ref-bounds runtime 'paragraph)))
@@ -53,7 +53,7 @@
             (etaf-runtime-flush runtime)
             (with-current-buffer buffer
               (should (string-match-p "中文内容 *\n测试 *\nAfter" (buffer-substring-no-properties (point-min) (point-max)))))
-            (ebox-surface-update-buffer-viewport buffer 20 30)
+            (etaf-runtime-refit (etaf-runtime-for-buffer buffer) 20 30)
             (with-current-buffer buffer
               (should (string-match-p "中文内容测试 *\nAfter" (buffer-substring-no-properties (point-min) (point-max)))))
             (should (etaf-host-ref-bounds runtime 'paragraph))))

@@ -29,14 +29,18 @@
                                  (plist-get stage :metadata)))))))))
 
 (defun etaf-ui-benchmark--environment ()
-  "Return stable capability facts and the loaded native artifact identity."
-  (let ((native (ebox-native-reflow-runtime-report)))
-    (list :native_available (if (plist-get native :available-p) t :false)
-          :native_layout (if (plist-get native :layout-ready-p) t :false)
-          :native_hash (plist-get native :loaded-module-hash)
-          :native_path (plist-get native :loaded-module-path)
-          :render_gc_threshold ebox-render-gc-cons-threshold
-          :render_gc_percentage ebox-render-gc-cons-percentage)))
+  "Return stable capability facts of the measured session."
+  (list :graphic (if (display-graphic-p) t :false)
+        :gc_cons_threshold gc-cons-threshold
+        :gc_cons_percentage gc-cons-percentage))
+
+(defun etaf-ui-benchmark--outcome (buffer runtime)
+  "Return BUFFER's last committed write facts and RUNTIME's revision."
+  (let ((report (ebox-buffer-update-report buffer)))
+    (list :strategy (format "%s" (plist-get report :strategy))
+          :edits (plist-get report :edits)
+          :lines (plist-get report :lines)
+          :revision (etaf-runtime-revision runtime))))
 
 (defun etaf-ui-benchmark--gallery (label expected route mode &optional steps existing-buffer)
   "Prepare Gallery LABEL through ROUTE in MODE and verify EXPECTED text.
@@ -54,9 +58,9 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
        (unless (or existing-buffer viewport-ready)
          ;; SETUP mounts before the driver displays the buffer. Resolve the
          ;; actual containing viewport once it is visible, outside timing.
-         (ebox-rerender-buffer-with-context
-          buffer
-          (if (eq mode 'gui) (ebox-viewport-window-width (selected-window))
+         (etaf-runtime-refit
+          runtime
+          (if (eq mode 'gui) (window-body-width (selected-window) t)
             (* 120 (frame-char-width)))
           (if (eq mode 'gui) (window-body-height (selected-window)) 40))
          (setq viewport-ready t))
@@ -116,18 +120,7 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
      (lambda ()
        ;; Read the accepted last commit after timing, without enabling tracing
        ;; or changing the event boundary of the latency sample itself.
-       (let ((report (ebox-buffer-update-report buffer)))
-         (list :strategy (format "%s" (plist-get report :strategy))
-               :projection (format "%s" (plist-get report :projection-kind))
-               :dirty_count (plist-get report :dirty-count)
-               :root_owner (if (member (plist-get report :constraint-root-node-id)
-                                      (plist-get report :owner-ids)) t :false)
-               :reconciled (plist-get report :reconciled-objects)
-               :text_operations (plist-get report :publication-text-operations)
-               :property_operations (plist-get report :publication-property-operations)
-               :layer_recompose (if (plist-get report :layer-recompose-p) t :false)
-               :publication_full_root (if (plist-get report :publication-full-root) t :false)
-               :publication_scope (format "%s" (plist-get report :publication-scope)))))
+       (etaf-ui-benchmark--outcome buffer runtime))
      :verify (lambda ()
                (with-current-buffer buffer
                  (and (etaf-runtime-for-buffer buffer)
@@ -284,22 +277,32 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
             :overflow 'hidden
          (text "Retained body: 0123456789 abcdefghijklmnopqrstuvwxyz\nSecond line stays unchanged."))))))
 
-(defun etaf-ui-resize-benchmark--fresh-p (buffer)
-  "Check BUFFER text and public display properties against a fresh render."
-  (with-current-buffer buffer
-    (let* ((actual (buffer-string))
-           (input (plist-get (ebox-surface-buffer-snapshot buffer) :input))
-           (expected (ebox-render input))
-           (valid (equal (substring-no-properties actual)
-                         (substring-no-properties expected)))
-           (position 0))
-      (while (and valid (< position (length actual)))
-        (dolist (property '(face display font-lock-face pointer help-echo mouse-face))
-          (unless (equal (get-text-property position property actual)
-                         (get-text-property position property expected))
-            (setq valid nil)))
-        (setq position (1+ position)))
-      valid)))
+(defun etaf-ui-resize-benchmark--fresh-p (buffer size)
+  "Check BUFFER text and display properties against a fresh mount at SIZE.
+SIZE is the expected (WIDTH-PIXELS HEIGHT-LINES) window rectangle."
+  (let ((fresh (generate-new-buffer " *ETAF fresh window resize*")))
+    (unwind-protect
+        (progn
+          (etaf-mount fresh (etaf-ui-resize-benchmark--view
+                             (etaf-ref (list 'px (car size)))
+                             (etaf-ref (list 'lh (cadr size)))))
+          (let ((viewport (etaf-runtime-viewport (etaf-runtime-for-buffer buffer))))
+            (etaf-runtime-refit (etaf-runtime-for-buffer fresh)
+                                (car viewport) (cdr viewport)))
+          (let* ((actual (with-current-buffer buffer (buffer-string)))
+                 (expected (with-current-buffer fresh (buffer-string)))
+                 (valid (equal (substring-no-properties actual)
+                               (substring-no-properties expected)))
+                 (position 0))
+            (while (and valid (< position (length actual)))
+              (dolist (property '(face display font-lock-face pointer help-echo mouse-face))
+                (unless (equal (get-text-property position property actual)
+                               (get-text-property position property expected))
+                  (setq valid nil)))
+              (setq position (1+ position)))
+            valid))
+      (when-let* ((runtime (etaf-runtime-for-buffer fresh))) (etaf-unmount runtime))
+      (kill-buffer fresh))))
 
 (defun etaf-ui-resize-benchmark--fixture (route axis)
   "Build one fixed-window fixture for publication ROUTE and resize AXIS."
@@ -307,8 +310,8 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
          (width (etaf-ref '(px 320) :test #'equal))
          (height (etaf-ref '(lh 12) :test #'equal))
          (step 0) expected revision runtime mounted)
-    ;; `etaf-window' is stateful, so both routes mount it; the provider
-    ;; route then publishes geometry directly through Ebox on the buffer.
+    ;; `etaf-window' is stateful, so both routes mount it; the direct route
+    ;; then commits geometry through ETAF's retained Host geometry update.
     (etaf-mount buffer (etaf-ui-resize-benchmark--view width height))
     (setq mounted (etaf-runtime-for-buffer buffer)
           runtime (and (eq route 'runtime) mounted))
@@ -324,7 +327,7 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
                           (list (if (eq axis 'height) 320 328)
                                 (if (eq axis 'width) 12 13))
                         '(320 12))
-             revision (ebox-surface-buffer-revision buffer)))
+             revision (etaf-runtime-revision mounted)))
      :invoke
      (lambda (_sample)
        (if runtime
@@ -334,30 +337,26 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
                 (etaf-set-value width (list 'px (car expected)))
                 (etaf-set-value height (list 'lh (cadr expected)))))
              (etaf-runtime-flush runtime))
-         (with-current-buffer buffer
-           (ebox-region-update-geometry
-            "resize-window" :width (list 'px (car expected))
-            :height (list 'lh (cadr expected))))))
+         (etaf-runtime-update-host-geometry
+          mounted 'resize-window :width (list 'px (car expected))
+          :height (list 'lh (cadr expected)))))
      :verify
      (lambda ()
-       (with-current-buffer buffer
-         (let ((geometry (ebox-region-geometry "resize-window")))
-           (and (> (ebox-surface-buffer-revision buffer) revision)
-                (equal (plist-get geometry :width) (list 'px (car expected)))
-                (equal (plist-get geometry :height) (list 'lh (cadr expected)))
-                (or (null runtime)
-                    (and (etaf-host-ref-position runtime 'resize-title)
-                         (etaf-host-ref-position runtime 'resize-right)
-                         (etaf-host-ref-position runtime 'resize-bottom-right)
-                         (equal (plist-get (etaf-runtime-host-props-for runtime 'resize-window) :width)
-                                (etaf-value width))))
-                (etaf-ui-resize-benchmark--fresh-p buffer)))))
+       (and (= (etaf-runtime-revision mounted) (1+ revision))
+            (equal (etaf-host-ref-size mounted 'resize-window)
+                   (cons (car expected) (cadr expected)))
+            (etaf-host-ref-position mounted 'resize-title)
+            (etaf-host-ref-position mounted 'resize-right)
+            (etaf-host-ref-position mounted 'resize-bottom-right)
+            (or (null runtime)
+                (equal (plist-get (etaf-runtime-host-props-for runtime 'resize-window) :width)
+                       (etaf-value width)))
+            (etaf-ui-resize-benchmark--fresh-p buffer expected)))
      :outcome
      (lambda ()
-       (list :route (symbol-name route) :rectangle (vconcat expected)
-             :publication-before revision
-             :publication-after (ebox-surface-buffer-revision buffer)
-             :projection-kind (format "%s" (plist-get (ebox-buffer-update-report buffer) :projection-kind))))
+       (append (list :route (symbol-name route) :rectangle (vconcat expected)
+                     :revision-before revision)
+               (etaf-ui-benchmark--outcome buffer mounted)))
      :observe
      (lambda (sink)
        (ebox-buffer-set-observer buffer sink)
@@ -368,7 +367,7 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
          (etaf-unmount mounted))
        (when (buffer-live-p buffer) (kill-buffer buffer))))))
 
-(dolist (route '(provider runtime))
+(dolist (route '(direct runtime))
   (dolist (axis '(width height corner))
     (let ((selected-route route) (selected-axis axis))
       (taf-benchmark-register
@@ -415,11 +414,9 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
          (and (equal expected (list (cadr (plist-get props :width))
                                     (cadr (plist-get props :height))))
               (etaf-host-ref-position runtime 'resize-bottom-right)
-              (not (ebox-selector-query-buffer buffer ":active"))
-              (etaf-ui-resize-benchmark--fresh-p buffer))))
-     :outcome (lambda () (list :size (vconcat expected)
-                               :projection (format "%s" (plist-get (ebox-buffer-update-report buffer)
-                                                                   :projection-kind))))
+              (etaf-ui-resize-benchmark--fresh-p buffer expected))))
+     :outcome (lambda () (append (list :size (vconcat expected))
+                                 (etaf-ui-benchmark--outcome buffer runtime)))
      :observe (lambda (sink) (ebox-buffer-set-observer buffer sink)
                 (lambda () (ebox-buffer-set-observer buffer nil)))
      :cleanup (lambda () (etaf-unmount runtime)
