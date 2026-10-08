@@ -596,8 +596,9 @@
 ;; SVG uses currentColor and cached centered images. Two-row icons use slices
 ;; of one SVG canvas, including SVG text for font sets. Without graphical SVG,
 ;; reserve both rows and put a line-safe text variant in the first row.
-;; Resolve NAME in SET, then `etaf-ui-icon-default-set', then sys, then show
-;; the name as plain text (control/non-ASCII characters are escaped). Absent
+;; Resolve NAME in SET, then `etaf-ui-icon-default-set', then sys, then svg
+;; (its line-safe text variant without graphical SVG), then show the name as
+;; plain text (control/non-ASCII characters are escaped). Absent
 ;; fonts/glyphs follow the same lookup; terminal font sets use text variants.
 ;; An unknown explicitly requested/default set is a usage error, wrapped by
 ;; ETAF during rendering. Invalid geometry/callback props fail before publish.

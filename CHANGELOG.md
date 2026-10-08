@@ -5,7 +5,7 @@
 ### Added
 
 - The icon set adds `pin`, `bell-off`, `send`, `reply`, `users`, `megaphone`
-  and `at`, with SVG shapes and line-safe text fallbacks.
+  and `at`, with font glyphs, SVG shapes and line-safe text fallbacks.
 
 - Native editor integrations can share an empty hint, edit observation and
   revision-guarded value replacement through `etaf-ui-editor-mode`. Existing
@@ -119,6 +119,10 @@
   Provide a Theme with those tokens to change the accent.
 
 ### Fixed
+
+- An icon missing from the requested, default and `sys` sets now resolves
+  through the built-in `svg` set (or its text variant) before falling back to
+  its printed name.
 
 - `etaf-number-input` keeps its `−`/`+` steppers and value on one line inside
   another wrapping row, such as the desktop settings grid. Ebox measures a

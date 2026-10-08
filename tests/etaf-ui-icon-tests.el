@@ -33,7 +33,7 @@
       (etaf-ui-icon-set-remove 'test-icons))))
 
 (ert-deftest etaf-ui-icon-lookup-distinguishes-missing-name-and-set ()
-  "Absent names fall through styles; an unknown style is a usage error."
+  "Absent names fall through styles to svg; an unknown style is a usage error."
   (let ((etaf-ui-icon-default-set 'test-default))
     (unwind-protect
         (progn
@@ -42,6 +42,8 @@
           (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
             (should (string-match-p "D" (ebox-render (etaf-render (etaf-ui-icon 'play :set 'test-partial)))))
             (should (string-match-p "L" (ebox-render (etaf-render (etaf-ui-icon 'local :set 'test-partial)))))
+            (should (equal ">" (substring-no-properties
+                                (car (etaf-ui-icon-lines 'send :set 'test-partial)))))
             (should (string-match-p "never-an-icon" (ebox-render (etaf-render (etaf-ui-icon 'never-an-icon :set 'test-partial))))))
           (should-not (memq 'play (etaf-ui-icon-names 'test-partial)))
           (should (memq 'local (etaf-ui-icon-names)))
