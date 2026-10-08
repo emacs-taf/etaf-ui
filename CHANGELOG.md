@@ -4,6 +4,9 @@
 
 ### Added
 
+- The icon set adds `pin`, `bell-off`, `send`, `reply`, `users`, `megaphone`
+  and `at`, with SVG shapes and line-safe text fallbacks.
+
 - Native editor integrations can share an empty hint, edit observation and
   revision-guarded value replacement through `etaf-ui-editor-mode`. Existing
   editing keys, completion, selection and undo remain native; stale external

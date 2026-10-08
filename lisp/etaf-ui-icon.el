@@ -425,7 +425,9 @@ change stays a retained Host update rather than a Component rerender."
                    (more . "...")
                    (download . "v")
                    (star . "*") (radio . "~") (disc . "o") (chart . "=")
-                   (mic . "!") (clock . "c")))
+                   (mic . "!") (clock . "c")
+                   (pin . "^") (bell-off . "z") (send . ">") (reply . "<")
+                   (users . "#") (megaphone . "!") (at . "@")))
        (fonts
         `((nerd ("DroidSansMono Nerd Font" "DejaVuSansMono Nerd Font") 1.0 ,fa)
           (fa ("FontAwesome") 0.86 ,fa)
@@ -516,7 +518,14 @@ change stays a retained Host update rather than a Component rerender."
            (mic . "<rect x='5' y='2' width='4' height='6' rx='2'/><path d='M3.5 7A3.5 3.5 0 0 0 10.5 7M7 10.5V12.5M5 12.5H9'/>")
            (clock . "<circle cx='7' cy='7' r='5'/><path d='M7 4.5V7.5L9.2 9.2'/>")
            (more . "<circle cx='3' cy='7' r='1.2' fill='currentColor'/><circle cx='7' cy='7' r='1.2' fill='currentColor'/><circle cx='11' cy='7' r='1.2' fill='currentColor'/>")
-           (download . "<path d='M7 2V9M3.5 5.5L7 9L10.5 5.5M2 12H12'/>")))))
+           (download . "<path d='M7 2V9M3.5 5.5L7 9L10.5 5.5M2 12H12'/>")
+           (pin . "<path d='M5 2H9L8.5 6L11 8.5H3L5.5 6ZM7 8.5V12.5'/>")
+           (bell-off . "<path d='M3.5 10.5V6.5A3.5 3.5 0 0 1 9.8 4.4M10.5 6.5V10.5H3.5M6 12.2H8M2 2L12 12'/>")
+           (send . "<path d='M2 7L12 2.5L9.5 12L7 8ZM7 8L12 2.5'/>")
+           (reply . "<path d='M6 3.5L2.5 7L6 10.5M2.5 7H8.5C10.5 7 11.5 8.5 11.5 11'/>")
+           (users . "<circle cx='5' cy='4.5' r='2'/><path d='M1.5 12V11C1.5 7.8 8.5 7.8 8.5 11V12'/><path d='M9 2.7A2 2 0 0 1 9 6.3M10 8.2C11.6 8.6 12.5 9.6 12.5 11V12'/>")
+           (megaphone . "<path d='M2 5.5H4.5L10.5 2.5V11.5L4.5 8.5H2ZM4.5 8.5L5.5 12H7L6.2 8.9'/>")
+           (at . "<circle cx='7' cy='7' r='2.2'/><path d='M9.2 7V8.2C9.2 9.8 11.8 9.8 11.8 7.5A4.8 4.8 0 1 0 9.5 11.4'/>")))))
 
 (provide 'etaf-ui-icon)
 ;;; etaf-ui-icon.el ends here
