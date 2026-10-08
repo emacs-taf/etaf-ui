@@ -164,7 +164,9 @@
                 (etaf-kbd :keys '("Ctrl" "K"))
                 (row :item-gap '(ch 1)
                   (etaf-avatar :name "Mina")
-                  (etaf-avatar :name ""))
+                  (etaf-avatar :name "")
+                  (etaf-avatar :name "Ada" :initials "AL" :size '(ch 4)
+                               :lines 2 :background "#2563eb"))
                 (etaf-steps
                  :current current
                  :items '((:key one :label "Plan") (:key two :label "Build"))
@@ -179,6 +181,10 @@
               (should (string-match-p "Ctrl" (buffer-string)))
               (should (string-match-p "MI" (buffer-string)))
               (should (string-match-p (regexp-quote "?") (buffer-string)))
+              (let ((start (string-match "AL" (buffer-string))))
+                (should start)
+                (should (member '(:background "#2563eb")
+                                (get-text-property (1+ start) 'face))))
               (should (string-match-p "Build" (buffer-string)))
               (should (string-match-p "1  Plan" (buffer-string)))
               (should (string-match-p "2  Build" (buffer-string)))

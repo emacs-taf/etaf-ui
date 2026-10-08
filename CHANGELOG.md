@@ -7,6 +7,9 @@
 - The icon set adds `pin`, `bell-off`, `send`, `reply`, `users`, `megaphone`
   and `at`, with font glyphs, SVG shapes and line-safe text fallbacks.
 
+- `etaf-avatar` accepts `:lines` for multi-row list avatars and
+  `:background` for a solid identity color with white initials.
+
 - Native editor integrations can share an empty hint, edit observation and
   revision-guarded value replacement through `etaf-ui-editor-mode`. Existing
   editing keys, completion, selection and undo remain native; stale external

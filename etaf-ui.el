@@ -483,8 +483,12 @@
 ;; Component: etaf-card (&key title description variant)
 ;; Render a reusable titled surface with default content slots.
 ;;
-;; Component: etaf-avatar (&key name initials size variant)
+;; Component: etaf-avatar (&key name initials size variant lines background)
 ;; Render a compact initials avatar with semantic color and accessible name.
+;; SIZE is its width; LINES (default 3, a positive integer) its height, with
+;; the initials on its (upper) middle line, so a one- or two-line list row can
+;; carry it. BACKGROUND, a color, replaces VARIANT with white initials on that
+;; color, for per-person colors such as chat senders.
 ;;
 ;; Component: etaf-timeline (&key items)
 ;; Render chronological item plists containing :title, :content and :status.

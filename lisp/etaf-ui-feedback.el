@@ -138,8 +138,11 @@
        (expr (when description (etaf-view (etaf-label :text description :variant 'muted))))
        (expr (etaf-current-slot 'default))))))
 
-(etaf-define-component etaf-avatar (&key name initials (size '(ch 5)) (variant 'info))
-  "Render a compact initials AVATAR with caller-provided NAME tooltip text."
+(etaf-define-component etaf-avatar (&key name initials (size '(ch 5)) (variant 'info)
+                                        (lines 3) background)
+  "Render a compact initials AVATAR with caller-provided NAME tooltip text.
+LINES sets its height with the initials on the middle line; BACKGROUND
+replaces VARIANT's colors with white initials on that color."
   :render
   (let* ((name (etaf-ui--text-value name))
          (initials (etaf-ui--text-value initials))
@@ -148,11 +151,16 @@
                          (upcase (substring name 0 (min 2 (length name)))))
                      initials))
          (theme (etaf-ui--feedback-theme variant)))
+    (unless (and (integerp lines) (> lines 0))
+      (signal 'wrong-type-argument (list 'natnump lines)))
     (etaf-view
-     (box :class "etaf-avatar" :role 'img :aria-label name :width size :height '(lh 3)
-          :box-sizing 'border-box :padding-top '(lh 1)
-          :text-align 'center :font-weight 'bold :color (nth 0 theme)
-          :background-color (nth 1 theme) :border (nth 2 theme)
+     (box :class "etaf-avatar" :role 'img :aria-label name :width size
+          :height (list 'lh lines) :box-sizing 'border-box
+          :padding-top (list 'lh (/ (1- lines) 2))
+          :text-align 'center :font-weight 'bold
+          :color (if background "#FFFFFF" (nth 0 theme))
+          :background-color (or background (nth 1 theme))
+          :border (unless background (nth 2 theme))
        (text (expr initials))))))
 
 (etaf-define-component etaf-timeline (&key items)
