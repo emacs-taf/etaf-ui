@@ -226,7 +226,7 @@ Typography and decorations cannot override an icon's line-height contract."
 
 (defun etaf-ui--icon-image (spec name size lines font)
   "Return cached SVG image for SPEC, NAME, SIZE and LINES.
-FONT supplies the exact family for a two-row font glyph.  Images use a
+FONT supplies the exact family for a font glyph.  Images use a
 single centered canvas, sliced at standard row boundaries by the caller."
   (let* ((line (frame-char-height))
          (box (* line lines))
@@ -271,8 +271,10 @@ single centered canvas, sliced at standard row boundaries by the caller."
                 (setq spec entry chosen candidate)
                 (throw 'found t)))))))
     (let* ((image (and chosen (etaf-ui--icon-svg-p)
-                       (or (eq (plist-get spec :kind) 'svg)
-                           (and presentation (= lines 2)))
+                       ;; Draw font glyphs into the canvas too: an icon font's
+                       ;; ink often exceeds its declared ascent and descent, so
+                       ;; a glyph set as text is clipped by its row.
+                       (or (eq (plist-get spec :kind) 'svg) presentation)
                        (etaf-ui--icon-image spec name size lines presentation)))
            (text (if (and presentation (not image))
                      (propertize (copy-sequence (cdr (assq name (plist-get spec :glyphs))))
@@ -326,13 +328,16 @@ MIN-WIDTH is in cells.  The complete box is the ON-PRESS target."
            (values (etaf-ui--icon-content name set size lines paint)))
       (etaf-node
        'column
-       (list :id id :ref ref :class (etaf-ui--class-value "etaf-ui-icon" nil class)
-             :role (if on-press 'button 'img) :aria-label (symbol-name name)
-             :on-press on-press :tab-index (when on-press 0)
-             :help-echo help-echo :width 'max-content :min-width (list 'ch min-width)
-             :height (list 'lh lines) :overflow 'hidden
-             :color (plist-get paint :foreground)
-             :background-color (plist-get paint :background))
+       (append
+        (list :id id :ref ref :class (etaf-ui--class-value "etaf-ui-icon" nil class)
+              :role (if on-press 'button 'img) :aria-label (symbol-name name)
+              :on-press on-press :tab-index (when on-press 0)
+              :width 'max-content :min-width (list 'ch min-width)
+              :height (list 'lh lines) :overflow 'hidden
+              :color (plist-get paint :foreground)
+              :background-color (plist-get paint :background))
+        ;; An explicit nil would block the enclosing control's help.
+        (when help-echo (list :help-echo help-echo)))
        (mapcar (lambda (value)
                  (etaf-node 'box (list :height '(lh 1) :width 'stretch
                                       :text-align 'center :overflow 'hidden)
@@ -415,7 +420,9 @@ change stays a retained Host update rather than a Component rerender."
              (check . "\uf00c") (account . "\uf007") (loading . "\uf110")
              (pin . "\uf08d") (bell-off . "\uf1f6") (send . "\uf1d8")
              (reply . "\uf112") (users . "\uf0c0") (megaphone . "\uf0a1")
-             (at . "\uf1fa")))
+             (at . "\uf1fa") (smile . "\uf118") (image . "\uf03e")
+             (video . "\uf03d") (file . "\uf15b") (info . "\uf05a")
+             (menu . "\uf0c9") (more-vertical . "\uf142") (eye . "\uf06e")))
        (fallback '((play . ">") (pause . "||") (next . ">|") (previous . "|<")
                    (repeat . "@") (repeat-one . "@1") (shuffle . "~")
                    (heart . "<3") (heart-filled . "<3") (volume . "v")
@@ -430,7 +437,10 @@ change stays a retained Host update rather than a Component rerender."
                    (star . "*") (radio . "~") (disc . "o") (chart . "=")
                    (mic . "!") (clock . "c")
                    (pin . "^") (bell-off . "z") (send . ">") (reply . "<")
-                   (users . "#") (megaphone . "!") (at . "@")))
+                   (users . "#") (megaphone . "!") (at . "@") (dot . "*")
+                   (smile . ":)") (image . "[]") (video . "|>") (file . "=")
+                   (info . "i") (menu . "=") (more-vertical . ":")
+                   (sidebar . "|]") (eye . "o")))
        (fonts
         `((nerd ("DroidSansMono Nerd Font" "DejaVuSansMono Nerd Font") 1.0 ,fa)
           (fa ("FontAwesome") 0.86 ,fa)
@@ -528,7 +538,17 @@ change stays a retained Host update rather than a Component rerender."
            (reply . "<path d='M6 3.5L2.5 7L6 10.5M2.5 7H8.5C10.5 7 11.5 8.5 11.5 11'/>")
            (users . "<circle cx='5' cy='4.5' r='2'/><path d='M1.5 12V11C1.5 7.8 8.5 7.8 8.5 11V12'/><path d='M9 2.7A2 2 0 0 1 9 6.3M10 8.2C11.6 8.6 12.5 9.6 12.5 11V12'/>")
            (megaphone . "<path d='M2 5.5H4.5L10.5 2.5V11.5L4.5 8.5H2ZM4.5 8.5L5.5 12H7L6.2 8.9'/>")
-           (at . "<circle cx='7' cy='7' r='2.2'/><path d='M9.2 7V8.2C9.2 9.8 11.8 9.8 11.8 7.5A4.8 4.8 0 1 0 9.5 11.4'/>")))))
+           (at . "<circle cx='7' cy='7' r='2.2'/><path d='M9.2 7V8.2C9.2 9.8 11.8 9.8 11.8 7.5A4.8 4.8 0 1 0 9.5 11.4'/>")
+           (dot . "<circle cx='7' cy='7' r='2.6' fill='currentColor'/>")
+           (smile . "<circle cx='7' cy='7' r='5.2'/><circle cx='5.2' cy='5.8' r='0.6' fill='currentColor'/><circle cx='8.8' cy='5.8' r='0.6' fill='currentColor'/><path d='M4.6 8.4Q7 10.8 9.4 8.4'/>")
+           (image . "<rect x='1.5' y='2.5' width='11' height='9' rx='1.5'/><circle cx='5' cy='5.6' r='1'/><path d='M2 10.5L5.5 7.5L8 9.5L9.8 8L12 10'/>")
+           (video . "<rect x='1.5' y='3.5' width='8' height='7' rx='1.5'/><path d='M9.5 6L12.5 4.2V9.8L9.5 8'/>")
+           (file . "<path d='M3 1.5H8L11 4.5V12.5H3ZM8 1.5V4.5H11'/>")
+           (info . "<circle cx='7' cy='7' r='5.5'/><path d='M7 6.2V10'/><circle cx='7' cy='4.3' r='0.7' fill='currentColor' stroke='none'/>")
+           (menu . "<path d='M2 3.5H12M2 7H12M2 10.5H12'/>")
+           (more-vertical . "<circle cx='7' cy='3' r='1.2' fill='currentColor'/><circle cx='7' cy='7' r='1.2' fill='currentColor'/><circle cx='7' cy='11' r='1.2' fill='currentColor'/>")
+           (sidebar . "<rect x='1.5' y='2' width='11' height='10' rx='2'/><path d='M8.5 2V12'/>")
+           (eye . "<path d='M1 7C3 3.3 11 3.3 13 7C11 10.7 3 10.7 1 7Z'/><circle cx='7' cy='7' r='1.8'/>")))))
 
 (provide 'etaf-ui-icon)
 ;;; etaf-ui-icon.el ends here

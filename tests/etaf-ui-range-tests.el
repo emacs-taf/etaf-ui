@@ -97,6 +97,24 @@ in one geometry commit without re-rendering the View."
       (dolist (event events)
         (should (< (abs (- (cdr event) 75)) 1.5))))))
 
+(ert-deftest etaf-ui-range-without-ref-hit-tests-pointer-gestures ()
+  "A Range given no :ref still measures its track for an Ebox pointer gesture.
+Engine gestures carry no Host reference, so the Range names its own track."
+  (let (commits)
+    (etaf-ui-range-test--with-range
+        (entry :value 0 :on-commit (lambda (value) (push value commits)))
+      (pcase-let* ((`(,buffer . ,runtime) entry)
+                   (track (etaf-host-ref-at runtime (with-current-buffer buffer
+                                                      (point-min))))
+                   (`(,left ,width) (etaf-ui-range-test--pixels entry track)))
+        (should track)
+        (etaf-dispatch-event runtime track 'drag
+                             (list :phase 'end :window (selected-window) :buffer buffer
+                                   :position (cons (+ left (* 0.5 width)) 0))
+                             t)
+        (should (= (length commits) 1))
+        (should (< (abs (- (car commits) 50)) 1.5))))))
+
 (ert-deftest etaf-ui-range-drag-reports-live-values-and-commits-on-release ()
   "Dragging reports intermediate values, commits at the end and drops a cancel."
   (let ((value (etaf-ref 0)) changes commits handler)

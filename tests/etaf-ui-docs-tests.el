@@ -48,10 +48,8 @@
                 ;; replace its "3" with "7" as the user would, then submit.
                 (etaf-dispatch-event runtime 'rows-input 'press)
                 (should (etaf-text-input-active-p runtime))
-                (with-current-buffer "*etaf-preferences*"
-                  (call-interactively (key-binding (kbd "DEL")))
-                  (insert "7")
-                  (call-interactively (key-binding (kbd "RET"))))
+                (switch-to-buffer "*etaf-preferences*")
+                (execute-kbd-macro (kbd "DEL 7 RET"))
                 (should-not (etaf-text-input-active-p runtime))
                 (etaf-dispatch-event runtime 'save-button 'press)
                 (with-current-buffer "*etaf-preferences*"

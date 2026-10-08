@@ -4,48 +4,40 @@
 
 ;;; Commentary:
 ;; The catalog's one text editing Component.  A field is ordinary rendered
-;; text until it is activated; activation opens a native editing session over
-;; that text in the application's own buffer, so input methods, point,
-;; selection and undo stay native while no extra frame, window or per-field
-;; surface is created.  Single-line and multi-line fields share the Component;
-;; `:rows' selects the visible height.  Applications keep values, drafts and
-;; submission policy.
+;; text until it is activated; activation opens a native editing session on
+;; its value text, so typed keys, input methods, point, selection and undo
+;; behave as in an ordinary buffer while the field keeps its padding, frame
+;; and wrapping.  No extra frame, window or per-field surface is created.
+;; Single-line and multi-line fields share the Component; `:rows' sets the
+;; minimum height and the field grows with its value.  Applications keep
+;; values, drafts and submission policy.
 
 ;;; Code:
 (require 'cl-lib)
 (require 'etaf-ui-basic)
 (require 'etaf-ui-input)
+(require 'etaf-ui-icon)
 
 (cl-defstruct (etaf-ui--text-input (:constructor etaf-ui--text-input-create))
-  runtime ref text-ref props-fn session snapshot last-text active span
-  focus-overlay)
+  runtime ref text-ref props-fn session snapshot active focused)
 
-(defvar-local etaf-ui--field-line-overlays nil
-  "Continuation-line indents owned by the active field session.")
 (defvar etaf-ui--text-inputs (make-hash-table :test #'eq)
   "Mounted text inputs keyed by Runtime, then by public Host reference.")
-(defvar-local etaf-ui--field-active nil
-  "Text input owning the current buffer's editing session, if any.")
 (defvar etaf-ui--active-text-input nil
   "Text input currently editing, regardless of the current buffer.")
-(defvar-local etaf-ui--field-restore nil
-  "Buffer-local state replaced while a text input session is active.")
+(defvar-local etaf-ui--field-cursor nil
+  "Cursor settings of the buffer before its field session, as (LOCAL . TYPE).")
 
 (defun etaf-ui--text-input-finish-active (runtime)
-  "Finish the active text input when it belongs to RUNTIME.
-Registered as the Runtime's input-session finisher while a field edits, so an
-interaction that supersedes the session (a press outside the field) ends it
-instead of leaving every publication deferred."
+  "Leave the active text input when a press elsewhere in RUNTIME supersedes it."
   (let ((field etaf-ui--active-text-input))
-    (when (and field
-               (eq runtime (etaf-ui--text-input-runtime field)))
-      (etaf-text-input-end t))))
+    (when (and field (eq runtime (etaf-ui--text-input-runtime field)))
+      (etaf-text-input-end 'blur))))
 
 (defun etaf-ui--text-input-blur (&optional window)
-  "Finish the active text input when a switch left its buffer behind.
+  "Leave the active text input when a switch left its buffer behind.
 Runs from the session buffer's `post-command-hook' and window change hooks;
-WINDOW defaults to the selected window.  A session whose buffer is still the
-selected window's buffer keeps editing."
+WINDOW defaults to the selected window."
   (when (and etaf-ui--active-text-input
              (window-live-p (or window (selected-window))))
     (let ((selected (if window
@@ -53,22 +45,7 @@ selected window's buffer keeps editing."
                       (selected-window))))
       (when (and (window-live-p selected)
                  (not (eq (window-buffer selected) (current-buffer))))
-        (etaf-text-input-end t)))))
-
-(defun etaf-ui--text-input-make-focus-overlay (field)
-  "Show FIELD's editing box while its session is active.
-The overlay only paints; it adds no display metrics, so the committed canvas
-keeps its line grid.  Return the overlay, or nil when the box span is gone."
-  (let* ((runtime (etaf-ui--text-input-runtime field))
-         (buffer (etaf-runtime-buffer runtime))
-         (bounds (ignore-errors
-                   (etaf-host-ref-bounds runtime (etaf-ui--text-input-ref field)))))
-    (when (and (buffer-live-p buffer) bounds)
-      (with-current-buffer buffer
-        (let ((overlay (make-overlay (car bounds) (cdr bounds))))
-          (overlay-put overlay 'face '(:underline t))
-          (overlay-put overlay 'evaporate t)
-          overlay)))))
+        (etaf-text-input-end 'blur)))))
 
 (defun etaf-ui--text-input-table (runtime)
   "Return RUNTIME's text input table, creating it on first use."
@@ -85,166 +62,12 @@ keeps its line grid.  Return the overlay, or nil when the box span is gone."
   "Return FIELD's committed public inputs."
   (funcall (etaf-ui--text-input-props-fn field)))
 
-(defun etaf-ui--text-input-display (props)
-  "Return PROPS' visible field text, never empty so the field stays editable."
-  (let ((value (plist-get props :value)))
-    (if (or (null value) (equal value ""))
-        (let ((placeholder (plist-get props :placeholder)))
-          (if (and (stringp placeholder) (not (equal placeholder ""))) placeholder " "))
-      value)))
-
-;;;###autoload
-(define-minor-mode etaf-ui-field-mode
-  "Key bindings for the active in-place text field in the current buffer.
-Enabled by the field Component for the duration of a native editing session
-and disabled again when it ends.  The renderer's buffer-mode map is suspended
-meanwhile so ordinary typing reaches the session."
-  :lighter " 输入"
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "RET") #'etaf-ui-field--return)
-            (define-key map (kbd "<return>") #'etaf-ui-field--return)
-            (define-key map (kbd "C-<return>") #'etaf-ui-field--submit)
-            (define-key map (kbd "C-c C-c") #'etaf-ui-field--submit)
-            (define-key map (kbd "C-c C-k") #'etaf-ui-field--cancel)
-            (define-key map (kbd "C-g") #'etaf-ui-field--cancel)
-            (define-key map (kbd "<escape>") #'etaf-ui-field--cancel)
-            (define-key map (kbd "<S-return>") #'etaf-ui-field--newline)
-            (define-key map (kbd "C-j") #'etaf-ui-field--newline)
-            ;; Boundary edits stay inside the edited Host: the published
-            ;; canvas continues directly outside its text, so deleting into
-            ;; the padding or joining lines would invalidate the surface
-            ;; instead of editing the field.
-            (define-key map (kbd "C-a") #'etaf-ui--field-beginning)
-            (define-key map (kbd "<home>") #'etaf-ui--field-beginning)
-            (define-key map (kbd "C-e") #'etaf-ui--field-end)
-            (define-key map (kbd "<end>") #'etaf-ui--field-end)
-            (define-key map (kbd "C-k") #'etaf-ui--field-kill-line)
-            (define-key map (kbd "C-w") #'etaf-ui--field-kill-region)
-            (define-key map (kbd "M-d") #'etaf-ui--field-kill-word)
-            (define-key map (kbd "M-<delete>") #'etaf-ui--field-kill-word)
-            (define-key map (kbd "M-<backspace>") #'etaf-ui--field-backward-kill-word)
-            (define-key map (kbd "M-DEL") #'etaf-ui--field-backward-kill-word)
-            (define-key map (kbd "DEL") #'etaf-ui--field-backward-delete)
-            (define-key map (kbd "<backspace>") #'etaf-ui--field-backward-delete)
-            (define-key map (kbd "C-d") #'etaf-ui--field-forward-delete)
-            (define-key map (kbd "<delete>") #'etaf-ui--field-forward-delete)
-            (define-key map (kbd "TAB") #'etaf-ui-field--next)
-            (define-key map (kbd "<backtab>") #'etaf-ui-field--previous)
-            (define-key map (kbd "M-TAB") #'completion-at-point)
-            map))
-
-(defun etaf-ui--text-input-submit-on-return-p (field)
-  "Return non-nil when FIELD submits on Return."
-  (let ((props (etaf-ui--text-input-props field))
-        (rows (or (plist-get (etaf-ui--text-input-props field) :rows) 1)))
-    (let ((explicit (plist-get props :submit-on-return)))
-      (if (eq explicit etaf-ui--unsupplied) (= rows 1) (and explicit t)))))
-
-(defun etaf-ui-field--active ()
-  "Return the text input currently editing, from any buffer."
-  (or etaf-ui--field-active etaf-ui--active-text-input))
-
-(defun etaf-ui-field--newline ()
-  "Insert a newline in the active field without application indentation."
-  (interactive)
-  (let ((electric-indent-mode nil)) (newline)))
-
-(defun etaf-ui--field-span-limits ()
-  "Return the active field's live text limits as (START . END), or nil."
-  (when-let* ((field (etaf-ui-field--active))
-              (span (etaf-ui--text-input-span field))
-              ((markerp (car span)))
-              ((markerp (cdr span))))
-    (let ((start (marker-position (car span)))
-          (end (marker-position (cdr span))))
-      (when (and start end) (cons start end)))))
-
-(defun etaf-ui--field-beginning ()
-  "Move point to the active field's text start."
-  (interactive)
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (goto-char (car limits))
-    (call-interactively #'move-beginning-of-line)))
-
-(defun etaf-ui--field-end ()
-  "Move point to the active field's text end."
-  (interactive)
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (goto-char (cdr limits))
-    (call-interactively #'move-end-of-line)))
-
-(defun etaf-ui--field-clamp (position limits)
-  "Return POSITION clamped to LIMITS (START . END)."
-  (max (car limits) (min position (cdr limits))))
-
-(defun etaf-ui--field-kill-line ()
-  "Kill from point to the active field's text end."
-  (interactive)
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (let ((start (etaf-ui--field-clamp (point) limits)))
-        (when (< start (cdr limits))
-          (kill-region start (cdr limits))))
-    (call-interactively #'kill-line)))
-
-(defun etaf-ui--field-kill-region (beg end)
-  "Kill BEG through END without leaving the active field's text."
-  (interactive "r")
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (let ((start (etaf-ui--field-clamp (min beg end) limits))
-            (finish (etaf-ui--field-clamp (max beg end) limits)))
-        (when (< start finish)
-          (kill-region start finish)))
-    (kill-region beg end)))
-
-(defun etaf-ui--field-kill-word (argument)
-  "Kill ARGUMENT words forward within the active field's text."
-  (interactive "p")
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (let* ((start (etaf-ui--field-clamp (point) limits))
-             (finish (etaf-ui--field-clamp
-                      (save-excursion (forward-word argument) (point))
-                      limits)))
-        (when (< start finish)
-          (kill-region start finish)))
-    (kill-word argument)))
-
-(defun etaf-ui--field-backward-kill-word (argument)
-  "Kill ARGUMENT words backward within the active field's text."
-  (interactive "p")
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (let* ((finish (etaf-ui--field-clamp (point) limits))
-             (start (etaf-ui--field-clamp
-                     (save-excursion (forward-word (- argument)) (point))
-                     limits)))
-        (when (< start finish)
-          (kill-region start finish)))
-    (backward-kill-word argument)))
-
-(defun etaf-ui--field-backward-delete ()
-  "Delete backwards without leaving the active field's text."
-  (interactive)
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (if (<= (point) (car limits))
-          (ding)
-        (delete-char -1))
-    (call-interactively #'delete-backward-char)))
-
-(defun etaf-ui--field-forward-delete ()
-  "Delete forwards without leaving the active field's text."
-  (interactive)
-  (if-let* ((limits (etaf-ui--field-span-limits)))
-      (if (>= (point) (cdr limits))
-          (ding)
-        (delete-char 1))
-    (call-interactively #'delete-forward-char)))
-
-(defun etaf-ui-field--return ()
-  "Submit the active field when it submits on Return, else insert a newline."
-  (interactive)
-  (if (and (etaf-ui-field--active)
-           (etaf-ui--text-input-submit-on-return-p (etaf-ui-field--active)))
-      (etaf-ui-field--submit)
-    (etaf-ui-field--newline)))
+(defun etaf-ui--text-input-submit-on-return-p (props)
+  "Return non-nil when a field with PROPS submits on Return."
+  (let ((explicit (plist-get props :submit-on-return)))
+    (if (eq explicit etaf-ui--unsupplied)
+        (= (or (plist-get props :rows) 1) 1)
+      (and explicit t))))
 
 (defun etaf-ui-field--submit ()
   "Submit the active field."
@@ -257,175 +80,99 @@ meanwhile so ordinary typing reaches the session."
   (etaf-text-input-end t))
 
 (defun etaf-ui-field--next ()
-  "Finish editing and focus the next application control."
+  "Leave the field and focus the next application control."
   (interactive)
-  (let ((runtime (etaf-ui--text-input-runtime (etaf-ui-field--active))))
-    (etaf-text-input-end)
-    (when runtime (etaf-focus-next runtime))))
+  (when-let* ((field etaf-ui--active-text-input))
+    (let ((runtime (etaf-ui--text-input-runtime field)))
+      (etaf-text-input-end 'blur)
+      (etaf-focus-next runtime))))
 
 (defun etaf-ui-field--previous ()
-  "Finish editing and focus the previous application control."
+  "Leave the field and focus the previous application control."
   (interactive)
-  (let ((runtime (etaf-ui--text-input-runtime (etaf-ui-field--active))))
-    (etaf-text-input-end)
-    (when runtime (etaf-focus-previous runtime))))
+  (when-let* ((field etaf-ui--active-text-input))
+    (let ((runtime (etaf-ui--text-input-runtime field)))
+      (etaf-text-input-end 'blur)
+      (etaf-focus-previous runtime))))
 
-(defun etaf-ui--text-input-indent-lines (field)
-  "Indent FIELD's continuation lines to its own visual column.
-The published layout positions the field with pixel-width display spaces, so
-text inserted after a newline would otherwise start at the window edge.  A
-before-string display space keeps every line at the field's column without
-touching the buffer text or the session value."
-  (let ((buffer (etaf-runtime-buffer (etaf-ui--text-input-runtime field))))
-    (when (buffer-live-p buffer)
-      (with-current-buffer buffer
-        (dolist (overlay etaf-ui--field-line-overlays) (delete-overlay overlay))
-        (setq etaf-ui--field-line-overlays nil)
-        (let* ((span (etaf-ui--text-input-span field))
-               (window (get-buffer-window buffer t))
-               (start (and span (marker-position (car span))))
-               (end (and span (marker-position (cdr span)))))
-          (when (and window start end (> end start))
-            (save-excursion
-              (goto-char start)
-              (let* ((line-start (line-beginning-position))
-                     (indent (car (window-text-pixel-size window line-start start))))
-                (when (and (integerp indent) (> indent 0))
-                  (goto-char start)
-                  (while (search-forward "\n" end t)
-                    (let ((overlay (make-overlay (point) (point))))
-                      (overlay-put overlay 'before-string
-                                   (propertize " " 'display
-                                               (list 'space :width (list indent))))
-                      (push overlay etaf-ui--field-line-overlays))))))))))))
-
-(defun etaf-ui--text-input-changed (&rest _change)
-  "Publish accepted native edits to the active field's owner.
-Only the buffer's own change hook calls this.  Unmount erases the buffer
-before component cleanup, so ignore changes once the Runtime is unmounted."
-  (when-let* ((field etaf-ui--field-active)
-              (session (etaf-ui--text-input-session field))
-              (runtime (etaf-ui--text-input-runtime field))
-              ((etaf-runtime-mounted-p runtime))
-              ((buffer-live-p (etaf-runtime-buffer runtime))))
-    (etaf-ui--text-input-indent-lines field)
-    (let ((text (etaf-input-text session)))
-      (unless (equal text (etaf-ui--text-input-last-text field))
-        (setf (etaf-ui--text-input-last-text field) text)
-        (when-let* ((callback (plist-get (etaf-ui--text-input-props field)
-                                         :change-handler)))
-          (funcall callback text))))))
+(defun etaf-ui--text-input-keymap (props)
+  "Return the session keymap of a field with PROPS.
+`newline' bindings edit the value; the other commands run in the
+application buffer.  PROPS' :keymap is consulted first."
+  (let ((map (make-sparse-keymap)))
+    (when (etaf-ui--text-input-submit-on-return-p props)
+      (define-key map (kbd "RET") #'etaf-ui-field--submit)
+      (define-key map (kbd "<return>") #'etaf-ui-field--submit))
+    (define-key map (kbd "<S-return>") #'newline)
+    (define-key map (kbd "C-j") #'newline)
+    (define-key map (kbd "C-<return>") #'etaf-ui-field--submit)
+    (define-key map (kbd "C-c C-c") #'etaf-ui-field--submit)
+    (define-key map (kbd "C-c C-k") #'etaf-ui-field--cancel)
+    (define-key map (kbd "C-g") #'etaf-ui-field--cancel)
+    (define-key map (kbd "<escape>") #'etaf-ui-field--cancel)
+    (define-key map (kbd "TAB") #'etaf-ui-field--next)
+    (define-key map (kbd "<backtab>") #'etaf-ui-field--previous)
+    (if-let* ((own (plist-get props :keymap)))
+        (make-composed-keymap (list own) map)
+      map)))
 
 ;;;###autoload
 (defun etaf-text-input-begin (runtime ref)
   "Begin native editing of the mounted text input REF in RUNTIME.
-Return the input or nil when REF is unknown, disabled or already editing.
+Return the input or nil when REF is unknown, disabled, read-only or editing.
 Activation normally calls this from the field's own event callback; call it
-directly to focus a composer or open a grid cell for editing.  Editing another
-field in the same buffer finishes the previous session first."
+directly to focus a composer or open a grid cell for editing.  Another field
+editing meanwhile is left first, keeping its text."
   (when-let* ((field (etaf-ui--text-input-find runtime ref))
               (props (etaf-ui--text-input-props field)))
-    (unless (or (etaf-ui--text-input-active field) (plist-get props :disabled))
-      (when etaf-ui--active-text-input (etaf-text-input-end))
-      ;; Start from a clean committed state: a publication left pending by an
-      ;; earlier aborted submit must not land while the new session is open.
-      (etaf-runtime-flush runtime)
+    (unless (or (etaf-ui--text-input-active field)
+                (plist-get props :disabled) (plist-get props :read-only))
+      (when etaf-ui--active-text-input (etaf-text-input-end 'blur))
       (etaf-ui--text-input-open field props))))
 
 (defun etaf-ui--text-input-open (field props)
-  "Open PROPS' native session for FIELD and return the field.
-A failure while opening finishes the session again before it reports, so a
-half-configured edit can never keep the buffer's publications deferred."
+  "Open PROPS' native session for FIELD and return the field."
   (let* ((runtime (etaf-ui--text-input-runtime field))
          (buffer (etaf-runtime-buffer runtime))
-         (value (plist-get props :value))
-         (session (etaf-input-begin runtime (etaf-ui--text-input-text-ref field))))
+         (functions (plist-get props :completion-functions))
+         (session (etaf-input-begin
+                   runtime (etaf-ui--text-input-text-ref field)
+                   :keymap (etaf-ui--text-input-keymap props)
+                   :on-change (lambda (text)
+                                (when-let* ((callback (plist-get
+                                                       (etaf-ui--text-input-props field)
+                                                       :change-handler)))
+                                  (funcall callback text)))
+                   :on-leave (lambda () (etaf-text-input-end 'blur))
+                   :local-variables
+                   (append '((electric-indent-inhibit . t))
+                           (and functions
+                                (list (cons 'completion-at-point-functions functions)))))))
     (setf (etaf-ui--text-input-session field) session
-          (etaf-ui--text-input-snapshot field) (or value "")
-          (etaf-ui--text-input-last-text field) nil
+          (etaf-ui--text-input-snapshot field) (or (plist-get props :value) "")
           (etaf-ui--text-input-active field) t)
     (setq etaf-ui--active-text-input field)
-    (condition-case err
-        (progn
-          (with-current-buffer buffer
-            (setq etaf-ui--field-active field)
-            (unless etaf-ui--field-restore
-              (setq etaf-ui--field-restore
-                    (list :cursor-type cursor-type
-                          :cursor-type-local (local-variable-p 'cursor-type)
-                          :ebox-buffer-mode (and (boundp 'ebox-buffer-mode)
-                                                 ebox-buffer-mode)
-                          :emulation-mode-map-alists emulation-mode-map-alists
-                          :completion-at-point-functions completion-at-point-functions
-                          :electric-indent-mode (and (boundp 'electric-indent-mode)
-                                                     electric-indent-mode)
-                          :electric-indent-local (and (boundp 'electric-indent-mode)
-                                                      (local-variable-p 'electric-indent-mode))
-                          :local-map (current-local-map))))
-            ;; A visible caret marks the editable box.  The session never sets
-            ;; `truncate-lines': a canvas line that exactly fills the window
-            ;; would otherwise show a truncation glyph on every row.
-            (setq-local cursor-type t)
-            ;; Application or terminal emulation maps would otherwise intercept
-            ;; the ordinary characters this session exists to collect, and
-            ;; electric indentation would reindent the application's own layout
-            ;; line.  The application's local map would shadow them through its
-            ;; own bindings, so the session keeps only the field map and the
-            ;; declared :keymap.
-            (setq-local emulation-mode-map-alists nil)
-            (setq-local electric-indent-mode nil)
-            (use-local-map (plist-get props :keymap))
-            (when-let* ((functions (plist-get props :completion-functions)))
-              (setq-local completion-at-point-functions functions))
-            (when (bound-and-true-p ebox-buffer-mode) (ebox-buffer-mode -1)))
-          (when-let* ((box-bounds (etaf-host-ref-bounds runtime (etaf-ui--text-input-ref field)))
-                      (bounds (etaf-host-ref-bounds runtime (etaf-ui--text-input-text-ref field))))
-            (let ((box-start (car box-bounds)) (box-end (cdr box-bounds))
-                  (start (car bounds)) (end (cdr bounds)))
-              (with-current-buffer buffer
-                ;; The edited Host's activation keymap sits in a text property
-                ;; across its whole box, padding included, and would otherwise
-                ;; shadow the field's own Return/TAB bindings.  Strip only that
-                ;; box so sibling hosts keep their interaction maps.
-                (remove-text-properties box-start box-end '(keymap nil local-map nil))
-                ;; The published text may be the placeholder; start from an
-                ;; empty draft.  Clearing before the change hook runs keeps a
-                ;; no-op empty value from notifying the owner.
-                (when (equal (or value "") "")
-                  (delete-region start end)
-                  (setq end start))
-                (goto-char (+ start (length (or value ""))))
-                (setf (etaf-ui--text-input-span field)
-                      (cons (copy-marker start) (copy-marker end t))))))
-          (with-current-buffer buffer
-            (add-hook 'after-change-functions #'etaf-ui--text-input-changed nil t)
-            (etaf-ui-field-mode 1)
-            ;; Losing the buffer (another window, another buffer, another
-            ;; interaction) finishes the session with the keep-draft policy.
-            (add-hook 'post-command-hook #'etaf-ui--text-input-blur nil t)
-            (add-hook 'window-selection-change-functions
-                      #'etaf-ui--text-input-blur nil t)
-            (add-hook 'window-buffer-change-functions
-                      #'etaf-ui--text-input-blur nil t))
-          (setf (etaf-ui--text-input-last-text field) (etaf-input-text session))
-          (etaf-ui--text-input-indent-lines field)
-          (setf (etaf-ui--text-input-focus-overlay field)
-                (etaf-ui--text-input-make-focus-overlay field))
-          (etaf-runtime-set-input-finisher runtime #'etaf-ui--text-input-finish-active)
-          field)
-      ((error quit)
-       (etaf-text-input-end t)
-       (signal (car err) (cdr err))))))
+    (with-current-buffer buffer
+      (setq etaf-ui--field-cursor (cons (local-variable-p 'cursor-type) cursor-type))
+      (setq-local cursor-type '(bar . 2))
+      (add-hook 'post-command-hook #'etaf-ui--text-input-blur nil t)
+      (add-hook 'window-selection-change-functions #'etaf-ui--text-input-blur nil t)
+      (add-hook 'window-buffer-change-functions #'etaf-ui--text-input-blur nil t))
+    (etaf-runtime-set-input-finisher runtime #'etaf-ui--text-input-finish-active)
+    (etaf-set-value (etaf-ui--text-input-focused field) t)
+    (when-let* ((callback (plist-get props :on-focus)))
+      (funcall callback))
+    field))
 
 ;;;###autoload
-(defun etaf-text-input-end (&optional cancel)
-  "Finish the active text input's session and return its user text.
-CANCEL restores the value captured at activation through the field's change
-callback; otherwise the accepted text stays the application's value.  The
-field's `:on-submit' (or `:on-cancel') callback runs with the text, and the
-Runtime publishes every deferred change afterwards.  Return nil when no field
-is active.  The call is idempotent: a dead buffer or a failing callback still
-releases the session and publishes what remains pending."
+(defun etaf-text-input-end (&optional how)
+  "Finish the active text input's session and return its text.
+HOW nil submits: the field's `:on-submit' callback receives the text.  HOW
+`blur' leaves the field keeping its text as the value, without callbacks.
+Any other HOW cancels: the value captured at activation is restored through
+the change callback and `:on-cancel' receives the abandoned text.  Return nil
+when no field is active.  A dead buffer or a failing callback still releases
+the session."
   (when-let* ((field etaf-ui--active-text-input)
               (session (etaf-ui--text-input-session field)))
     (let* ((runtime (etaf-ui--text-input-runtime field))
@@ -439,54 +186,31 @@ releases the session and publishes what remains pending."
       (setq etaf-ui--active-text-input nil)
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
-          (remove-hook 'after-change-functions #'etaf-ui--text-input-changed t)
           (remove-hook 'post-command-hook #'etaf-ui--text-input-blur t)
-          (remove-hook 'window-selection-change-functions
-                       #'etaf-ui--text-input-blur t)
-          (remove-hook 'window-buffer-change-functions
-                       #'etaf-ui--text-input-blur t)
-          (etaf-ui-field-mode -1)
-          (when-let* ((overlay (etaf-ui--text-input-focus-overlay field)))
-            (delete-overlay overlay)
-            (setf (etaf-ui--text-input-focus-overlay field) nil))
-          (dolist (overlay etaf-ui--field-line-overlays) (delete-overlay overlay))
-          (setq etaf-ui--field-line-overlays nil)
-          (when-let* ((span (etaf-ui--text-input-span field)))
-            (set-marker (car span) nil)
-            (set-marker (cdr span) nil)
-            (setf (etaf-ui--text-input-span field) nil))
-          (when (eq etaf-ui--field-active field) (setq etaf-ui--field-active nil))
-          (when etaf-ui--field-restore
-            (if (plist-get etaf-ui--field-restore :cursor-type-local)
-                (setq-local cursor-type
-                            (plist-get etaf-ui--field-restore :cursor-type))
+          (remove-hook 'window-selection-change-functions #'etaf-ui--text-input-blur t)
+          (remove-hook 'window-buffer-change-functions #'etaf-ui--text-input-blur t)
+          (when etaf-ui--field-cursor
+            (if (car etaf-ui--field-cursor)
+                (setq-local cursor-type (cdr etaf-ui--field-cursor))
               (kill-local-variable 'cursor-type))
-            (setq-local emulation-mode-map-alists
-                        (plist-get etaf-ui--field-restore :emulation-mode-map-alists))
-            (setq-local completion-at-point-functions
-                        (plist-get etaf-ui--field-restore :completion-at-point-functions))
-            (kill-local-variable 'electric-indent-mode)
-            (when (plist-get etaf-ui--field-restore :electric-indent-local)
-              (setq-local electric-indent-mode
-                          (plist-get etaf-ui--field-restore :electric-indent-mode)))
-            (use-local-map (plist-get etaf-ui--field-restore :local-map))
-            (when (plist-get etaf-ui--field-restore :ebox-buffer-mode)
-              (ebox-buffer-mode 1))
-            (setq etaf-ui--field-restore nil))))
+            (setq etaf-ui--field-cursor nil))))
       (unwind-protect
           (progn
             (etaf-input-end session)
-            (if cancel
-                (progn
-                  (when-let* ((callback (plist-get props :change-handler)))
-                    (funcall callback (or (etaf-ui--text-input-snapshot field) "")))
-                  (when-let* ((callback (plist-get props :on-cancel)))
-                    (funcall callback text)))
+            (when (etaf-runtime-mounted-p runtime)
+              (etaf-runtime-set-input-finisher runtime nil)
+              (etaf-set-value (etaf-ui--text-input-focused field) nil))
+            (cond
+             ((eq how 'blur))
+             (how
+              (when-let* ((callback (plist-get props :change-handler)))
+                (funcall callback (etaf-ui--text-input-snapshot field)))
+              (when-let* ((callback (plist-get props :on-cancel)))
+                (funcall callback text)))
+             (t
               (when-let* ((callback (plist-get props :on-submit)))
-                (funcall callback text))))
-        (setf (etaf-ui--text-input-last-text field) nil)
+                (funcall callback text)))))
         (when (etaf-runtime-mounted-p runtime)
-          (etaf-runtime-set-input-finisher runtime nil)
           (etaf-runtime-flush runtime)))
       text)))
 
@@ -503,31 +227,37 @@ any buffer."
 (etaf-define-component etaf-text-input
     (&key (value etaf-ui--unsupplied) bind (on-change etaf-ui--unsupplied)
           (label "Text") (placeholder "") (rows 1) (width 'stretch)
-          disabled read-only (submit-on-return etaf-ui--unsupplied)
-          on-submit on-cancel completion-functions keymap hide-label ref)
+          (variant 'outlined) disabled read-only (submit-on-return etaf-ui--unsupplied)
+          on-submit on-cancel on-focus completion-functions keymap hide-label ref)
   "Edit text directly inside the application's layout.
 VALUE/ON-CHANGE or a writable BIND supplies the controlled string; ROWS sets
-the minimum visible lines (1 is a single-line input, more is a text area).
-Activation starts a native editing session over the field's own published
-text, so input methods, point, selection and undo work without a minibuffer,
-frame or extra window.  Return submits when `:submit-on-return' is non-nil
-(default for one row); Shift+Return and C-j insert a newline; C-c C-c and
-Ctrl+Return submit; C-c C-k, Escape and C-g cancel and restore the activation
-value; TAB and backtab finish and move application focus; M-TAB completes.
-C-a/C-e, Home/End, C-k, C-w, M-d/M-DEL and Backspace/Delete stay inside the
-field's own published text and never touch the surrounding canvas.
+the minimum visible lines (1 is a single-line input, more is a text area) and
+the field grows with longer values.  Activation starts a native editing
+session on the field's value, so typed keys, input methods, point, selection,
+undo and the kill ring behave as in an ordinary buffer while the frame,
+padding and wrapping stay in place; a click inside the field moves the caret
+and a click elsewhere leaves it, keeping the text.  Return submits when
+`:submit-on-return' is non-nil (default for one row) and otherwise inserts a
+newline; Shift+Return and C-j insert a newline; C-c C-c and Ctrl+Return
+submit; C-c C-k, Escape and C-g cancel and restore the activation value; TAB
+and backtab leave and move application focus.
 
-ON-SUBMIT and ON-CANCEL receive the session text.  PLACEHOLDER shows while the
-value is empty and never becomes its content.  READ-ONLY allows focus and
-copy but no session; DISABLED also removes activation.  COMPLETION-FUNCTIONS
-configures CAPF during the session and KEYMAP adds field-local bindings.
-The Runtime publishes changes deferred during the session and republishes the
-accepted value when it ends."
+ON-SUBMIT and ON-CANCEL receive the session text; ON-FOCUS runs without
+arguments once editing begins.  PLACEHOLDER shows while the
+value is empty and never becomes its content.  VARIANT `outlined' (default)
+draws a panel with a hairline frame that turns to the accent colour while the
+field edits; `plain' draws only the text, for a composer whose container
+already provides the surface.  Neither changes geometry when focus changes.
+READ-ONLY allows focus and copy but no session; DISABLED also removes
+activation.  COMPLETION-FUNCTIONS configures CAPF for the session's
+completion commands and KEYMAP adds bindings that run in the application
+buffer."
   :bindings ((runtime (etaf-current-runtime))
              (field-ref (etaf-local-ref 'field))
              (text-ref (etaf-local-ref 'field-text))
              (field (etaf-ui--text-input-create
-                     :runtime runtime :ref (or ref field-ref) :text-ref text-ref)))
+                     :runtime runtime :ref (or ref field-ref) :text-ref text-ref
+                     :focused (etaf-ref nil))))
   :validate
   (progn
     (etaf-check-prop :rows rows (and (integerp rows) (> rows 0))
@@ -535,9 +265,11 @@ accepted value when it ends."
     (etaf-check-prop :label label (stringp label) "a string" 'etaf-text-input)
     (etaf-check-prop :placeholder placeholder (stringp placeholder) "a string"
                      'etaf-text-input)
+    (etaf-check-prop :variant variant (memq variant '(outlined plain))
+                     "`outlined' or `plain'" 'etaf-text-input)
     (etaf-check-prop :width width
                      (or (symbolp width) (consp width)) "an Ebox length" 'etaf-text-input)
-    (dolist (callback (list on-submit on-cancel))
+    (dolist (callback (list on-submit on-cancel on-focus))
       (etaf-check-prop :callback callback (or (null callback) (functionp callback))
                        "a function or nil" 'etaf-text-input))
     (etaf-check-prop :completion-functions completion-functions
@@ -550,7 +282,7 @@ accepted value when it ends."
   (let ((sources (mapcar (lambda (name) (cons name (etaf-prop name)))
                          '(:value :bind :on-change :placeholder :rows :disabled
                            :read-only :submit-on-return :on-submit :on-cancel
-                           :completion-functions :keymap))))
+                           :on-focus :completion-functions :keymap))))
     (setf (etaf-ui--text-input-props-fn field)
           (lambda ()
             (let (props)
@@ -571,7 +303,7 @@ accepted value when it ends."
     (etaf-on-unmounted
      (lambda ()
        ;; Unmounting is not a submission: keep the user's text as the draft.
-       (when (etaf-ui--text-input-active field) (etaf-text-input-end t))
+       (when (etaf-ui--text-input-active field) (etaf-text-input-end 'blur))
        (let* ((runtime (etaf-ui--text-input-runtime field))
               (table (gethash runtime etaf-ui--text-inputs)))
          (when table
@@ -579,10 +311,9 @@ accepted value when it ends."
            (when (= (hash-table-count table) 0) (remhash runtime etaf-ui--text-inputs)))))))
   :render
   (let* ((props (etaf-ui--text-input-props field))
-         (current (plist-get props :value))
-         (empty (or (null current) (equal current "")))
-         (lines (if empty 0 (cl-count ?\n (plist-get props :value))))
-         (height (max rows (1+ lines))))
+         (current (or (plist-get props :value) ""))
+         (outlined (eq variant 'outlined))
+         (focused (etaf-value (etaf-ui--text-input-focused field))))
     (etaf-ui--input-field
      label hide-label
      (list
@@ -590,29 +321,109 @@ accepted value when it ends."
        'box
        (list :ref (or ref field-ref) :role 'textbox :aria-label label
              :tab-index (unless disabled 0) :disabled disabled
-             :width width :height (list 'lh height) :overflow 'hidden
-             :padding '((lh 0) (ch 1))
-             :background-color (etaf-ui--style-token :ui-panel-bg)
-             :color (etaf-ui--style-token :ui-panel-fg)
+             :width width :min-height (list 'lh rows)
+             ;; A stretching field fills the rest of its row next to a label.
+             ;; Its fixed basis decides line breaking, so the label never
+             ;; jumps to another line as the value grows.
+             :flex-grow (if (eq width 'stretch) 1 0) :min-width '(ch 0)
+             :flex-basis (when (eq width 'stretch) '(ch 12))
+             :padding (if outlined '((lh 0) (ch 1)) '((lh 0) (ch 0)))
+             :background-color (when outlined (etaf-ui--style-token :ui-panel-bg))
+             ;; The frame is always present so focus only changes its colour.
+             :border (when outlined
+                       (etaf-ui--style-border
+                        (etaf-ui--style-token
+                         (if focused :ui-accent :ui-panel-border))))
+             :color (when outlined (etaf-ui--style-token :ui-panel-fg))
              :on-press (unless disabled
                          (if read-only
                              (lambda () nil)
                            (lambda ()
                              (etaf-text-input-begin runtime (or ref field-ref)))))
              :class "etaf-text-input")
-       (list (etaf-node
-              'text
-              (list :ref text-ref
-                    :color (if empty
-                               (etaf-ui--style-token :ui-muted-fg)
-                             (etaf-ui--style-token :ui-panel-fg)))
-              (list (etaf-ui--text-input-display props))))))
+       (cons (etaf-node 'text
+                        (list :ref text-ref
+                              :color (when outlined (etaf-ui--style-token :ui-panel-fg)))
+                        (list current))
+             ;; The placeholder follows the empty value, so the caret sits
+             ;; before it and typing replaces it.
+             (when (and (equal current "") (not (equal placeholder "")))
+               (list (etaf-node 'text (list :color (etaf-ui--style-token :ui-muted-fg))
+                                (list placeholder)))))))
      nil
      ;; A field nested in another wrapping row must measure at its own width:
      ;; Ebox measures a stretching flex child at the whole row, which would
      ;; push a number input's steppers onto separate lines.  An explicit
      ;; field width sizes this row to its content instead.
      (when (consp width) (list :width 'max-content)))))
+
+(etaf-define-component etaf-search-field
+    (&key (value etaf-ui--unsupplied) bind (on-change etaf-ui--unsupplied)
+          (placeholder "Search") (width 'stretch) icon on-focus on-submit
+          on-cancel on-clear keymap ref)
+  "Render a rounded search field editing a controlled query.
+VALUE/ON-CHANGE or a writable BIND supplies the query, edited live through
+`etaf-text-input' so ON-CHANGE sees every keystroke.  The field is a pill
+three rows tall whose painted surface leaves half a row above and below the
+text.  PLACEHOLDER shows while the query is empty; ICON non-nil adds a
+magnifier before it.  A clear button follows a nonempty query: it empties
+the query, calls ON-CLEAR and keeps editing.  A press anywhere on the pill
+begins editing.
+ON-FOCUS, ON-SUBMIT, ON-CANCEL and KEYMAP follow `etaf-text-input'; REF
+names the input for `etaf-text-input-begin'."
+  :bindings ((runtime (etaf-current-runtime))
+             (field-ref (etaf-local-ref 'search)))
+  :validate
+  (progn
+    (etaf-check-prop :placeholder placeholder (stringp placeholder) "a string"
+                     'etaf-search-field)
+    (etaf-check-prop :on-clear on-clear (or (null on-clear) (functionp on-clear))
+                     "a function or nil" 'etaf-search-field))
+  :render
+  (let* ((input (etaf-ui--controlled-input 'etaf-search-field :value
+                                           bind value on-change))
+         (text (or (etaf-ui--reactive-value (car input)) ""))
+         (change (cdr input))
+         (target (or ref field-ref))
+         (muted (etaf-ui--style-token :ui-muted-fg)))
+    (etaf-node
+     'flex
+     (list :class "etaf-search-field" :role 'search
+           :flex-direction 'row :align-items 'center
+           :width width :min-width '(ch 0) :flex-shrink 1
+           :flex-grow (if (eq width 'stretch) 1 0)
+           :flex-basis (when (eq width 'stretch) '(ch 0))
+           :column-gap '(ch 1) :padding-inline '(ch 2) :padding-block '(lh 0.5)
+           :border-radius '(px 16) :pointer 'text
+           :background-color (etaf-ui--style-token :ui-search-bg)
+           :color (etaf-ui--style-token :ui-search-fg)
+           :on-press (lambda () (etaf-text-input-begin runtime target)))
+     (delq
+      nil
+      (list
+       (and icon
+            (etaf-node 'box (list :flex-shrink 0 :color muted)
+                       (list (etaf-ui-icon 'search :min-width 1))))
+       (etaf-node
+        'box (list :flex-grow 1 :flex-shrink 1 :flex-basis '(ch 0)
+                   :min-width '(ch 0))
+        (list (etaf-node
+               'etaf-text-input
+               (list :value text :on-change change :label placeholder
+                     :hide-label t :placeholder placeholder :variant 'plain
+                     :width 'stretch :on-focus on-focus :on-submit on-submit
+                     :on-cancel on-cancel :keymap keymap :ref target)
+               nil)))
+       (and (not (string-empty-p text))
+            (etaf-node 'box (list :flex-shrink 0 :color muted :pointer 'hand)
+                       (list (etaf-ui-icon
+                              'close :min-width 1 :help-echo "Clear"
+                              :on-press (lambda ()
+                                          (when (etaf-text-input-active-p runtime)
+                                            (etaf-text-input-end 'blur))
+                                          (funcall change "")
+                                          (when on-clear (funcall on-clear))
+                                          (etaf-text-input-begin runtime target)))))))))))
 
 (provide 'etaf-ui-field)
 ;;; etaf-ui-field.el ends here

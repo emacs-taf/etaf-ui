@@ -13,10 +13,10 @@ ETAF View、props、slot、生命周期和 Ebox 宿主交互契约，因此可�
 | --- | --- | --- |
 | 布局与容器 | `etaf-panel`、`etaf-card`、`etaf-divider` | Ebox flow/flex/grid 几何；ETAF 决定显示哪个分支 |
 | 受控面板与窗口 | `etaf-resizable-panel`、`etaf-window-chrome`、`etaf-window` | Ebox 定位几何和 gesture；调用方持有坐标、模式和 z-order |
-| 桌面导航与平铺 | `etaf-taskbar`、`etaf-workspace-bar`、`etaf-launcher`、`etaf-switcher`、`etaf-splitter` | Ebox 焦点和 Host；调用方持有应用、窗口及布局状态 |
+| 桌面导航与平铺 | `etaf-taskbar`、`etaf-workspace-bar`、`etaf-launcher`、`etaf-switcher`、`etaf-splitter`、`etaf-pane-resizer` | Ebox 焦点和 Host；调用方持有应用、窗口及布局状态 |
 | 反馈与状态 | `etaf-label`、`etaf-badge`、`etaf-tag`、`etaf-kbd`、`etaf-progress`、`etaf-alert`、`etaf-statistic`、`etaf-empty`、`etaf-skeleton` | Ebox 文本和盒子绘制；调用方持有状态值 |
 | 浮层 | `etaf-popover`、`etaf-tooltip`、`etaf-dropdown-menu`、`etaf-context-menu`、`etaf-toast`、`etaf-dialog`、`etaf-drawer` | Ebox 锚点、分层、遮挡和共享面板焦点 |
-| 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
+| 输入与操作 | `etaf-button`、`etaf-checkbox`、`etaf-radio`、`etaf-switch`、`etaf-segmented`、`etaf-slider`、`etaf-text-input`、`etaf-search-field`、`etaf-number-input`、`etaf-select`、`etaf-menu`、`etaf-pagination` | Ebox 目标与焦点；ETAF 管受控回调和值 |
 | 导航与集合 | `etaf-tabs`、`etaf-accordion`、`etaf-breadcrumb`、`etaf-steps`、`etaf-tree` | Ebox flow 和焦点；ETAF 发布调用方持有的选择回调 |
 | 数据展示 | `etaf-table`、`etaf-data-grid`、`etaf-pagination`、`etaf-list`、`etaf-avatar`、`etaf-timeline`、`etaf-calendar` | ETAF Data Controller 和 Ebox 保留行 |
 | 高级组合 | `etaf-date-picker`、`etaf-command-palette` | 复用输入和 Dialog/List；调用方持有值和关闭状态 |
@@ -113,10 +113,16 @@ View 或合法的 View 序列。
 以及 Ebox 宿主生命周期。
 
 `etaf-text-input` 是目录里唯一的文本字段：`:bind` 或 `value`/`:on-change`
-提供受控字符串，`:rows` 区分单行输入与多行文本区。激活后直接编辑该字段
-在应用 buffer 里的已发布文本，输入法、光标、选区和撤销都是原生的，
+提供受控字符串，`:rows` 区分单行输入与多行文本区。激活后在应用布局内
+原生编辑该值，输入法、光标、选区和撤销都是原生的，
 不打开 minibuffer、frame 或额外窗口。`etaf-number-input` 与
-`etaf-date-picker` 是同一值契约在数字和 ISO 日期上的特化。
+`etaf-date-picker` 是同一值契约在数字和 ISO 日期上的特化。`etaf-search-field` 把
+无边框文本输入包在圆角胶囊里，可选放大镜图标和清除按钮，颜色来自 `:ui-search-*`
+主题 token；点击胶囊任意位置即开始编辑：
+
+```elisp
+(etaf-view (etaf-search-field :bind query :icon t :placeholder "搜索"))
+```
 
 ## 浮层与模态组合
 
@@ -168,6 +174,70 @@ Popover 外部控件仍可用鼠标操作，外部点击不自动关闭；模态
 重复检查键盘与鼠标激活、禁用项、原生中文文本输入与取消、嵌套焦点返回、关闭和
 卸载后重开。脚本保留示例可见；截图质量、操作系统输入法和前台输入延迟仍需单独验收。
 重新打开重置示例状态，关闭 buffer 或调用 `etaf-unmount` 释放 Runtime。
+
+### 媒体查看器
+
+`etaf-media-viewer` 在同一 buffer 内以模态浮层显示一张图片或一段视频。
+`open` 与当前条目由应用管理；媒体保持宽高比并适配当前窗口，随窗口尺寸
+变化重新排布。视频带有播放控制栏：播放／暂停、前后跳十秒、已播放与总时长、
+支持点击和拖动的进度条、播放速度和声音。传入 `:on-previous` 和 `:on-next`
+时增加两侧箭头、p/n 键和双指滑动，用于浏览图集。
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(etaf-define-component photo-viewer-demo ()
+  :bindings ((open (etaf-ref nil)))
+  :view
+  (column :width 'stretch :height '(vh 100)
+    (etaf-button :label "View"
+                 :on-press (lambda () (setf (etaf-value open) t)))
+    (etaf-media-viewer
+     :open open :src (expand-file-name "images/splash.png" data-directory)
+     :title "Splash"
+     :on-close (lambda () (setf (etaf-value open) nil)))))
+(etaf-mount "*Viewer*" (etaf-view (photo-viewer-demo)))
+```
+
+Escape、C-g、q、关闭按钮，以及鼠标点击标题栏、媒体和底栏之外的背景都会请求
+`on-close`；键盘激活不会经由背景关闭。打开期间查看器按键优先于应用按键，
+其他可打印键不起作用，buffer 光标隐藏，关闭后焦点回到原控件。遮罩覆盖根画布
+的首个视口，因此应挂载在一个窗口高的根节点中。
+
+### 表情回应
+
+`etaf-reactions` 渲染一行表情回应标签，例如聊天消息下方的表情计数。
+条目由调用方持有：`on-toggle` 报告被点击的 key 后由调用方更新条目。
+已选中的标签使用强调色，尺寸不变。`:choices` 会在末尾增加一个与回应标签同样式的
+标签，点击后弹出表情选择浮层，选项排成方格均匀、对齐的网格。
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(etaf-define-component reactions-demo ()
+  :bindings ((items (etaf-ref (list (list :key "👍" :label "👍" :count 3)))))
+  :view
+  (column :width 'stretch :height '(lh 10)
+    (etaf-reactions
+     :items items
+     :choices '(("👍" . "👍") ("❤" . "❤") ("🎉" . "🎉"))
+     :on-toggle
+     (lambda (key)
+       (let* ((old (cl-find key (etaf-value items)
+                            :key (lambda (item) (plist-get item :key))
+                            :test #'equal))
+              (chosen (not (plist-get old :chosen)))
+              (count (+ (or (plist-get old :count) 0) (if chosen 1 -1)))
+              (rest (cl-remove old (etaf-value items))))
+         (setf (etaf-value items)
+               (if (> count 0)
+                   (append rest (list (list :key key :label key
+                                            :count count :chosen chosen)))
+                 rest)))))))
+(etaf-mount "*Reactions*" (etaf-view (reactions-demo)))
+```
+
+这一行不会换行，条目数量应与容器宽度相适应。
 
 ## 受控面板与窗口
 
@@ -264,6 +334,18 @@ Escape 和关闭按钮调用 `on-close`，继续使用 ETAF 的焦点返回和�
 使用 `(px N)`，`:top`、`:height` 使用 `(lh N)`。矩形相对于定位父节点，
 可使嵌套分割线与实际保留的间隔对齐；未传入时仍按 `:ratio` 定位。
 
+`etaf-pane-resizer` 是一个用于固定宽度面板（例如会话旁的聊天列表）的细分隔条。像素
+宽度由调用方持有：每次拖动都通过 `on-change` 报告候选宽度（受 `:min`、`:max` 限制），
+`on-end` 收到最终宽度，例如用于保存。
+
+```elisp
+(etaf-view
+ (row (box :width (list 'px (etaf-value width)) "列表")
+      (etaf-pane-resizer :size width :min 240 :max 520
+                         :on-change (lambda (w) (etaf-set-value width w)))
+      (box :flex-grow 1 "会话")))
+```
+
 ## 应用内原生编辑行为
 
 ETAF Pi 等已有编辑窗格的集成可在可编辑 buffer 上复用 `etaf-ui-editor-mode`。
@@ -326,25 +408,21 @@ Emacs 原生 minibuffer。它支持 `:value`、`:label`、`:on-change`、`:min`�
 指定时 `:min` 不能大于 `:max`。无效配置在初始化或新 props 发布前拒绝，
 无效实时值在渲染时拒绝，错误会指出组件和属性。
 
-`etaf-text-input` 原地显示值：激活后在已发布文本上开启原生编辑会话，
-输入法、光标、选区和撤销由 Emacs 管理，值仍归应用。单行字段按 RET 提交；
-Shift+RET 与 C-j 换行；C-c C-c 或 Ctrl+Return 提交；Escape、C-c C-k 和
-C-g 取消并恢复激活时的值。会话期间发布会推迟，结束后用接受的值重新发布。
+`etaf-text-input` 原地显示值：激活后对该值开启原生编辑会话。Emacs 命令、
+输入法、撤销、kill/yank 以及鼠标定位光标和选区都只作用于值本身；每次按键只
+重排该字段，字段随折行或新增行长高，内边距和边框保持完整。应用绑定了的可打印
+键仍会输入到字段里。单行字段按 RET 提交，多行字段按 RET 换行；Shift+RET 与
+C-j 换行；C-c C-c 或 Ctrl+Return 提交；Escape、C-c C-k 和 C-g 取消并恢复激活
+时的值。在字段外按下或点击会离开字段并保留文本。
 `etaf-text-input-begin`、`etaf-text-input-end` 与 `etaf-text-input-active-p`
-可用于程序化控制会话。
+可用于程序化控制会话；`(etaf-text-input-end 'blur)` 离开字段且不触发回调。
 
 字段嵌入应用时的集成注意：
 
-- 会话期间该 Runtime 的发布保持 pending（不发布、不报错），结束时才用接受的值
-  重新发布。值、草稿与提交策略归应用，框架不存应用值。
-- unmount 先清空 surface buffer，再跑组件的 unmount 钩子，会话跨度随之
-  塌缩：只有在宿主仍有已发布跨度（`etaf-host-ref-bounds` 非 nil）时才上报本次
-  文本，否则 change 钩子会把空串写回应用值。
-- 宿主自己的激活 keymap 藏在 text property 里，优先级高于 minor mode map：
-  在编辑跨度内摘除 `keymap`/`local-map`，会话结束时随原始文本一起还原，否则
-  RET 会走宿主的激活而不是字段的提交/换行。
-- 键位表与 minor mode 在应用 buffer 里启用/停用（`define-minor-mode` 只在当前
-  buffer 生效），不要在回调当时所在的 buffer 上切。
+- 编辑字段期间，应用其他状态照常发布。值、草稿与提交策略归应用，框架不存
+  应用值。`:on-change` 收到每次编辑后的值。
+- 卸载时活动字段直接离开并保留文本，不触发提交或取消回调。
+- 字段 `:keymap` 中的绑定作为命令在应用 buffer 中执行；其他按键编辑值。
 
 `etaf-select` 从普通 alist
 选择值，例如 `((nil . "进行中") (t . "已完成"))`。两者使用 `:value`／

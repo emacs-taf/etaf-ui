@@ -68,10 +68,12 @@ ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
                                                        count)))))))))
                     ;; The active tab is shown by its variant and tokens, never
                     ;; by a prefix glyph: a marker changes the label's width and
-                    ;; makes the whole strip shift on every switch.
+                    ;; makes the whole strip shift on every switch.  Both
+                    ;; variants share one padding for the same reason.
                     (etaf-node 'etaf-button
                                (list :label label
                                      :variant (if selected 'secondary 'ghost)
+                                     :padding '((lh 0) (ch 1))
                                      :aria-label (if count
                                                      (format "%s %s" label count)
                                                    label)

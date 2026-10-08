@@ -95,30 +95,24 @@
                       (etaf-view (etaf-number-input
                                   :bind value :label "Rows" :ref 'rows :min 1 :max 10
                                   :disabled (etaf-value disabled))))
-          (let ((runtime (etaf-runtime-for-buffer buffer))
-                (old "3"))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
             (etaf-dispatch-event runtime 'rows 'press)
-            (with-current-buffer buffer
-              (delete-region (- (point) (length old)) (point))
-              (insert "7"))
+            (switch-to-buffer buffer)
+            (execute-kbd-macro (kbd "C-a C-k 7"))
             (etaf-text-input-end)
             (should (= 7 (etaf-value value)))
             (should (string-match-p "Rows[^0-9]*7" (with-current-buffer buffer (buffer-string))))
             ;; Out-of-range and non-integer submissions report an error and
-            ;; leave the accepted value alone.
-            (dolist (invalid '("0" "11" "3.5"))
+            ;; leave the accepted value alone.  Each draft has no valid prefix,
+            ;; so typing it never updates the value either.
+            (dolist (invalid '("0" "-5" "x"))
               (etaf-dispatch-event runtime 'rows 'press)
-              (with-current-buffer buffer
-                (delete-region (- (point) (length "7")) (point))
-                (insert invalid))
+              (execute-kbd-macro (vconcat (kbd "C-a C-k") invalid))
               (should-error (etaf-text-input-end) :type 'user-error)
-              (should (= 7 (etaf-value value)))
-              (let ((old invalid)) (ignore old)))
+              (should (= 7 (etaf-value value))))
             ;; Cancelling restores the value captured at activation.
             (etaf-dispatch-event runtime 'rows 'press)
-            (with-current-buffer buffer
-              (delete-region (- (point) (length "7")) (point))
-              (insert "9"))
+            (execute-kbd-macro (kbd "C-a C-k 9"))
             (should (equal (etaf-text-input-end t) "9"))
             (should (= 7 (etaf-value value)))
             (setf (etaf-value value) 4)

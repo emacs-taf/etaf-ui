@@ -14,10 +14,10 @@ View, props, slots, lifecycle and Ebox host interaction contracts.
 | --- | --- | --- |
 | Layout and containers | `etaf-panel`, `etaf-card`, `etaf-divider` | Ebox flow/flex/grid geometry; ETAF controls which branch is visible |
 | Controlled panels and windows | `etaf-resizable-panel`, `etaf-window-chrome`, `etaf-window` | Ebox positioned geometry and gestures; caller owns coordinates, mode and z-order |
-| Desktop navigation and tiling | `etaf-taskbar`, `etaf-workspace-bar`, `etaf-launcher`, `etaf-switcher`, `etaf-splitter` | Ebox focus and Hosts; caller owns applications, windows and layout state |
+| Desktop navigation and tiling | `etaf-taskbar`, `etaf-workspace-bar`, `etaf-launcher`, `etaf-switcher`, `etaf-splitter`, `etaf-pane-resizer` | Ebox focus and Hosts; caller owns applications, windows and layout state |
 | Feedback and status | `etaf-label`, `etaf-badge`, `etaf-tag`, `etaf-kbd`, `etaf-progress`, `etaf-alert`, `etaf-statistic`, `etaf-empty`, `etaf-skeleton` | Ebox text and box paint; caller owns the status value |
 | Floating surfaces | `etaf-popover`, `etaf-tooltip`, `etaf-dropdown-menu`, `etaf-context-menu`, `etaf-toast`, `etaf-dialog`, `etaf-drawer` | Ebox anchor/layer/occlusion plus shared panel focus |
-| Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
+| Inputs and actions | `etaf-button`, `etaf-checkbox`, `etaf-radio`, `etaf-switch`, `etaf-segmented`, `etaf-slider`, `etaf-text-input`, `etaf-search-field`, `etaf-number-input`, `etaf-select`, `etaf-menu`, `etaf-pagination` | Ebox target/focus; ETAF owns controlled callbacks and values |
 | Navigation and collections | `etaf-tabs`, `etaf-accordion`, `etaf-breadcrumb`, `etaf-steps`, `etaf-tree` | Ebox flow and focus; ETAF publishes caller-owned selection callbacks |
 | Data presentation | `etaf-table`, `etaf-data-grid`, `etaf-pagination`, `etaf-list`, `etaf-avatar`, `etaf-timeline`, `etaf-calendar` | ETAF Data Controller and Ebox retained rows |
 | Advanced composition | `etaf-date-picker`, `etaf-command-palette` | Shared input and Dialog/List composition; caller owns values and dismissal |
@@ -132,11 +132,17 @@ participate in the same props, slots, retained identity and Ebox host lifecycle.
 
 `etaf-text-input` is the catalog's one text field: `:bind` or `value`/
 `on-change` supplies the controlled string, and `:rows` selects a single-line
-input or a text area. Activation edits the field's own published text in the
-application buffer, so input methods, point, selection and undo stay native
+input or a text area. Activation edits the value natively inside the
+application layout, so input methods, point, selection and undo stay native
 with no minibuffer, frame or extra window. `etaf-number-input` and
 `etaf-date-picker` specialize the same value contract for numbers and ISO
-dates.
+dates. `etaf-search-field` wraps a plain text input in a rounded pill with an
+optional magnifier and a clear control, coloured by the `:ui-search-*` theme
+tokens; pressing anywhere on the pill starts editing:
+
+```elisp
+(etaf-view (etaf-search-field :bind query :icon t :placeholder "Search"))
+```
 
 ## Floating content and modal composition
 
@@ -231,6 +237,76 @@ use `make gui-check EMACSCLIENT=/path/to/emacsclient`. It exercises keyboard and
 mouse activation, disabled items, native Chinese input and cancellation, nested
 focus return, modal closing, and unmount/remount cleanup. It leaves the example
 visible; it does not certify screenshot quality or foreground input latency.
+
+### Media viewer
+
+`etaf-media-viewer` shows one image or video in a modal viewer over the
+application, inside the same buffer. The application owns `open` and the
+current item; the viewer fits the media to the live window, keeps its aspect
+ratio and follows resizes. Video gets a transport bar with play/pause,
+ten-second skips, elapsed and total time, a seek bar that accepts clicks and
+drags, playback speed and sound. Passing `:on-previous` and `:on-next` adds
+side arrows, p/n keys and two-finger swipes for browsing a gallery.
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(etaf-define-component photo-viewer-demo ()
+  :bindings ((open (etaf-ref nil)))
+  :view
+  (column :width 'stretch :height '(vh 100)
+    (etaf-button :label "View"
+                 :on-press (lambda () (setf (etaf-value open) t)))
+    (etaf-media-viewer
+     :open open :src (expand-file-name "images/splash.png" data-directory)
+     :title "Splash"
+     :on-close (lambda () (setf (etaf-value open) nil)))))
+(etaf-mount "*Viewer*" (etaf-view (photo-viewer-demo)))
+```
+
+Escape, C-g, q, the close control and a pointer press on the backdrop outside
+the header, media and footer request `on-close`; keyboard activation never
+closes through the backdrop. While open, the viewer's keys outrank the
+application's keymaps, other printing keys do nothing, the buffer cursor is
+hidden, and focus returns to the prior control on close. The scrim covers the
+root canvas's first viewport, so mount the viewer in a root one window tall.
+
+### Reactions
+
+`etaf-reactions` renders a row of reaction chips, such as the emoji counts
+under a chat message. The caller owns the items and updates them when
+`on-toggle` reports a key; chosen chips take the accent tint without changing
+their size. `:choices` adds a trailing chip, matching the reaction chips,
+that opens a picker popover laying the choices out in an even grid of square
+cells.
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(etaf-define-component reactions-demo ()
+  :bindings ((items (etaf-ref (list (list :key "👍" :label "👍" :count 3)))))
+  :view
+  (column :width 'stretch :height '(lh 10)
+    (etaf-reactions
+     :items items
+     :choices '(("👍" . "👍") ("❤" . "❤") ("🎉" . "🎉"))
+     :on-toggle
+     (lambda (key)
+       (let* ((old (cl-find key (etaf-value items)
+                            :key (lambda (item) (plist-get item :key))
+                            :test #'equal))
+              (chosen (not (plist-get old :chosen)))
+              (count (+ (or (plist-get old :count) 0) (if chosen 1 -1)))
+              (rest (cl-remove old (etaf-value items))))
+         (setf (etaf-value items)
+               (if (> count 0)
+                   (append rest (list (list :key key :label key
+                                            :count count :chosen chosen)))
+                 rest)))))))
+(etaf-mount "*Reactions*" (etaf-view (reactions-demo)))
+```
+
+The row does not wrap; keep the item list short enough for its container.
 
 ## Controlled panels and windows
 
@@ -361,6 +437,19 @@ its own split geometry passes `:overlay-rect` with `:left` and `:width` as
 the positioned parent and keeps nested or minimum-size-constrained dividers
 aligned with the allocated gap. Without it, the overlay follows `:ratio`.
 
+`etaf-pane-resizer` is a thin draggable divider for one fixed-width pane, such
+as a chat list beside a conversation. The caller owns the pixel width: each
+drag move reports the candidate width, clamped to `:min` and `:max`, through
+`on-change`, and `on-end` receives the final width, for example to save it.
+
+```elisp
+(etaf-view
+ (row (box :width (list 'px (etaf-value width)) "List")
+      (etaf-pane-resizer :size width :min 240 :max 520
+                         :on-change (lambda (w) (etaf-set-value width w)))
+      (box :flex-grow 1 "Conversation")))
+```
+
 ## Embedded native editing behavior
 
 Native-pane integrations such as ETAF Pi can reuse `etaf-ui-editor-mode` in
@@ -446,30 +535,27 @@ rejected before initialization or updated props publish; invalid live values
 are rejected when rendered. Errors identify the component and property.
 
 `etaf-text-input` renders its value in place: activating it opens a native
-editing session over that text, so Emacs owns input methods, point, selection
-and undo while the application keeps the value. Return submits a single-row
-field; Shift+Return and C-j insert newlines; C-c C-c or Ctrl+Return submits;
-Escape, C-c C-k and C-g cancel and restore the activation value. Publication
-stays deferred while the session is active and the accepted value republishes
-when it ends. `etaf-text-input-begin`, `etaf-text-input-end` and
-`etaf-text-input-active-p` drive sessions programmatically.
+editing session on that value. Emacs commands, input methods, undo,
+kill/yank and mouse caret placement or selection act on the value alone, and
+each keystroke reflows only the field, which grows with wrapped or added lines
+while its padding and frame stay intact. Printing keys reach the field even
+when the application binds them. Return submits a single-row field and
+inserts a newline in a multi-row one; Shift+Return and C-j insert newlines;
+C-c C-c or Ctrl+Return submits; Escape, C-c C-k and C-g cancel and restore the
+activation value. A press or click outside the field leaves it and keeps the
+text. `etaf-text-input-begin`, `etaf-text-input-end` and
+`etaf-text-input-active-p` drive sessions programmatically; `(etaf-text-input-end
+'blur)` leaves without callbacks.
 
 Integration notes when embedding a field in an application:
 
-- An active session defers that runtime's publications (no publish, no error);
-  the accepted value republishes when the session ends. Values, drafts and
-  commit policy stay with the application; the framework stores no values.
-- Unmount clears the surface buffer before the component's unmount hooks, so
-  the session span has already collapsed. Report session text only while the
-  host still has a published span (`etaf-host-ref-bounds` non-nil); otherwise
-  the change hook writes an empty string back to the application value.
-- The host's activation keymap lives in a text property and outranks any
-  minor-mode map: remove `keymap`/`local-map` inside the editing span and
-  restore them with the original text when the session ends, or RET runs the
-  host activation instead of the field's submit or newline.
-- Enable and disable keymaps and the minor mode in the application buffer
-  (`define-minor-mode` only affects the current buffer), not in whatever buffer
-  the callback currently runs in.
+- Other application state keeps publishing while a field is edited. Values,
+  drafts and commit policy stay with the application; the framework stores
+  no values. `:on-change` receives every edited value.
+- Unmounting leaves an active field with its text kept, without submit or
+  cancel callbacks.
+- The field's `:keymap` bindings run as commands in the application buffer;
+  other keys edit the value.
 
 `etaf-select` chooses a value from an ordinary
 alist, such as `((nil . "Pending") (t . "Done"))`, without the minibuffer:

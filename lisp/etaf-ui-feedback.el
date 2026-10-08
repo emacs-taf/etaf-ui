@@ -8,16 +8,19 @@
 ;;; Code:
 (require 'etaf-ui-basic)
 
+(defun etaf-ui--feedback-keys (variant)
+  "Return foreground, background and border palette keys for VARIANT."
+  (pcase variant
+    ('success '(:ui-success-fg :ui-success-bg :ui-success-border))
+    ('warning '(:ui-warning-fg :ui-warning-bg :ui-warning-border))
+    ('danger '(:ui-danger-fg :ui-danger-bg :ui-danger-border))
+    ('info '(:ui-info-fg :ui-info-bg :ui-info-border))
+    (_ '(:ui-fg :ui-bg :ui-border))))
+
 (defun etaf-ui--feedback-theme (variant)
   "Return foreground, background and border tokens for VARIANT."
-  (let ((keys (pcase variant
-                ('success '(:ui-success-fg :ui-success-bg :ui-success-border))
-                ('warning '(:ui-warning-fg :ui-warning-bg :ui-warning-border))
-                ('danger '(:ui-danger-fg :ui-danger-bg :ui-danger-border))
-                ('info '(:ui-info-fg :ui-info-bg :ui-info-border))
-                (_ '(:ui-fg :ui-bg :ui-border)))))
-    (mapcar (lambda (key) (etaf-theme-token key (plist-get etaf-ui--style-palette key)))
-            keys)))
+  (mapcar (lambda (key) (etaf-theme-token key (plist-get etaf-ui--style-palette key)))
+          (etaf-ui--feedback-keys variant)))
 
 (etaf-define-component etaf-badge (&key text (variant 'neutral))
   "Render compact TEXT status with semantic VARIANT styling."
@@ -138,11 +141,74 @@
        (expr (when description (etaf-view (etaf-label :text description :variant 'muted))))
        (expr (etaf-current-slot 'default))))))
 
-(etaf-define-component etaf-avatar (&key name initials (size '(ch 5)) (variant 'info)
-                                        (lines 3) background)
-  "Render a compact initials AVATAR with caller-provided NAME tooltip text.
-LINES sets its height with the initials on the middle line; BACKGROUND
-replaces VARIANT's colors with white initials on that color."
+(defvar etaf-ui--avatar-cache (make-hash-table :test #'equal)
+  "Round avatar image descriptors keyed by their source and pixel size.")
+
+(defun etaf-ui--avatar-columns (size lines)
+  "Return the integer column count of avatar SIZE, LINES high."
+  (cond ((natnump size) (max 1 size))
+        ((and (consp size) (eq (car size) 'ch) (natnump (cadr size)))
+         (max 1 (cadr size)))
+        (t (* 2 lines))))
+
+(defun etaf-ui--avatar-photo (src)
+  "Return (MIME . BASE64) for avatar photo SRC, or nil when unreadable."
+  (let* ((descriptor (and (consp src) (eq (car src) 'image) (cdr src)))
+         (file (if descriptor (plist-get descriptor :file) src))
+         (data (and descriptor (plist-get descriptor :data)))
+         (type (or (and descriptor (plist-get descriptor :type))
+                   (and (stringp file) (image-supported-file-p file)))))
+    (when (and (null data) (stringp file) (file-readable-p file))
+      (setq data (with-temp-buffer
+                   (set-buffer-multibyte nil)
+                   (insert-file-contents-literally file)
+                   (buffer-string))))
+    (when (and (stringp data) (memq type '(png jpeg gif webp svg)))
+      (cons (format "image/%s" (if (eq type 'svg) "svg+xml" type))
+            (base64-encode-string
+             (if (multibyte-string-p data) (encode-coding-string data 'binary) data)
+             t)))))
+
+(defun etaf-ui--avatar-image (src initials foreground background columns lines)
+  "Return a round avatar descriptor COLUMNS by LINES cells, or nil.
+SRC is a photo source; without a readable photo, draw INITIALS in
+FOREGROUND on a BACKGROUND circle."
+  (when (and (display-images-p) (image-type-available-p 'svg))
+    (let* ((cw (frame-char-width)) (lh (frame-char-height))
+           (key (list src initials foreground background columns lines cw lh)))
+      (or (gethash key etaf-ui--avatar-cache)
+          (let* ((width (* columns cw)) (height (* lines lh))
+                 (d (min width height)) (r (/ d 2.0))
+                 (cx (/ width 2.0)) (cy (/ height 2.0))
+                 (photo (and src (etaf-ui--avatar-photo src)))
+                 (body
+                  (if photo
+                      (format "<defs><clipPath id='c'><circle cx='%s' cy='%s' r='%s'/></clipPath></defs><image x='%s' y='%s' width='%d' height='%d' preserveAspectRatio='xMidYMid slice' clip-path='url(#c)' xlink:href='data:%s;base64,%s'/>"
+                              cx cy r (- cx r) (- cy r) d d (car photo) (cdr photo))
+                    (format "<circle cx='%s' cy='%s' r='%s' fill='%s'/><text x='%s' y='%s' text-anchor='middle' dominant-baseline='central' font-family='%s' font-weight='bold' font-size='%s' fill='%s'>%s</text>"
+                            cx cy r background cx cy
+                            (xml-escape-string (or (face-attribute 'default :family nil t) "sans-serif"))
+                            (round (* d (if (> (length initials) 1) 0.38 0.46)))
+                            foreground (xml-escape-string initials)))))
+            (when (> (hash-table-count etaf-ui--avatar-cache) 1024)
+              (clrhash etaf-ui--avatar-cache))
+            (puthash key
+                     (list 'image :type 'svg
+                           :data (format "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='%d' height='%d' viewBox='0 0 %d %d'>%s</svg>"
+                                         width height width height body))
+                     etaf-ui--avatar-cache))))))
+
+(etaf-define-component etaf-avatar (&key name initials src (size '(ch 5))
+                                        (variant 'info) (lines 3) background
+                                        (shape 'circle))
+  "Render an AVATAR with caller-provided NAME tooltip text.
+SRC is an optional photo file or image descriptor.  On graphical frames
+SHAPE `circle' draws the photo, or the initials on a colored disc, as a
+round image; `square' and text frames use an initials box.  LINES sets its
+height; BACKGROUND replaces VARIANT's colors with white initials on it."
+  :validate
+  (etaf-check-prop :shape shape (memq shape '(circle square))
+                   "circle or square" 'etaf-avatar)
   :render
   (let* ((name (etaf-ui--text-value name))
          (initials (etaf-ui--text-value initials))
@@ -153,15 +219,33 @@ replaces VARIANT's colors with white initials on that color."
          (theme (etaf-ui--feedback-theme variant)))
     (unless (and (integerp lines) (> lines 0))
       (signal 'wrong-type-argument (list 'natnump lines)))
-    (etaf-view
-     (box :class "etaf-avatar" :role 'img :aria-label name :width size
-          :height (list 'lh lines) :box-sizing 'border-box
-          :padding-top (list 'lh (/ (1- lines) 2))
-          :text-align 'center :font-weight 'bold
-          :color (if background "#FFFFFF" (nth 0 theme))
-          :background-color (or background (nth 1 theme))
-          :border (unless background (nth 2 theme))
-       (text (expr initials))))))
+    (let* ((columns (etaf-ui--avatar-columns size lines))
+           (palette (and (eq shape 'circle)
+                         (etaf-theme-resolve-palette etaf-ui--style-palette
+                                                     (etaf-theme-current-mode))))
+           (image (and (eq shape 'circle)
+                       (etaf-ui--avatar-image
+                        (etaf-ui--reactive-value src) initials
+                        (if background "#FFFFFF"
+                          (plist-get palette (nth 0 (etaf-ui--feedback-keys variant))))
+                        (or background
+                            (plist-get palette (nth 1 (etaf-ui--feedback-keys variant))))
+                        columns lines))))
+      (if image
+          (etaf-view
+           (box :class "etaf-avatar" :role 'img :aria-label name
+                :width (list 'ch columns) :height (list 'lh lines)
+                :flex-shrink 0
+             (image :src image :columns columns :rows lines)))
+        (etaf-view
+         (box :class "etaf-avatar" :role 'img :aria-label name :width size
+              :height (list 'lh lines) :box-sizing 'border-box
+              :padding-top (list 'lh (/ (1- lines) 2))
+              :text-align 'center :font-weight 'bold
+              :color (if background "#FFFFFF" (nth 0 theme))
+              :background-color (or background (nth 1 theme))
+              :border (unless background (nth 2 theme))
+           (text (expr initials))))))))
 
 (etaf-define-component etaf-timeline (&key items)
   "Render chronological ITEMS with :title, :content and optional :status."

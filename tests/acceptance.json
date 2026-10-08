@@ -89,6 +89,11 @@
       "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."
     },
     {
+      "name": "etaf-ui-icon-inside-a-control-shows-the-control-help",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "An icon without its own help text leaves the enclosing control's help visible over the icon."
+    },
+    {
       "name": "etaf-ui-toggle-icon-switches-glyph-and-paint-through-value",
       "file": "tests/etaf-ui-icon-tests.el",
       "purpose": "A reactive toggle value switches the icon glyph and its paint in place while the box keeps its declared geometry, role and help text."
@@ -117,6 +122,11 @@
       "name": "etaf-ui-range-press-reports-change-and-commit",
       "file": "tests/etaf-ui-range-tests.el",
       "purpose": "A pointer click reports the pointed value through on-change and on-commit in that order."
+    },
+    {
+      "name": "etaf-ui-range-without-ref-hit-tests-pointer-gestures",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "A range mounted without a :ref still maps an engine pointer gesture to its value."
     },
     {
       "name": "etaf-ui-range-drag-reports-live-values-and-commits-on-release",
@@ -444,6 +454,11 @@
       "purpose": "NumberInput validates configuration before publishing inputs and follows caller-owned integer values through native editing."
     },
     {
+      "name": "etaf-ui-reactions-toggle-chips-and-pick-choices",
+      "file": "tests/etaf-ui-reactions-tests.el",
+      "purpose": "Reaction chips report their key, keep their footprint when chosen, and the picker popover adds a chosen reaction then closes."
+    },
+    {
       "name": "etaf-ui-dropdown-opens-navigates-selects-and-restores-focus",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "A dropdown renders its items, skips disabled ones and invokes selection once."
@@ -452,6 +467,21 @@
       "name": "etaf-ui-dialog-composes-slots-and-blocks-covered-controls",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "The modal canvas covers background targets and returns focus after closing."
+    },
+    {
+      "name": "etaf-ui-media-viewer-owns-keys-browses-and-closes",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "An open media viewer covers the application, outranks its emulation keys, browses with n/p and the arrows, swallows other printing keys, closes with q or Escape and returns focus."
+    },
+    {
+      "name": "etaf-ui-media-viewer-closes-on-backdrop-and-close-control",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A click on the media viewer's backdrop or its close control requests closing; a key on the backdrop does not."
+    },
+    {
+      "name": "etaf-ui-media-viewer-hides-the-mounted-buffer-cursor",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A media viewer opened from another current buffer hides the mounted buffer's cursor and restores it on close."
     },
     {
       "name": "etaf-ui-dismisses-surfaces-on-presses-outside-their-panel",
@@ -497,6 +527,11 @@
       "name": "etaf-ui-feedback-and-navigation-render-public-contracts",
       "file": "tests/etaf-ui-modern-tests.el",
       "purpose": "Feedback and navigation Components render and dispatch through public refs."
+    },
+    {
+      "name": "etaf-ui-tabs-keep-every-label-in-place-when-switching",
+      "file": "tests/etaf-ui-modern-tests.el",
+      "purpose": "Switching the active tab keeps every tab label in the same column, so the strip never shifts."
     },
     {
       "name": "etaf-ui-selection-components-render-public-contracts",
@@ -569,89 +604,84 @@
       "purpose": "Without SVG, one-cell ASCII traffic-light marks inherit the surrounding font, preserve hover widths and invoke the controlled close/minimize/zoom/restore actions."
     },
     {
-      "name": "etaf-ui-text-input-edits-the-application-buffer-in-place",
+      "name": "etaf-ui-text-input-edits-the-value-in-place",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Activation edits the field's own buffer text; typing updates the controlled value and ending republishes it."
+      "purpose": "Typing through the command loop edits the bound value in place without moving surrounding lines; Return submits."
     },
     {
       "name": "etaf-ui-text-input-cancel-restores-the-activation-value",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Cancelling restores the value captured at activation through the change callback."
+      "purpose": "Escape cancels the session and restores the value captured at activation."
     },
     {
-      "name": "etaf-ui-text-input-submits-on-return-for-one-row",
+      "name": "etaf-ui-text-input-multiline-grows-with-newlines",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "A single-line field submits its text on Return and ends the session."
-    },
-    {
-      "name": "etaf-ui-text-input-multiline-inserts-newlines-until-submit",
-      "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "A multi-line field inserts newlines on Return and submits only explicitly."
-    },
-    {
-      "name": "etaf-ui-text-input-shift-return-keeps-editing-in-session",
-      "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Shift+Return inserts a newline without electric indentation escaping the session."
+      "purpose": "A multi-row field inserts unindented newlines on Return, Shift+Return and C-j, grows with them and submits on C-c C-c."
     },
     {
       "name": "etaf-ui-text-input-placeholder-is-never-the-value",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "The placeholder is display-only: editing starts from empty text and cancelling restores the placeholder."
+      "purpose": "An empty field shows its placeholder after the caret and never treats it as the value."
     },
     {
-      "name": "etaf-ui-text-input-defers-publication-until-the-session-ends",
+      "name": "etaf-ui-text-input-runs-native-editing-keys-on-the-value",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Changes elsewhere stay pending while the field owns part of the buffer and publish when the session ends."
+      "purpose": "Native word, line, kill, yank and undo commands edit only the field's value."
+    },
+    {
+      "name": "etaf-ui-text-input-keys-reach-the-field-over-application-bindings",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Printing keys bound by the application type into an active field."
+    },
+    {
+      "name": "etaf-ui-text-input-publishes-other-changes-during-editing",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Application state changes publish while a field is being edited."
     },
     {
       "name": "etaf-ui-text-input-disabled-and-read-only-are-not-editable",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Disabled fields refuse activation and read-only fields stay focusable without opening a session."
+      "purpose": "Disabled and read-only fields open no editing session."
     },
     {
-      "name": "etaf-ui-text-input-validates-props-and-unmounts-cleanly",
+      "name": "etaf-ui-text-input-installs-completion-and-keymap",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Invalid props report the component and property; unmount closes the session without losing accepted text."
+      "purpose": "Completion functions complete the value and field key bindings run during the session only."
     },
     {
-      "name": "etaf-ui-text-input-session-preserves-sibling-host-interaction",
+      "name": "etaf-ui-text-input-leaving-keeps-the-draft",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Beginning and ending one field's session leaves another host's interaction properties untouched."
+      "purpose": "Pressing the field keeps editing; pressing another Host or unmounting leaves with the typed draft kept."
     },
     {
-      "name": "etaf-ui-text-input-session-suspends-application-keymaps",
+      "name": "etaf-ui-text-input-relayouts-while-editing",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Application emulation keymaps do not intercept ordinary characters while a session is active and return afterwards."
+      "purpose": "A viewport refit applies immediately while editing continues."
     },
     {
-      "name": "etaf-ui-text-input-session-installs-completion-and-keymap",
+      "name": "etaf-ui-text-input-focus-recolours-a-reserved-frame",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Completion functions and extra field bindings apply only during the session and are removed on end."
+      "purpose": "Focus recolours the outlined frame without moving layout; the plain variant has no frame."
     },
     {
-      "name": "etaf-ui-text-input-outside-press-finishes-the-session",
+      "name": "etaf-ui-text-input-shows-a-caret-and-restores-state",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "A press on another Host finishes the editing session with cancel semantics, clears the Runtime finisher and returns the activation value."
+      "purpose": "Editing shows a bar caret and ending restores the buffer cursor."
     },
     {
-      "name": "etaf-ui-text-input-refit-waits-for-the-session",
+      "name": "etaf-ui-text-input-validates-props-and-ends-once",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "A viewport refit requested during editing is held until the session ends and then publishes the settled viewport."
+      "purpose": "Invalid props are reported in component context and ending a session twice releases it once."
     },
     {
-      "name": "etaf-ui-text-input-session-shows-a-caret-and-restores-state",
+      "name": "etaf-ui-search-field-edits-clears-and-keeps-editing",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Editing shows a visible caret and never changes truncation behavior; ending restores the local cursor state."
+      "purpose": "A search field edits its query live; its clear control empties the query, reports the clear and keeps editing."
     },
     {
-      "name": "etaf-ui-text-input-boundary-keys-stay-inside-the-field",
-      "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Home/End, C-k and boundary deletion stay inside the field's published text so the surrounding canvas is never invalidated."
-    },
-    {
-      "name": "etaf-ui-text-input-end-is-idempotent",
-      "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Ending the session twice releases it once and removes every session hook and the Runtime finisher."
+      "name": "etaf-ui-pane-resizer-reports-clamped-widths",
+      "file": "tests/etaf-ui-desktop-tests.el",
+      "purpose": "Dragging a pane resizer reports widths clamped to its bounds and the final width on release."
     }
   ]
 }

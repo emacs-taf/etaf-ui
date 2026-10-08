@@ -59,9 +59,8 @@
                 (buffer (get-buffer buffer-name)))
             (etaf-dispatch-event runtime 'rows 'press)
             (should (etaf-text-input-active-p runtime))
-            (with-current-buffer buffer
-              (delete-region (- (point) (length "3")) (point))
-              (insert "7"))
+            (switch-to-buffer buffer)
+            (execute-kbd-macro (kbd "DEL 7"))
             (etaf-text-input-end)
             (should (= 7 value))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))

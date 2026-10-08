@@ -1,287 +1,242 @@
 ;;; etaf-ui-field-tests.el --- In-place text field acceptance -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; The catalog's text input edits the application buffer natively; these
-;; scenarios drive activation, typing, submission, cancellation, deferral and
-;; cleanup through public ETAF APIs.
+;; The catalog's text input edits its value natively inside the application
+;; layout; these scenarios type through the command loop and observe values,
+;; callbacks and the published buffer through public ETAF APIs.
 
 ;;; Code:
 (require 'ert)
 (require 'cl-lib)
 (require 'etaf-ui)
 
-(defun etaf-ui-field-test--press (key)
-  "Invoke the current buffer's binding for KEY through the command loop."
-  (call-interactively (key-binding (kbd key))))
+(defmacro etaf-ui-field-test--with (spec &rest body)
+  "Mount a form with one text input, bind SPEC (BUFFER RUNTIME VALUE . PROPS), run BODY.
+The buffer is selected so keyboard macros reach it."
+  (declare (indent 1))
+  (pcase-let ((`(,buffer ,runtime ,value . ,props) spec))
+    `(let* ((,buffer (generate-new-buffer " *field test*"))
+            (,value (etaf-ref "初始")))
+       (unwind-protect
+           (progn
+             (etaf-mount
+              ,buffer
+              (etaf-node 'column (list :width '(ch 40))
+                         (list (etaf-node 'etaf-text-input
+                                          (append (list :ref 'field :bind ,value :label "标题"
+                                                        :placeholder "写点什么")
+                                                  (list ,@props))
+                                          nil)
+                               (etaf-node 'etaf-button
+                                          (list :ref 'sibling :label "Sibling" :on-press #'ignore) nil)))
+              '(:viewport-width 600 :viewport-height 20))
+             (switch-to-buffer ,buffer)
+             (let ((,runtime (etaf-runtime-for-buffer ,buffer)))
+               ,@body))
+         (when-let* ((runtime (etaf-runtime-for-buffer ,buffer))) (etaf-unmount runtime))
+         (kill-buffer ,buffer)))))
 
-(defun etaf-ui-field-test--mount (&rest field-props)
-  "Mount a small form with one text input and return (BUFFER . VALUE-REF)."
-  (let* ((buffer (generate-new-buffer " *field test*"))
-         (value (etaf-ref "初始"))
-         (rows (or (plist-get field-props :rows) 1))
-         (props (append (list :ref 'field :bind value :label "标题"
-                              :placeholder "写点什么" :rows rows)
-                        (cl-loop for (key val) on field-props by #'cddr
-                                 unless (eq key :rows)
-                                 append (list key val)))))
-    (etaf-mount
-     buffer
-     (etaf-node 'column (list :width '(ch 40))
-                (list (etaf-node 'etaf-text-input props nil)))
-     '(:viewport-width 600 :viewport-height 20))
-    (cons buffer value)))
+(defun etaf-ui-field-test--type (keys)
+  "Type KEYS, a `kbd' string or a vector, through the command loop."
+  (execute-kbd-macro (if (stringp keys) (kbd keys) keys)))
 
-(ert-deftest etaf-ui-text-input-edits-the-application-buffer-in-place ()
-  "Activation opens a session; typing updates the controlled value; end republishes."
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted)) (value (cdr mounted)) observed)
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (should (string-match-p "初始" (with-current-buffer buffer (buffer-string))))
-          (should-not (etaf-text-input-active-p runtime))
-          (etaf-dispatch-event runtime 'field 'press)
-          (should (etaf-text-input-active-p runtime))
-          (with-current-buffer buffer (insert " 文本"))
-          (should (equal (etaf-value value) "初始 文本"))
-          (should (equal (etaf-text-input-end) "初始 文本"))
-          (should-not (etaf-text-input-active-p runtime))
-          (should (string-match-p "初始 文本" (with-current-buffer buffer (buffer-string))))
-          (should (equal (etaf-value value) "初始 文本")))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+(defun etaf-ui-field-test--text (buffer)
+  "Return BUFFER's text without properties."
+  (with-current-buffer buffer (buffer-substring-no-properties (point-min) (point-max))))
+
+(ert-deftest etaf-ui-text-input-edits-the-value-in-place ()
+  "Typing edits the controlled value inside the field; submit keeps it."
+  (let (submitted)
+    (etaf-ui-field-test--with (buffer runtime value
+                                      :on-submit (lambda (text) (setq submitted text)))
+      (let ((lines (count-lines (point-min) (point-max))))
+        (should-not (etaf-text-input-active-p runtime))
+        (etaf-dispatch-event runtime 'field 'press)
+        (should (etaf-text-input-active-p runtime))
+        (etaf-ui-field-test--type [?\s ?文 ?本])
+        (should (equal (etaf-value value) "初始 文本"))
+        (should (string-match-p "初始 文本" (etaf-ui-field-test--text buffer)))
+        (should (= lines (count-lines (point-min) (point-max))))
+        (etaf-ui-field-test--type "RET")
+        (should (equal submitted "初始 文本"))
+        (should-not (etaf-text-input-active-p runtime))
+        (should (equal (etaf-value value) "初始 文本"))
+        (should (string-match-p "初始 文本" (etaf-ui-field-test--text buffer)))))))
 
 (ert-deftest etaf-ui-text-input-cancel-restores-the-activation-value ()
-  "Cancelling restores the value captured when editing began."
-  (let* ((observed nil)
-         (mounted (etaf-ui-field-test--mount
-                   :on-cancel (lambda (_text) (setq observed t))))
-         (buffer (car mounted)) (value (cdr mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer (insert "不要"))
-          (should (equal (etaf-value value) "初始不要"))
-          (etaf-text-input-end t)
-          (should observed)
-          (should (equal (etaf-value value) "初始"))
-          (should (string-match-p "初始" (with-current-buffer buffer (buffer-string))))
-          (should-not (string-match-p "不要" (with-current-buffer buffer (buffer-string)))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+  "Escape restores the value captured when editing began."
+  (let (cancelled)
+    (etaf-ui-field-test--with (buffer runtime value
+                                      :on-cancel (lambda (text) (setq cancelled text)))
+      (etaf-dispatch-event runtime 'field 'press)
+      (etaf-ui-field-test--type [?不 ?要])
+      (should (equal (etaf-value value) "初始不要"))
+      (etaf-ui-field-test--type "<escape>")
+      (should (equal cancelled "初始不要"))
+      (should (equal (etaf-value value) "初始"))
+      (should-not (string-match-p "不要" (etaf-ui-field-test--text buffer))))))
 
-(ert-deftest etaf-ui-text-input-submits-on-return-for-one-row ()
-  "A single-line field submits its text on Return."
-  (let* ((submitted nil)
-         (mounted (etaf-ui-field-test--mount
-                   :on-submit (lambda (text) (setq submitted text))))
-         (buffer (car mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (insert "第一行")
-            (etaf-ui-field-test--press "RET"))
-          (should (equal submitted "初始第一行"))
-          (should-not (etaf-text-input-active-p runtime)))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-text-input-multiline-inserts-newlines-until-submit ()
-  "A multi-line field inserts newlines on Return and submits explicitly."
-  (let* ((submitted nil)
-         (mounted (etaf-ui-field-test--mount
-                   :rows 3 :on-submit (lambda (text) (setq submitted text))))
-         (buffer (car mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (insert "第一行")
-            (etaf-ui-field-test--press "RET"))
-          (should-not submitted)
-          (should (etaf-text-input-active-p runtime))
-          (with-current-buffer buffer (insert "第二行"))
-          (etaf-text-input-end)
-          (should (equal submitted "初始第一行\n第二行")))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-text-input-shift-return-keeps-editing-in-session ()
-  "Shift+Return inserts a newline without electric indentation leaving the session."
-  (let* ((mounted (etaf-ui-field-test--mount :rows 3))
-         (buffer (car mounted)) (value (cdr mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (with-current-buffer buffer (setq-local electric-indent-mode t))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (insert "第一行")
-            (call-interactively (key-binding (kbd "<S-return>")))
-            (insert "第二行")
-            (should (etaf-text-input-active-p runtime)))
-          (should (equal (etaf-value value) "初始第一行\n第二行"))
-          (etaf-text-input-end t)
-          (with-current-buffer buffer
-            (should (local-variable-p 'electric-indent-mode))
-            (should electric-indent-mode)))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+(ert-deftest etaf-ui-text-input-multiline-grows-with-newlines ()
+  "A multi-line field inserts unindented newlines and grows until submit."
+  (let (submitted)
+    (etaf-ui-field-test--with (buffer runtime value :rows 2
+                                      :on-submit (lambda (text) (setq submitted text)))
+      (let ((lines (count-lines (point-min) (point-max))))
+        (setq-local electric-indent-mode t)
+        (etaf-dispatch-event runtime 'field 'press)
+        (etaf-ui-field-test--type "RET a S-<return> b C-j c")
+        (should-not submitted)
+        (should (equal (etaf-value value) "初始\na\nb\nc"))
+        (should (= (count-lines (point-min) (point-max)) (+ lines 2)))
+        (etaf-ui-field-test--type "C-c C-c")
+        (should (equal submitted "初始\na\nb\nc"))))))
 
 (ert-deftest etaf-ui-text-input-placeholder-is-never-the-value ()
-  "An empty field shows its placeholder and starts editing from empty text."
-  (let* ((buffer (generate-new-buffer " *field placeholder*"))
-         (value (etaf-ref nil)))
-    (unwind-protect
-        (progn
-          (etaf-mount buffer
-                      (etaf-node 'etaf-text-input
-                                 (list :ref 'empty :bind value
-                                       :placeholder "写点什么")
-                                 nil)
-                      '(:viewport-width 600 :viewport-height 20))
-          (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (should (string-match-p "写点什么" (with-current-buffer buffer (buffer-string))))
-            (etaf-dispatch-event runtime 'empty 'press)
-            (should-not (string-match-p "写点什么" (with-current-buffer buffer (buffer-string))))
-            (with-current-buffer buffer (insert "真实内容"))
-            (should (equal (etaf-value value) "真实内容"))
-            (etaf-text-input-end t)
-            (should (equal (etaf-value value) ""))
-            (should (string-match-p "写点什么" (with-current-buffer buffer (buffer-string))))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+  "An empty field shows its placeholder after the caret until text is typed."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (setf (etaf-value value) "")
+    (should (string-match-p "写点什么" (etaf-ui-field-test--text buffer)))
+    (etaf-dispatch-event runtime 'field 'press)
+    (should (equal (buffer-substring-no-properties (point) (+ (point) 4)) "写点什么"))
+    (etaf-ui-field-test--type "x")
+    (should (equal (etaf-value value) "x"))
+    (should-not (string-match-p "写点什么" (etaf-ui-field-test--text buffer)))
+    (etaf-ui-field-test--type "DEL")
+    (should (equal (etaf-value value) ""))
+    (should (string-match-p "写点什么" (etaf-ui-field-test--text buffer)))
+    (should (equal (etaf-text-input-end) ""))))
 
-(ert-deftest etaf-ui-text-input-defers-publication-until-the-session-ends ()
-  "Changes elsewhere stay pending while the field owns the buffer text."
-  (let* ((buffer (generate-new-buffer " *field deferral*"))
-         (value (etaf-ref "draft")) (notice (etaf-ref "一")))
-    (unwind-protect
-        (progn
-          (etaf-mount buffer
-                      (etaf-view
-                       (column
-                        (text :ref 'notice (expr (etaf-value notice)))
-                        (expr (etaf-node 'etaf-text-input
-                                         (list :ref 'field :bind value :label "标题")
-                                         nil))))
-                      '(:viewport-width 600 :viewport-height 20))
-          (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (etaf-dispatch-event runtime 'field 'press)
-            (with-current-buffer buffer (insert "!"))
-            (setf (etaf-value notice) "二")
-            (should (string-match-p "一" (with-current-buffer buffer (buffer-string))))
-            (etaf-text-input-end)
-            (should (string-match-p "二" (with-current-buffer buffer (buffer-string))))
-            (should (string-match-p "draft!" (with-current-buffer buffer (buffer-string))))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+(ert-deftest etaf-ui-text-input-runs-native-editing-keys-on-the-value ()
+  "Line, word, kill, undo and deletion keys edit only the field's value."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (etaf-dispatch-event runtime 'field 'press)
+    (etaf-ui-field-test--type "SPC o n e SPC t w o")
+    (etaf-ui-field-test--type "M-DEL C-a C-d C-e C-y")
+    (should (equal (etaf-value value) "始 one two"))
+    (etaf-ui-field-test--type "C-/")
+    (should (equal (etaf-value value) "始 one "))
+    (etaf-ui-field-test--type "C-a C-k")
+    (should (equal (etaf-value value) ""))
+    (should (string-match-p "标题" (etaf-ui-field-test--text buffer)))
+    (should (string-match-p "Sibling" (etaf-ui-field-test--text buffer)))))
 
-(ert-deftest etaf-ui-text-input-disabled-and-read-only-are-not-editable ()
-  "Disabled fields refuse activation; read-only fields allow no session."
-  (dolist (case '(:disabled :read-only))
-    (let* ((mounted (etaf-ui-field-test--mount case t))
-           (buffer (car mounted)))
+(ert-deftest etaf-ui-text-input-keys-reach-the-field-over-application-bindings ()
+  "Printing keys bound by the application still type into the field."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (let ((quit nil))
+      (use-local-map (define-keymap "q" (lambda () (interactive) (setq quit t))))
+      (etaf-dispatch-event runtime 'field 'press)
+      (etaf-ui-field-test--type "q")
+      (should-not quit)
+      (should (equal (etaf-value value) "初始q")))))
+
+(ert-deftest etaf-ui-text-input-publishes-other-changes-during-editing ()
+  "Application changes elsewhere publish while the field edits."
+  (let ((status (etaf-ref "idle")) (value (etaf-ref "v")))
+    (let ((buffer (generate-new-buffer " *field publish*")))
       (unwind-protect
-          (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (if (eq case :disabled)
-                (should-error (etaf-dispatch-event runtime 'field 'press)
-                              :type 'etaf-event-error)
-              (etaf-dispatch-event runtime 'field 'press))
-            (should-not (etaf-text-input-active-p runtime)))
+          (progn
+            (etaf-mount buffer
+                        (etaf-view (column (etaf-text-input :ref 'field :bind value)
+                                           (text (expr (etaf-value status)))))
+                        '(:viewport-width 600 :viewport-height 20))
+            (switch-to-buffer buffer)
+            (etaf-dispatch-event (etaf-runtime-for-buffer buffer) 'field 'press)
+            (setf (etaf-value status) "busy")
+            (should (string-match-p "busy" (etaf-ui-field-test--text buffer)))
+            (etaf-ui-field-test--type "w")
+            (should (equal (etaf-value value) "vw")))
         (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
         (kill-buffer buffer)))))
 
-(ert-deftest etaf-ui-text-input-session-preserves-sibling-host-interaction ()
-  "Editing one field must not strip another host's activation properties."
-  (let ((buffer (generate-new-buffer " *field siblings*")))
-    (unwind-protect
-        (progn
-          (etaf-mount
-           buffer
-           (etaf-node 'column (list :width '(ch 40))
-                      (list (etaf-node 'etaf-button
-                                       (list :ref 'sibling :label "Sibling"
-                                             :on-press #'ignore)
-                                       nil)
-                            (etaf-node 'etaf-text-input
-                                       (list :ref 'field :bind (etaf-ref "初始")
-                                             :label "标题")
-                                       nil)))
-           (list :viewport-width 600 :viewport-height 20))
-          (let* ((runtime (etaf-runtime-for-buffer buffer))
-                 (bounds (etaf-host-ref-bounds runtime 'sibling)))
-            (should bounds)
-            (cl-flet ((sibling-interactive-p ()
-                        (with-current-buffer buffer
-                          (save-restriction
-                            (widen)
-                            (text-property-not-all (car bounds) (cdr bounds)
-                                                   'keymap nil)))))
-              (should (sibling-interactive-p))
-              (etaf-dispatch-event runtime 'field 'press)
-              (with-current-buffer buffer (goto-char (point-max)) (insert "!"))
-              (etaf-text-input-end)
-              (should (sibling-interactive-p)))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+(ert-deftest etaf-ui-text-input-disabled-and-read-only-are-not-editable ()
+  "Disabled and read-only fields open no session."
+  (etaf-ui-field-test--with (buffer runtime value :disabled t)
+    (should-not (etaf-text-input-begin runtime 'field))
+    (should-not (etaf-text-input-active-p runtime)))
+  (etaf-ui-field-test--with (buffer runtime value :read-only t)
+    (etaf-dispatch-event runtime 'field 'press)
+    (should-not (etaf-text-input-begin runtime 'field))
+    (should-not (etaf-text-input-active-p runtime))))
 
-(ert-deftest etaf-ui-text-input-session-suspends-application-keymaps ()
-  "Ordinary characters reach the session even when the app binds them."
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted))
-         (value (cdr mounted))
-         (map (let ((map (make-sparse-keymap)))
-                (define-key map (kbd "j") #'ignore)
-                (define-key map (kbd "第") #'ignore)
-                map)))
-    (unwind-protect
-        (save-window-excursion
-          (set-window-buffer (selected-window) buffer)
-          (let ((runtime (etaf-runtime-for-buffer buffer)))
-            (with-current-buffer buffer
-              (setq-local emulation-mode-map-alists (list (list (cons t map))))
-              (use-local-map map))
-            (etaf-dispatch-event runtime 'field 'press)
-            (with-current-buffer buffer
-              (should (eq (key-binding (kbd "j")) #'self-insert-command))
-              (should (eq (key-binding (string-to-vector "第")) #'self-insert-command)))
-            (execute-kbd-macro (kbd "j"))
-            (execute-kbd-macro (string-to-vector "第"))
-            (should (equal (etaf-value value) "初始j第"))
-            (etaf-text-input-end t)
-            (with-current-buffer buffer
-              (should (eq (key-binding (kbd "j")) #'ignore))
-              (should (eq (key-binding (string-to-vector "第")) #'ignore)))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+(ert-deftest etaf-ui-text-input-installs-completion-and-keymap ()
+  "Completion functions complete the value; field bindings run in the app."
+  (let* ((pressed nil)
+         (capf (lambda ()
+                 (save-excursion
+                   (let ((end (point)))
+                     (skip-chars-backward "a-z")
+                     (list (point) end '("hello"))))))
+         (map (define-keymap "C-c x" (lambda () (interactive)
+                                       (setq pressed (current-buffer))))))
+    (etaf-ui-field-test--with (buffer runtime value
+                                      :completion-functions (list capf) :keymap map)
+      (setf (etaf-value value) "")
+      (etaf-dispatch-event runtime 'field 'press)
+      (etaf-ui-field-test--type "h e C-M-i")
+      (should (equal (etaf-value value) "hello"))
+      (etaf-ui-field-test--type "C-c x")
+      (should (eq pressed buffer))
+      (should-not (memq capf completion-at-point-functions)))))
 
-(ert-deftest etaf-ui-text-input-session-installs-completion-and-keymap ()
-  "Completion functions and field bindings are active only during the session."
-  (let* ((completions (lambda () (list 1 1 '("alpha"))))
-         (key-ran nil)
-         (field-key (lambda () (interactive) (setq key-ran t)))
-         (extra (let ((map (make-sparse-keymap)))
-                  (define-key map (kbd "C-c z") field-key) map))
-         (mounted (etaf-ui-field-test--mount
-                   :completion-functions (list completions) :keymap extra))
-         (buffer (car mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (should (equal completion-at-point-functions (list completions)))
-            (should (eq (key-binding (kbd "C-c z")) field-key))
-            (call-interactively (key-binding (kbd "C-c z")))
-            (should key-ran))
-          (etaf-text-input-end t)
-          (with-current-buffer buffer
-            (should-not (equal completion-at-point-functions (list completions)))
-            (should-not (eq (key-binding (kbd "C-c z")) field-key))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+(ert-deftest etaf-ui-text-input-leaving-keeps-the-draft ()
+  "Pressing another Host or unmounting leaves the field with its text."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (etaf-dispatch-event runtime 'field 'press)
+    (etaf-ui-field-test--type [?草 ?稿])
+    (etaf-dispatch-event runtime 'field 'press)
+    (should (etaf-text-input-active-p runtime))
+    (etaf-dispatch-event runtime 'sibling 'press)
+    (should-not (etaf-text-input-active-p runtime))
+    (should-not (etaf-runtime-input-finisher runtime))
+    (should (equal (etaf-value value) "初始草稿"))
+    (should (string-match-p "初始草稿" (etaf-ui-field-test--text buffer)))
+    (etaf-dispatch-event runtime 'field 'press)
+    (etaf-ui-field-test--type "!")
+    (etaf-unmount runtime)
+    (should (equal (etaf-value value) "初始草稿!"))))
 
-(ert-deftest etaf-ui-text-input-validates-props-and-unmounts-cleanly ()
-  "Invalid props are reported in context; unmount cancels any session."
+(ert-deftest etaf-ui-text-input-relayouts-while-editing ()
+  "A viewport refit applies at once and editing continues."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (etaf-dispatch-event runtime 'field 'press)
+    (should (etaf-runtime-refit runtime 500 19))
+    (should (equal (etaf-runtime-viewport runtime) '(500 . 19)))
+    (etaf-ui-field-test--type "z")
+    (should (equal (etaf-value value) "初始z"))))
+
+(ert-deftest etaf-ui-text-input-focus-recolours-a-reserved-frame ()
+  "Focus changes only the outlined frame's colour; the plain variant has none."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (let* ((border (lambda () (plist-get (etaf-runtime-host-props-for runtime 'field)
+                                         :border)))
+           (idle (funcall border))
+           (bounds (etaf-host-ref-bounds runtime 'field))
+           (lines (count-lines (point-min) (point-max))))
+      (should idle)
+      (etaf-dispatch-event runtime 'field 'press)
+      (should-not (equal (funcall border) idle))
+      (should (= (car (etaf-host-ref-bounds runtime 'field)) (car bounds)))
+      (should (= lines (count-lines (point-min) (point-max))))
+      (etaf-text-input-end t)
+      (should (equal (funcall border) idle))
+      (should (equal (etaf-host-ref-bounds runtime 'field) bounds))))
+  (etaf-ui-field-test--with (buffer runtime value :variant 'plain)
+    (should-not (plist-get (etaf-runtime-host-props-for runtime 'field) :border)))
+  (should-error (etaf-ui-field-test--with (buffer runtime value :variant 'boxed) nil)))
+
+(ert-deftest etaf-ui-text-input-shows-a-caret-and-restores-state ()
+  "Editing shows a bar caret and ending restores the buffer's cursor."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (setq-local cursor-type nil)
+    (etaf-dispatch-event runtime 'field 'press)
+    (should (equal cursor-type '(bar . 2)))
+    (etaf-text-input-end t)
+    (should-not cursor-type)
+    (should (local-variable-p 'cursor-type))))
+
+(ert-deftest etaf-ui-text-input-validates-props-and-ends-once ()
+  "Invalid props are reported in context; ending twice releases once."
   (dolist (props '((:rows 0) (:rows "3") (:label 7) (:placeholder 7)
                    (:completion-functions '(not-a-function))
                    (:keymap "map")))
@@ -289,134 +244,45 @@
       (should-error (etaf-mount (current-buffer)
                                 (etaf-node 'etaf-text-input props nil))
                     :type 'etaf-component-call-error)))
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted)) (value (cdr mounted)))
-    (let ((runtime (etaf-runtime-for-buffer buffer)))
-      (etaf-dispatch-event runtime 'field 'press)
-      (with-current-buffer buffer (insert "未提交"))
-      ;; Unmounting is not a submission; the session cancels and the
-      ;; activation value returns to the application.
-      (etaf-unmount runtime)
-      (should (equal (etaf-value value) "初始")))
-    (kill-buffer buffer)))
-
-(defun etaf-ui-field-test--mount-button (on-press)
-  "Mount a field and one sibling button with ON-PRESS; return (BUFFER . VALUE)."
-  (let* ((buffer (generate-new-buffer " *field blur*"))
-         (value (etaf-ref "初始")))
-    (etaf-mount
-     buffer
-     (etaf-node 'column (list :width '(ch 40))
-                (list (etaf-node 'etaf-text-input
-                                 (list :ref 'field :bind value :label "标题")
-                                 nil)
-                      (etaf-node 'etaf-button
-                                 (list :ref 'sibling :label "Sibling"
-                                       :on-press on-press)
-                                 nil)))
-     '(:viewport-width 600 :viewport-height 20))
-    (cons buffer value)))
-
-(ert-deftest etaf-ui-text-input-outside-press-finishes-the-session ()
-  "Pressing another Host ends the session and keeps the typed draft."
-  (let* ((other nil) (cancelled nil)
-         (mounted (etaf-ui-field-test--mount-button (lambda () (setq other t))))
-         (buffer (car mounted)) (value (cdr mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (should (etaf-text-input-active-p runtime))
-          (with-current-buffer buffer (insert "草稿"))
-          (should (equal (etaf-value value) "初始草稿"))
-          (etaf-dispatch-event runtime 'sibling 'press)
-          (should other)
-          (should-not (etaf-text-input-active-p runtime))
-          (should-not (etaf-runtime-input-finisher runtime))
-          ;; Cancel semantics: the activation value returns, so the draft
-          ;; never lands as an accidental partial value.
-          (should (equal (etaf-value value) "初始"))
-          (should-not (string-match-p "草稿"
-                                      (with-current-buffer buffer (buffer-string)))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-text-input-refit-waits-for-the-session ()
-  "A viewport refit publishes after the session that owns the text ends."
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (should-not (etaf-runtime-refit runtime 500 19))
-          (should (equal (etaf-runtime-viewport runtime) '(600 . 20)))
-          (etaf-text-input-end)
-          (should (equal (etaf-runtime-viewport runtime) '(500 . 19))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-text-input-session-shows-a-caret-and-restores-state ()
-  "Editing shows a caret and leaves truncation behavior untouched."
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (with-current-buffer buffer
-            (setq-local cursor-type nil)
-            (setq-local truncate-lines nil))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (should (eq cursor-type t))
-            (should-not truncate-lines))
-          (etaf-text-input-end t)
-          (with-current-buffer buffer
-            (should-not cursor-type)
-            (should (local-variable-p 'cursor-type))
-            (should-not truncate-lines)))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-text-input-boundary-keys-stay-inside-the-field ()
-  "Home/End, C-k and deletion never touch the canvas around the field."
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted)) (value (cdr mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer
-            (insert "abc")
-            ;; C-a stops at the field's own text start: its padding space
-            ;; precedes point and the field's text follows it.
-            (call-interactively (key-binding (kbd "C-a")))
-            (should (eq (char-before) ?\s))
-            (should (equal (buffer-substring-no-properties
-                            (point) (+ (point) 5))
-                           "初始abc"))
-            ;; Backspace at the boundary keeps the whole buffer intact.
-            (let ((before (buffer-substring-no-properties (point-min) (point-max))))
-              (call-interactively (key-binding (kbd "DEL")))
-              (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                             before)))
-            ;; C-k clears the field text only; its padding survives.
-            (call-interactively (key-binding (kbd "C-k")))
-            (should (equal (etaf-value value) ""))
-            (should (eq (char-before) ?\s))))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
-
-(ert-deftest etaf-ui-text-input-end-is-idempotent ()
-  "Ending twice releases the session once and leaves no session hooks."
-  (let* ((mounted (etaf-ui-field-test--mount))
-         (buffer (car mounted)))
-    (unwind-protect
-        (let ((runtime (etaf-runtime-for-buffer buffer)))
-          (etaf-dispatch-event runtime 'field 'press)
-          (with-current-buffer buffer (insert "一次"))
-          (should (equal (etaf-text-input-end) "初始一次"))
-          (should-not (etaf-text-input-end))
-          (should-not (etaf-text-input-active-p runtime))
-          (should-not (etaf-runtime-input-finisher runtime)))
-      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
-      (kill-buffer buffer))))
+  (etaf-ui-field-test--with (buffer runtime value)
+    (etaf-dispatch-event runtime 'field 'press)
+    (etaf-ui-field-test--type [?一 ?次])
+    (should (equal (etaf-text-input-end) "初始一次"))
+    (should-not (etaf-text-input-end))
+    (should-not (etaf-text-input-active-p runtime))
+    (should-not (etaf-runtime-input-finisher runtime))))
 
 (provide 'etaf-ui-field-tests)
+(ert-deftest etaf-ui-search-field-edits-clears-and-keeps-editing ()
+  "A search field edits its query live and its clear control empties it."
+  (let ((query (etaf-ref "")) cleared
+        (buffer (generate-new-buffer " *search test*")))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer
+                      (lambda ()
+                        (etaf-view
+                         (etaf-search-field :bind query :ref 'search
+                                            :placeholder "搜索" :icon t
+                                            :on-clear (lambda () (setq cleared t)))))
+                      '(:viewport-width 400 :viewport-height 6))
+          (switch-to-buffer buffer)
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (should (string-match-p "搜索" (etaf-ui-field-test--text buffer)))
+            (etaf-dispatch-event runtime 'search 'press)
+            (etaf-ui-field-test--type [?e ?m ?a ?c ?s])
+            (should (equal (etaf-value query) "emacs"))
+            (etaf-runtime-flush runtime)
+            (let ((clear (car (cl-find-if
+                               (lambda (entry)
+                                 (equal "Clear" (plist-get (cdr entry) :help-echo)))
+                               (etaf-runtime-host-props-entries runtime)))))
+              (should clear)
+              (etaf-dispatch-event runtime clear 'press))
+            (should (equal (etaf-value query) ""))
+            (should cleared)
+            (should (etaf-text-input-active-p runtime))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 ;;; etaf-ui-field-tests.el ends here

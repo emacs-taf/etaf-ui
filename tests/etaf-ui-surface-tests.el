@@ -336,7 +336,8 @@
                         (etaf-ui-surface-test--control runtime "名称"))
             (etaf-activate (etaf-runtime-for-buffer buffer))
             (should (etaf-text-input-active-p))
-            (insert "新工作空间")
+            (switch-to-buffer buffer)
+            (execute-kbd-macro "新工作空间")
             (etaf-text-input-end)
             (should (string-match-p "新工作空间" (buffer-string)))
             (etaf-ui-surface-test--key "<escape>")
@@ -344,6 +345,118 @@
             (should (string-match-p "新工作空间" (buffer-string)))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-media-viewer-owns-keys-browses-and-closes ()
+  "An open viewer outranks application keys, browses, closes and returns focus."
+  (with-temp-buffer
+    (let* ((open (etaf-ref nil)) (index (etaf-ref 0)) (app-keys 0)
+           (app-map (make-sparse-keymap)))
+      (keymap-set app-map "x" (lambda () (interactive) (cl-incf app-keys)))
+      (keymap-set app-map "n" (lambda () (interactive) (cl-incf app-keys)))
+      (setq-local emulation-mode-map-alists
+                  (cons (list (cons 'etaf-ui-media-test-app app-map))
+                        emulation-mode-map-alists))
+      (setq-local etaf-ui-media-test-app t)
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 24)
+                (etaf-button :ref 'thumb :label "Photo"
+                             :on-press (lambda () (setf (etaf-value open) t)))
+                (etaf-media-viewer
+                 :open open :src "missing.png" :source-size '(400 . 300)
+                 :title (format "Photo %d" (etaf-value index))
+                 :caption "Harbor at dusk"
+                 :on-close (lambda () (setf (etaf-value open) nil))
+                 :on-previous (lambda () (etaf-update-value index #'1-))
+                 :on-next (lambda () (etaf-update-value index #'1+))))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (etaf-focus runtime 'thumb)
+              (etaf-activate runtime)
+              (should (string-match-p "Photo 0" (buffer-string)))
+              (should (string-match-p "Harbor at dusk" (buffer-string)))
+              (should-not (etaf-host-ref-position runtime 'thumb))
+              (etaf-ui-surface-test--key "n")
+              (etaf-ui-surface-test--key "<right>")
+              (should (= (etaf-value index) 2))
+              (should (string-match-p "Photo 2" (buffer-string)))
+              (etaf-ui-surface-test--key "<left>")
+              (etaf-ui-surface-test--key "p")
+              (should (= (etaf-value index) 0))
+              (etaf-ui-surface-test--key "x")
+              (should (= app-keys 0))
+              (etaf-ui-surface-test--key "q")
+              (should-not (etaf-value open))
+              (should (eq 'thumb (etaf-focused-host-ref runtime)))
+              (etaf-ui-surface-test--key "x")
+              (should (= app-keys 1))
+              (setf (etaf-value open) t)
+              (etaf-ui-surface-test--key "<escape>")
+              (should-not (etaf-value open))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
+(ert-deftest etaf-ui-media-viewer-closes-on-backdrop-and-close-control ()
+  "A click on the backdrop or the close control requests closing; a key does not."
+  (with-temp-buffer
+    (let ((open (etaf-ref t)) (closed 0))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 24)
+                (etaf-media-viewer
+                 :open open :src "missing.png" :source-size '(400 . 300)
+                 :title "Album"
+                 :on-close (lambda ()
+                             (cl-incf closed)
+                             (setf (etaf-value open) nil))))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                  (click (list 'mouse-1 (list (selected-window) 1 '(0 . 0) 0))))
+              (let ((last-input-event ?\s))
+                (etaf-dispatch-event runtime (etaf-ui-surface-test--control runtime "Album")
+                                     'press))
+              (should (= closed 0))
+              (let ((last-input-event click))
+                (etaf-dispatch-event runtime (etaf-ui-surface-test--control runtime "Album")
+                                     'press))
+              (should (= closed 1))
+              (setf (etaf-value open) t)
+              (etaf-dispatch-event runtime (etaf-ui-surface-test--control runtime "Close (Esc)")
+                                   'press)
+              (should (= closed 2))
+              (should-not (string-match-p "Album" (buffer-string)))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
+(ert-deftest etaf-ui-media-viewer-hides-the-mounted-buffer-cursor ()
+  "Opening from another buffer hides and later restores the app buffer's cursor."
+  (let ((app (generate-new-buffer " *viewer-app*"))
+        (open (etaf-ref nil)))
+    (unwind-protect
+        (progn
+          (with-current-buffer app
+            (setq-local cursor-type 'bar)
+            (etaf-mount
+             app
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 24)
+                (etaf-media-viewer
+                 :open open :src "missing.png" :source-size '(400 . 300)
+                 :on-close (lambda () (setf (etaf-value open) nil)))))))
+          (with-temp-buffer
+            (setf (etaf-value open) t)
+            (should (eq (buffer-local-value 'cursor-type (current-buffer))
+                        (default-value 'cursor-type)))
+            (should-not (buffer-local-value 'cursor-type app))
+            (setf (etaf-value open) nil)
+            (should (eq (buffer-local-value 'cursor-type app) 'bar))))
+      (when-let* ((runtime (etaf-runtime-for-buffer app)))
+        (etaf-unmount runtime))
+      (kill-buffer app))))
 
 (provide 'etaf-ui-surface-tests)
 ;;; etaf-ui-surface-tests.el ends here

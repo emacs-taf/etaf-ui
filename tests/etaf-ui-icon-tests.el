@@ -111,6 +111,23 @@ of signaling from `font-info'."
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(ert-deftest etaf-ui-icon-inside-a-control-shows-the-control-help ()
+  "An icon without its own help leaves the enclosing control's help visible."
+  (let ((buffer (generate-new-buffer " *etaf-ui-icon-test*")))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer
+                      (etaf-view (box :ref 'control :help-echo "Close" :on-press #'ignore
+                                      (etaf-ui-icon :name 'close :set 'svg))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (bounds (etaf-host-ref-bounds runtime 'control)))
+            (with-current-buffer buffer
+              (cl-loop for pos from (car bounds) below (cdr bounds)
+                       unless (eq (char-after pos) ?\n)
+                       do (should (equal (get-text-property pos 'help-echo) "Close"))))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-icon-metrics-estimates-fit-without-gui ()
   "Frame-less batch metrics distinguish a fitting and an oversized declaration."
   (unwind-protect

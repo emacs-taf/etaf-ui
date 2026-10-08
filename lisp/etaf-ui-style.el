@@ -66,6 +66,8 @@
     :ui-window-title-fg "#7B8794"
     :ui-window-title-active-fg "#16202C"
     :ui-divider-bg "#DCE3EB"
+    :ui-search-bg "#EEF2F6"
+    :ui-search-fg "#16202C"
     :ui-picker-item-bg "#F7F9FC"
     :ui-picker-item-fg "#16202C"
     :ui-picker-item-muted-fg "#66727F")

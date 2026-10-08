@@ -117,6 +117,36 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-tabs-keep-every-label-in-place-when-switching ()
+  "Switching the active tab never moves any tab label."
+  (with-temp-buffer
+    (let ((active (etaf-ref 'one)))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 60)
+                (etaf-tabs :items '((:key one :label "One" :count 3)
+                                    (:key two :label "Two")
+                                    (:key three :label "Three"))
+                           :active active
+                           :on-change (lambda (key) (setf (etaf-value active) key))))))
+            (cl-flet ((columns ()
+                        (mapcar (lambda (label)
+                                  (save-excursion
+                                    (goto-char (point-min))
+                                    (search-forward label)
+                                    (- (current-column) (length label))))
+                                '("One" "Two" "Three"))))
+              (let ((before (columns)))
+                (setf (etaf-value active) 'three)
+                (should (equal (columns) before))
+                (setf (etaf-value active) 'two)
+                (should (equal (columns) before)))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-selection-components-render-public-contracts ()
   "Selection Components render controlled values through the public DSL."
   (with-temp-buffer
@@ -166,7 +196,8 @@
                   (etaf-avatar :name "Mina")
                   (etaf-avatar :name "")
                   (etaf-avatar :name "Ada" :initials "AL" :size '(ch 4)
-                               :lines 2 :background "#2563eb"))
+                               :lines 2 :background "#2563eb")
+                  (etaf-avatar :name "Zed" :src "/nonexistent/photo.png"))
                 (etaf-steps
                  :current current
                  :items '((:key one :label "Plan") (:key two :label "Build"))
@@ -181,6 +212,9 @@
               (should (string-match-p "Ctrl" (buffer-string)))
               (should (string-match-p "MI" (buffer-string)))
               (should (string-match-p (regexp-quote "?") (buffer-string)))
+              ;; Text frames fall back to initials even with a photo source.
+              (should (string-match-p "ZE" (buffer-string)))
+              (should-error (etaf-render (etaf-view (etaf-avatar :name "x" :shape 'star))))
               (let ((start (string-match "AL" (buffer-string))))
                 (should start)
                 (should (member '(:background "#2563eb")

@@ -147,46 +147,69 @@
 ;; Function: etaf-text-input-begin (runtime ref)
 ;;;###autoload (autoload 'etaf-text-input-begin "etaf-ui" nil nil)
 ;; Begin native editing of mounted text input REF in RUNTIME and return it, or
-;; nil when REF is unknown, disabled or already editing. Activation calls this
-;; from the field's own callback; call it directly to focus a composer or open
-;; a grid cell. Editing another field in the same buffer finishes the previous
-;; session first. While a session is active the Runtime defers publication.
+;; nil when REF is unknown, disabled, read-only or already editing. Activation
+;; calls this from the field's own callback; call it directly to focus a
+;; composer or open a grid cell. Beginning another field first leaves the
+;; previous one, keeping its text. Other publications continue while editing.
 ;;
-;; Function: etaf-text-input-end (&optional cancel)
+;; Function: etaf-text-input-end (&optional how)
 ;;;###autoload (autoload 'etaf-text-input-end "etaf-ui" nil nil)
 ;; Finish the active text input and return its user text, or nil when none is
-;; active. CANCEL restores the value captured at activation through the change
-;; callback; otherwise the accepted text stays the application's value. The
-;; field's :on-submit (or :on-cancel) runs with the text and the Runtime then
-;; publishes every deferred change.
+;; active. HOW nil submits: the text stays the value and :on-submit receives
+;; it. HOW `blur' leaves the field keeping its text, without callbacks. Any
+;; other HOW cancels: the value captured at activation is restored through
+;; the change callback and :on-cancel receives the abandoned text. The session
+;; is released even when a callback signals; the signal then propagates.
 ;;
 ;; Function: etaf-text-input-active-p (&optional runtime)
 ;;;###autoload (autoload 'etaf-text-input-active-p "etaf-ui" nil nil)
 ;; Return the text input currently editing in RUNTIME, or nil. RUNTIME defaults
 ;; to the active field's Runtime, so the query works from any buffer.
 ;;
-;; Component: etaf-text-input (&key value bind on-change label placeholder rows width disabled read-only submit-on-return on-submit on-cancel completion-functions keymap hide-label ref)
+;; Component: etaf-text-input (&key value bind on-change label placeholder rows width variant disabled read-only submit-on-return on-submit on-cancel on-focus completion-functions keymap hide-label ref)
 ;; Edit text directly in the application's layout. VALUE/ON-CHANGE or a
 ;; writable BIND supplies the controlled string; ROWS (default 1) sets the
 ;; minimum visible lines, so one Component covers single-line inputs and text
 ;; areas. LABEL defaults to "Text" and HIDE-LABEL omits its muted caption.
 ;; PLACEHOLDER (default "") shows while the value is empty and never becomes
-;; its content. Activation starts a native editing session over the field's own
-;; published text, so input methods, point, selection and undo stay native with
-;; no minibuffer, frame or extra window. Return submits when
-;; :submit-on-return is non-nil (default for one row); Shift+Return and C-j
-;; insert a newline; C-c C-c and Ctrl+Return submit; C-c C-k, Escape and C-g
-;; cancel and restore the activation value; TAB/backtab finish and move
-;; application focus; M-TAB completes.  Boundary motion and deletion stay
-;; inside the field's own published text: C-a/C-e, Home/End, C-k, C-w,
-;; M-d/M-DEL and Backspace/Delete never touch the surrounding canvas.
-;; ON-SUBMIT and ON-CANCEL receive the session text. READ-ONLY stays focusable
+;; its content. VARIANT `outlined' (default) frames the text in a panel with a
+;; hairline border that takes the accent colour while focused, without moving
+;; any cell; `plain' draws only the text, for composers inside a styled footer.
+;; Editing shows a bar caret and no other focus decoration.
+;; Activation starts a native editing session on the field's value inside the
+;; application layout: every keystroke reflows only the field, which grows
+;; with wrapped or added lines while padding and frame stay intact. Native
+;; commands, input-method preedit, undo, kill/yank, word and line motion, and
+;; mouse caret placement and selection all act on the value alone, with no
+;; minibuffer, frame or extra window. Printing keys reach the field even when
+;; the application binds them. Return submits when :submit-on-return is
+;; non-nil (default for one row) and otherwise inserts a newline;
+;; Shift+Return and C-j insert an unindented newline; C-c C-c and
+;; Ctrl+Return submit; C-c C-k, Escape and C-g cancel and restore the
+;; activation value; TAB/backtab leave and move application focus; M-TAB
+;; completes. A press or click outside the field leaves it, keeping the text.
+;; ON-SUBMIT and ON-CANCEL receive the session text; ON-FOCUS runs without
+;; arguments once a session begins, by pointer, keyboard or
+;; `etaf-text-input-begin'. READ-ONLY stays focusable
 ;; without a session; DISABLED also removes activation. COMPLETION-FUNCTIONS
-;; configures CAPF during the session and KEYMAP adds field-local bindings.
-;; Publication stays deferred while editing and republishes the accepted value
-;; when the session ends. Invalid props signal contextual `etaf-view-error'.
+;; configures CAPF during the session and KEYMAP adds field-local bindings,
+;; which run in the application buffer. Other application changes publish
+;; while editing. Invalid props signal contextual `etaf-view-error'.
 ;; Use inside (etaf-view (etaf-text-input ...)); companion functions above drive
 ;; it programmatically.
+;;
+;; Component: etaf-search-field (&key value bind on-change placeholder width icon on-focus on-submit on-cancel on-clear keymap ref)
+;; Render a rounded pill search field editing a controlled query through
+;; `etaf-text-input', so ON-CHANGE sees every keystroke. VALUE/ON-CHANGE or a
+;; writable BIND supplies the query. The pill is three rows tall and its painted
+;; surface leaves half a row above and below the text. PLACEHOLDER (default
+;; "Search") shows while the query is empty; ICON non-nil adds a magnifier;
+;; WIDTH defaults to stretch. A clear button follows a nonempty query: it
+;; empties the query, calls ON-CLEAR and keeps editing. A press anywhere on the
+;; pill begins editing. ON-FOCUS, ON-SUBMIT, ON-CANCEL and KEYMAP follow
+;; etaf-text-input; REF names the input for `etaf-text-input-begin'. Colors come
+;; from the :ui-search-* theme tokens.
+;; Use (etaf-view (etaf-search-field :bind query :icon t)).
 ;;
 ;; Component: etaf-menu (&key label items on-select disabled)
 ;; Render a Button opening native completion for an action. LABEL defaults to
@@ -391,6 +414,17 @@
 ;; or hides dividers by writing cells instead of re-rendering the tree.
 ;; VISIBLE defaults to t; a hidden divider keeps its identity and gestures off.
 ;;
+;; Component: etaf-pane-resizer (&key size side min max on-change on-end line background)
+;; Render a vertical divider that resizes an adjacent fixed-width pane. SIZE is
+;; the pane's caller-owned width in pixels (a number, ref or computed). SIDE
+;; `right' (default) places the divider on the pane's right so dragging right
+;; widens it; `left' serves a pane to the divider's right. Each drag move passes
+;; the candidate width, clamped to MIN and MAX pixels when given, to ON-CHANGE;
+;; ON-END receives the final width. LINE (default t) draws a hairline in the
+;; divider color beside the pane over BACKGROUND. The divider is wide enough to
+;; grab and never moves other cells while dragging.
+;; Use (etaf-view (etaf-pane-resizer :size width :on-change #'set-width)).
+;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)
 ;; Render ordinary ROWS as a presentational Table.
 ;;
@@ -421,7 +455,9 @@
 ;; Opening focuses the first eligible control (or the panel when empty).
 ;; TAB/Shift-TAB and arrow keys navigate within the panel; Escape/C-g request
 ;; close. Closing restores a still-valid prior focus. Shortcuts are buffer-local
-;; and disposed with the open panel. Outside controls remain mouse-accessible.
+;; and disposed with the open panel; they outrank application key maps,
+;; including emulation maps, while it is open.  Outside controls remain
+;; mouse-accessible.
 ;; The application root must reserve a canvas height for floating content.
 ;; Ebox owns clipping, flipping, occlusion and layout. No child frame is created.
 ;;
@@ -446,9 +482,51 @@
 ;; application-owned unpainted modal projection when the underlying surface
 ;; must remain visible. Dialogs own no form data.
 ;;
-;; Component: etaf-dropdown-menu (&key label items on-select disabled width)
+;; Component: etaf-media-viewer (&key open kind src source-size title subtitle caption on-close on-previous on-next autoplay)
+;; Show one image or video in a controlled modal viewer over the application,
+;; inside the same buffer.  KIND is `image' (default) or `video'.  SRC is an
+;; `image' Host source (a file or image descriptor) or an `etaf-video' source.
+;; SOURCE-SIZE is the media's pixel (WIDTH . HEIGHT); without it the viewer
+;; reads the image or probes the video once.  The media keeps its aspect
+;; ratio and fits the live viewport, following window resizes; images are
+;; not enlarged beyond their natural size, video fills the stage.  The header
+;; shows TITLE and SUBTITLE, default slot children (for example download or
+;; share buttons) and a close control; an image's footer shows CAPTION.
+;; Video starts when AUTOPLAY (default t) and gets a transport bar: play and
+;; pause, back and forward ten seconds, elapsed and total time, a seek bar,
+;; the playback speed and sound.  Clicking the video toggles playback.
+;; ON-PREVIOUS and ON-NEXT, when functions, add side arrows, the p/n keys and
+;; two-finger swipes for browsing a gallery; with images the arrow keys
+;; browse too, with video they seek five seconds.  Escape, C-g, q, the close
+;; control and a press on the backdrop outside the header, media and footer
+;; request ON-CLOSE.  Space or k toggles playback, j/l seek ten seconds, m
+;; toggles sound and . cycles the speed.  While open the viewer's keys
+;; outrank application keys, other printing keys do nothing, and focus
+;; returns to the prior control on close.  The viewer covers the root
+;; canvas's first viewport on a fixed dark scrim, so mount it in an
+;; application whose root is one window tall, such as a (vh 100) shell.
+;;
+;; Component: etaf-reactions (&key items on-toggle choices add-label)
+;; Render one row of controlled reaction chips, for example under a chat
+;; message.  ITEMS are plists with a unique non-nil :key, a nonempty string
+;; :label (usually an emoji), an optional natural :count shown after it and a
+;; boolean :chosen that tints the chip with the accent; ITEMS may be a value
+;; or ref.  Chosen and unchosen
+;; chips share padding and weight, so toggling never moves a neighbour; only
+;; a count gaining a digit widens its chip.  Pressing a chip calls ON-TOGGLE
+;; with its key; the caller updates ITEMS.  CHOICES, an alist of (KEY . LABEL),
+;; adds a trailing smile chip named ADD-LABEL (default "Add reaction") that
+;; opens a Popover of the choices in rows of six; picking one closes it and
+;; calls ON-TOGGLE with that key.  The row does not wrap, so keep ITEMS short
+;; enough for its container.  Invalid props signal `etaf-view-error'.
+;; Use (etaf-view (etaf-reactions :items items :on-toggle #'toggle)).
+;;
+;; Component: etaf-dropdown-menu (&key label items on-select disabled width icon placement)
 ;; Render a Button and an anchored Popover of menu items. LABEL defaults to
-;; Actions; WIDTH defaults to (ch 28). ITEMS use etaf-menu's item contract.
+;; Actions; WIDTH defaults to (ch 28). ITEMS use etaf-menu's item contract and
+;; may carry an :icon shown before the label. ICON makes the trigger that icon,
+;; with LABEL as its help text and accessible name. PLACEMENT (default
+;; bottom-start) follows etaf-popover.
 ;; Enabled selection closes the menu and invokes ON-SELECT once with its key.
 ;; Disabled items remain visible and cannot be activated or focused. Empty
 ;; menus or nil ON-SELECT disable the trigger. Open state and the unique anchor
@@ -483,12 +561,18 @@
 ;; Component: etaf-card (&key title description variant)
 ;; Render a reusable titled surface with default content slots.
 ;;
-;; Component: etaf-avatar (&key name initials size variant lines background)
-;; Render a compact initials avatar with semantic color and accessible name.
-;; SIZE is its width; LINES (default 3, a positive integer) its height, with
-;; the initials on its (upper) middle line, so a one- or two-line list row can
-;; carry it. BACKGROUND, a color, replaces VARIANT with white initials on that
-;; color, for per-person colors such as chat senders.
+;; Component: etaf-avatar (&key name initials src size variant lines background shape)
+;; Render a compact avatar with semantic color and accessible name.
+;; SIZE is its width (`(ch N)' or an integer column count for round avatars);
+;; LINES (default 3, a positive integer) its height, so a one- or two-line
+;; list row can carry it. BACKGROUND, a color, replaces VARIANT with white
+;; initials on that color, for per-person colors such as chat senders.
+;; SRC is an optional photo: a local image file or an Emacs image descriptor
+;; with :type and :data or :file. SHAPE `circle' (default) draws, on
+;; graphical frames with SVG, the photo clipped to a disc, or the initials on
+;; a colored disc when SRC is nil or unreadable; `square' and text frames use
+;; an initials box with the initials on its (upper) middle line. Round images
+;; are cached by source and cell size; pass `equal'-stable sources.
 ;;
 ;; Component: etaf-timeline (&key items)
 ;; Render chronological item plists containing :title, :content and :status.
@@ -597,9 +681,12 @@
 ;; zero-argument callback on the complete box, with ordinary ETAF focus/events.
 ;; FACE accepts a face name or plist; only foreground/background are used so
 ;; caller typography cannot enlarge the icon. COLOR overrides its foreground.
-;; SVG uses currentColor and cached centered images. Two-row icons use slices
-;; of one SVG canvas, including SVG text for font sets. Without graphical SVG,
-;; reserve both rows and put a line-safe text variant in the first row.
+;; SVG uses currentColor and cached centered images. On graphical frames with
+;; SVG, font sets draw their glyph as SVG text in the same canvas, so ink that
+;; exceeds the font's declared ascent/descent is never clipped by the row.
+;; Two-row icons use slices of one canvas. Without graphical SVG, font sets
+;; use their clamped face as text; two-row icons reserve both rows and put a
+;; line-safe text variant in the first row.
 ;; Resolve NAME in SET, then `etaf-ui-icon-default-set', then sys, then svg
 ;; (its line-safe text variant without graphical SVG), then show the name as
 ;; plain text (control/non-ASCII characters are escaped). Absent
@@ -704,6 +791,8 @@
 (require 'etaf-ui-feedback)
 (require 'etaf-ui-navigation)
 (require 'etaf-ui-surface)
+(require 'etaf-ui-reactions)
+(require 'etaf-ui-media)
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
 (require 'etaf-ui-tile-grid)

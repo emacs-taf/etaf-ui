@@ -4,11 +4,39 @@
 
 ### Added
 
-- The icon set adds `pin`, `bell-off`, `send`, `reply`, `users`, `megaphone`
-  and `at`, with font glyphs, SVG shapes and line-safe text fallbacks.
+- `etaf-search-field` renders a rounded search pill with an optional
+  magnifier and a clear control, coloured by new `:ui-search-bg` and
+  `:ui-search-fg` theme tokens.
+- `etaf-pane-resizer` is a draggable divider reporting a caller-owned pane
+  width clamped to `:min` and `:max`.
+- `etaf-dropdown-menu` accepts `:icon` for an icon trigger and `:placement`
+  for the menu's side; `etaf-text-input` accepts `:on-focus`.
+
+- `etaf-media-viewer` shows an image or video in an in-buffer modal viewer
+  that fits the live window, with a full video transport bar (play/pause,
+  ten-second skips, clickable and draggable seek bar, speed, sound), gallery
+  arrows, keys and swipes, and closing by Escape, q, the close control or a
+  pointer press outside the media.
+
+- `etaf-reactions` renders controlled reaction chips with counts, an
+  accent tint for chosen ones that never changes their size, and an optional
+  picker popover.
+
+- `etaf-text-input` accepts `:variant 'plain` for a borderless field inside
+  a styled container such as a chat composer; the default `outlined` field
+  keeps its frame.
+
+- The icon set adds `pin`, `bell-off`, `send`, `reply`, `users`, `megaphone`,
+  `at`, a filled status `dot`, `info`, `menu`, `more-vertical`, `sidebar`,
+  `eye` for view counts, and `smile`, `image`, `video` and `file` for reaction
+  and attachment affordances, with font glyphs, SVG shapes and line-safe text
+  fallbacks.
 
 - `etaf-avatar` accepts `:lines` for multi-row list avatars and
   `:background` for a solid identity color with white initials.
+- `etaf-avatar` accepts `:src` for a photo and `:shape`; on graphical frames
+  the default `circle` shape renders the photo, or the initials on a colored
+  disc, as a round image. Use `:shape 'square` for the previous initials box.
 
 - Native editor integrations can share an empty hint, edit observation and
   revision-guarded value replacement through `etaf-ui-editor-mode`. Existing
@@ -63,6 +91,20 @@
   line-icon style as their player controls.
 
 ### Changed
+
+- `etaf-text-input` edits its value in a native session inside the layout:
+  the field grows with wrapped or new lines while keeping its padding and
+  frame, mouse clicks and drags place the caret and select, printing keys
+  bound by the application still type, and other application changes keep
+  publishing while it is edited. Pressing outside or unmounting leaves the
+  field and keeps its text instead of cancelling.
+  `etaf-text-input-end`'s optional argument is now HOW: nil submits, `blur`
+  leaves without callbacks and any other value cancels. Code that inserted
+  text into the application buffer during a session must type keys instead.
+
+- An outlined `etaf-text-input` keeps one reserved hairline frame and
+  recolours it with the accent while focused; editing shows a bar caret
+  instead of a blinking underline, and nothing moves when focus changes.
 
 - The catalog runs on ETAF's fine-grained retained runtime and requires it.
   Component APIs are unchanged; each reactive prop now updates only its own
@@ -123,6 +165,22 @@
 
 ### Fixed
 
+- `etaf-range` without `:ref` now seeks on pointer clicks and drags.
+- `etaf-tabs` gives every tab the same padding in both variants, so labels
+  keep their positions when the active tab changes.
+- An icon inside a control no longer hides the control's tooltip.
+- Open popovers, dialogs and drawers keep their navigation and close keys
+  when the application binds the same keys through an emulation map.
+- Surfaces and the media viewer now hide the cursor and install their keys in
+  the mounted application buffer even when opened from another buffer.
+
+- A stretched `etaf-text-input` next to a label or icon in a row fills the
+  remaining width, and long lines wrap back to the field's column.
+
+- Reopening a text input whose value spans several rows edits that value
+  with the caret at its end, instead of the first row's layout padding.
+- A text input begun by a key command, or emptied while editing, keeps the
+  caret inside the field; typed text no longer lands beside it.
 - An icon missing from the requested, default and `sys` sets now resolves
   through the built-in `svg` set (or its text variant) before falling back to
   its printed name.

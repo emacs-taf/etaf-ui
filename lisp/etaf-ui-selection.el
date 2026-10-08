@@ -179,8 +179,7 @@ native prompt keeps editing accessible while the Component remains reusable."
 (defun etaf-ui--range-ratio-at-gesture (gesture track)
   "Return the pointer's fraction along GESTURE's TRACK Host, or nil.
 TRACK names the measured Host; GESTURE's own :host-ref is used when TRACK is
-nil, so a caller that omits the component's :ref still hit-tests the element
-the pointer pressed."
+nil."
   (let* ((window (plist-get gesture :window))
          (buffer (or (plist-get gesture :buffer)
                      (and (window-live-p window) (window-buffer window))))
@@ -275,7 +274,9 @@ percentage of the row (default 40)."
     (etaf-check-prop :disabled disabled (booleanp disabled) "a boolean" 'etaf-range))
   :bindings ((rule (make-string 512 ?─))
              (drag (etaf-ref nil))
-             (fill-target (or fill-ref (gensym "etaf-range-fill-"))))
+             (fill-target (or fill-ref (gensym "etaf-range-fill-")))
+             ;; The track is measured for hit-testing, so it always has a ref.
+             (track-target (or ref (gensym "etaf-range-track-"))))
   :render
   (let* (;; Read controlled/drag sources inside the Host getter, not the
          ;; Component render. A pointer move then changes only Fill geometry.
@@ -294,7 +295,7 @@ percentage of the row (default 40)."
                           (live (etaf-value drag)))
                      (list '% (* 100.0 (if (and live (equal (cdr live) raw)) (car live) base))))))
          (report (lambda (gesture commit)
-                   (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture ref)))
+                   (when-let* ((ratio (etaf-ui--range-ratio-at-gesture gesture track-target)))
                      (let* ((raw (etaf-ui--reactive-value value))
                             (bounds (etaf-ui--range-live-bounds min max))
                             (low (car bounds))
@@ -317,13 +318,15 @@ percentage of the row (default 40)."
           :disabled disabled
           :pointer 'hand
           :on-press (and (not disabled)
-                         (lambda (gesture)
-                           (funcall report gesture nil)
-                           (funcall report gesture t)))
+                         ;; Keyboard activation carries no pointer gesture.
+                         (lambda (&optional gesture)
+                           (when gesture
+                             (funcall report gesture nil)
+                             (funcall report gesture t))))
           :on-drag (and (not disabled)
                         (lambda (gesture)
                           (funcall report gesture (eq (plist-get gesture :phase) 'end))))
-          :ref ref :id (and ref (symbol-name ref))
+          :ref track-target :id (symbol-name track-target)
        ;; The track is ordinary flow content: it gives the row its width and a
        ;; measurable text span for pointer hit-testing and tests.
        (box :height '(lh 1) :overflow 'hidden :wrap-mode 'none :flex-grow 1 :flex-basis '(px 0)

@@ -9,6 +9,7 @@
 ;;; Code:
 (require 'etaf-ui-input)
 (require 'etaf-ui-feedback)
+(require 'etaf-ui-icon)
 (require 'ebox)
 
 (defvar ebox-viewport-height)
@@ -48,10 +49,13 @@ callback signal `etaf-event-error'."
           (etaf-event-error nil))))
     dismissed))
 
-(defun etaf-ui--surface-keys (buffer panel tag return-targets)
+(defun etaf-ui--surface-keys (buffer panel tag return-targets &optional extra)
   "Install BUFFER-local shortcuts for committed PANEL under unique TAG.
-Retain RETURN-TARGETS for nested handoff and return cleanup.
-Target selection and navigation stay with the public Runtime."
+Retain RETURN-TARGETS for nested handoff and return cleanup.  EXTRA is an
+optional keymap of surface-specific commands layered over the shared keys.
+The shortcuts outrank application key maps, including emulation maps, while
+the surface is open.  Target selection and navigation stay with the public
+Runtime."
   (let ((map (make-sparse-keymap)))
     (cl-labels ((command (function)
                   (lambda ()
@@ -69,7 +73,10 @@ Target selection and navigation stay with the public Runtime."
         (keymap-set map key
                     (command (lambda (runtime) (etaf-focus-within runtime panel -1)))))
       (dolist (key '("RET" "<return>"))
-        (keymap-set map key (command #'etaf-activate))))
+        (keymap-set map key (command #'etaf-activate)))
+      (when extra
+        (map-keymap (lambda (key binding) (define-key map (vector key) binding))
+                    extra)))
     ;; A retained panel can stop painting when its anchor disappears. Resolve
     ;; availability at key lookup, so such a panel cannot intercept commands.
     (map-keymap
@@ -88,17 +95,19 @@ Target selection and navigation stay with the public Runtime."
                                                           runtime panel))))
                                             command)))))
      map)
-    (let ((entry (cons tag map)) (route (cons tag return-targets)))
+    ;; Applications commonly bind their screen keys through emulation maps;
+    ;; the newest open surface goes first so its shortcuts win while open.
+    (let ((entry (list (cons tag map))) (route (cons tag return-targets)))
       (with-current-buffer buffer
         (set (make-local-variable tag) t)
-        (setq-local minor-mode-overriding-map-alist
-                    (cons entry minor-mode-overriding-map-alist))
+        (setq-local emulation-mode-map-alists
+                    (cons entry emulation-mode-map-alists))
         (push route etaf-ui--surface-return-stack))
       (lambda ()
         (when (buffer-live-p buffer)
           (with-current-buffer buffer
-            (setq minor-mode-overriding-map-alist
-                  (delq entry minor-mode-overriding-map-alist))
+            (setq emulation-mode-map-alists
+                  (delq entry emulation-mode-map-alists))
             (setq etaf-ui--surface-return-stack (delq route etaf-ui--surface-return-stack))
             (kill-local-variable tag)))))))
 
@@ -159,7 +168,9 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
   "Render one open floating surface and own its keyboard attachment."
   :bindings
   ((panel (etaf-local-ref 'panel))
-   (buffer (current-buffer))
+   (buffer (if-let* ((runtime (etaf-current-runtime)))
+               (etaf-runtime-buffer runtime)
+             (current-buffer)))
    (return-focus
     (delete-dups
      (delq nil (cons (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
@@ -411,9 +422,41 @@ the message's semantic color. Anchored placement follows Popover."
                                       (etaf-node 'etaf-label
                                                  (list :text message) nil)))))))
 
+(defun etaf-ui--menu-entry (item iconic close on-select)
+  "Return the popover row selecting ITEM after CLOSE runs.
+ICONIC rows reserve an icon cell so labels align when ITEM has no :icon."
+  (let* ((key (plist-get item :key))
+         (disabled (plist-get item :disabled))
+         (press (lambda () (funcall close) (funcall on-select key))))
+    (if (not iconic)
+        (etaf-node 'etaf-button
+                   (list :key key :label (plist-get item :label)
+                         :variant 'ghost :disabled disabled :on-press press)
+                   nil)
+      (etaf-node
+       'flex
+       (list :key key :flex-direction 'row :align-items 'center :width 'stretch
+             :column-gap '(ch 2) :padding-inline '(ch 1)
+             :role 'menuitem :aria-label (plist-get item :label)
+             :disabled disabled :tab-index (unless disabled 0)
+             :color (etaf-ui--style-token (if disabled :ui-muted-fg :ui-fg))
+             :hover-style (unless disabled
+                            (list :background-color
+                                  (etaf-ui--style-token :ui-accent-soft-bg)))
+             :pointer (unless disabled 'hand)
+             :on-press (unless disabled press))
+       (list (if-let* ((icon (plist-get item :icon)))
+                 (etaf-ui-icon icon :min-width 2)
+               (etaf-node 'box (list :width '(ch 2)) (list "")))
+             (etaf-node 'text nil (list (plist-get item :label))))))))
+
 (etaf-define-component etaf-dropdown-menu
-    (&key (label "Actions") items on-select disabled (width '(ch 28)))
-  "Open an anchored menu of ITEMS and pass the selected key to ON-SELECT."
+    (&key (label "Actions") items on-select disabled (width '(ch 28)) icon
+          (placement 'bottom-start))
+  "Open an anchored menu of ITEMS and pass the selected key to ON-SELECT.
+ICON makes the trigger that icon, with LABEL as its help and accessible name.
+Items may carry an :icon shown before the label.  PLACEMENT follows
+`etaf-popover'."
   :bindings ((open (etaf-ref nil))
              (anchor (symbol-name (gensym "etaf-menu-"))))
   :render
@@ -422,29 +465,26 @@ the message's semantic color. Anchored placement follows Popover."
     (etaf-check-prop :label label (stringp label) "a string" 'etaf-dropdown-menu)
     (etaf-check-prop :on-select on-select (or (null on-select) (functionp on-select))
                      "a function or nil" 'etaf-dropdown-menu)
-    (let ((enabled (and (not disabled) on-select
-                        (cl-some (lambda (item) (not (plist-get item :disabled))) items))))
+    (let* ((enabled (and (not disabled) on-select
+                         (cl-some (lambda (item) (not (plist-get item :disabled))) items)))
+           (toggle (lambda () (setf (etaf-value open) (not (etaf-value open)))))
+           (close (lambda () (setf (etaf-value open) nil)))
+           (iconic (cl-some (lambda (item) (plist-get item :icon)) items)))
       (etaf-node 'fragment nil (list
-       (etaf-node 'etaf-button
-                  (list :id anchor :label (concat label " v") :aria-label label
-                        :disabled (not enabled) :variant 'secondary
-                        :on-press (lambda () (setf (etaf-value open) (not (etaf-value open)))))
-                  nil)
+       (if icon
+           (etaf-ui-icon icon :id anchor :help-echo label
+                         :on-press (and enabled toggle))
+         (etaf-node 'etaf-button
+                    (list :id anchor :label (concat label " v") :aria-label label
+                          :disabled (not enabled) :variant 'secondary
+                          :on-press toggle)
+                    nil))
        (etaf-node
         'etaf-popover
         (list :open (and enabled (etaf-value open)) :anchor anchor :width width
-              :on-close (lambda () (setf (etaf-value open) nil)))
-        (mapcar
-         (lambda (item)
-           (let ((key (plist-get item :key)))
-                        (etaf-node 'etaf-button
-                        (list :key key :label (plist-get item :label)
-                              :variant 'ghost :disabled (plist-get item :disabled)
-                              :on-press (lambda ()
-                                          (setf (etaf-value open) nil)
-                                          (funcall on-select key)))
-                        nil)))
-         items)))))))
+              :placement placement :on-close close)
+        (mapcar (lambda (item) (etaf-ui--menu-entry item iconic close on-select))
+                items)))))))
 
 (etaf-define-component etaf-context-menu
     (&key (label "More") items on-select disabled (width '(ch 30)))
