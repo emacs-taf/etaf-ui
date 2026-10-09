@@ -482,19 +482,22 @@
 ;; application-owned unpainted modal projection when the underlying surface
 ;; must remain visible. Dialogs own no form data.
 ;;
-;; Component: etaf-media-viewer (&key open kind src source-size title subtitle caption on-close on-previous on-next autoplay)
-;; Show one image or video in a controlled modal viewer over the application,
-;; inside the same buffer.  KIND is `image' (default) or `video'.  SRC is an
-;; `image' Host source (a file or image descriptor) or an `etaf-video' source.
-;; SOURCE-SIZE is the media's pixel (WIDTH . HEIGHT); without it the viewer
-;; reads the image or probes the video once.  The media keeps its aspect
+;; Component: etaf-media-viewer (&key open kind src source-size title subtitle caption duration on-close on-previous on-next autoplay)
+;; Show one image, video or audio file in a controlled modal viewer over the
+;; application, inside the same buffer.  KIND is `image' (default), `video'
+;; or `audio'.  SRC is an `image' Host source (a file or image descriptor) or
+;; an `etaf-video' source; for `audio' it is the audio file SRC played through
+;; ffplay.  SOURCE-SIZE is the media's pixel (WIDTH . HEIGHT); without it the
+;; viewer reads the image or probes the video once.  The media keeps its aspect
 ;; ratio and fits the live viewport, following window resizes; images are
-;; not enlarged beyond their natural size, video fills the stage.  The header
+;; not enlarged beyond their natural size, video fills the stage.  DURATION,
+;; seconds, gives an audio file its total time.  The header
 ;; shows TITLE and SUBTITLE, default slot children (for example download or
-;; share buttons) and a close control; an image's footer shows CAPTION.
-;; Video starts when AUTOPLAY (default t) and gets a transport bar: play and
-;; pause, back and forward ten seconds, elapsed and total time, a seek bar,
-;; the playback speed and sound.  Clicking the video toggles playback.
+;; share buttons) and a close control; an image's footer shows CAPTION, and
+;; an audio stage shows it under the speaker placeholder.
+;; Video and audio start when AUTOPLAY (default t) and get a transport bar:
+;; play and pause, back and forward ten seconds, elapsed and total time, a seek
+;; bar, the playback speed and sound.  Clicking the media toggles playback.
 ;; ON-PREVIOUS and ON-NEXT, when functions, add side arrows, the p/n keys and
 ;; two-finger swipes for browsing a gallery; with images the arrow keys
 ;; browse too, with video they seek five seconds.  Escape, C-g, q, the close

@@ -479,6 +479,11 @@
       "purpose": "A click on the media viewer's backdrop or its close control requests closing; a key on the backdrop does not."
     },
     {
+      "name": "etaf-ui-media-viewer-shows-audio-with-a-transport",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "An audio viewer shows the speaker stage, its total time and the caption."
+    },
+    {
       "name": "etaf-ui-media-viewer-hides-the-mounted-buffer-cursor",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "A media viewer opened from another current buffer hides the mounted buffer's cursor and restores it on close."

@@ -458,5 +458,26 @@
         (etaf-unmount runtime))
       (kill-buffer app))))
 
+(ert-deftest etaf-ui-media-viewer-shows-audio-with-a-transport ()
+  "An audio viewer shows the speaker stage, its total time and the caption."
+  (with-temp-buffer
+    (let ((open (etaf-ref t)))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 24)
+                (etaf-media-viewer
+                 :open open :kind 'audio :src "missing.ogg" :duration 90
+                 :title "Voice message" :caption "Hello there"
+                 :autoplay nil
+                 :on-close (lambda () (setf (etaf-value open) nil))))))
+            (should (string-match-p "Voice message" (buffer-string)))
+            (should (string-match-p "0:00 / 1:30" (buffer-string)))
+            (should (string-match-p "Hello there" (buffer-string))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (provide 'etaf-ui-surface-tests)
 ;;; etaf-ui-surface-tests.el ends here

@@ -12,6 +12,9 @@
 (require 'etaf-ui-icon)
 (require 'etaf-ui-selection)
 
+(defvar etaf-video-ffplay-program)
+(defvar etaf-video-audio-volume)
+
 (defconst etaf-ui--media-colors
   '(:scrim "#0E1116" :fg "#E8ECF1" :muted "#8E99A8" :control "#C9D1DB"
     :track "#2A313B")
@@ -33,6 +36,33 @@
     (if (>= total 3600)
         (format "%d:%02d:%02d" (/ total 3600) (/ (% total 3600) 60) (% total 60))
       (format "%d:%02d" (/ total 60) (% total 60)))))
+
+(defun etaf-ui--media-audio-start (src position speed volume on-exit)
+  "Start an ffplay process for audio SRC at POSITION, SPEED and VOLUME.
+ON-EXIT receives the process when it stops.  Return the process, or nil
+when ffplay is unavailable or the process cannot start."
+  (when-let* ((program (executable-find etaf-video-ffplay-program)))
+    (let ((buffer (generate-new-buffer " *etaf-ui audio*")))
+      (condition-case nil
+          (make-process
+           :name "etaf-ui-audio"
+           :command (append (list program "-nodisp" "-autoexit" "-hide_banner"
+                                  "-loglevel" "error"
+                                  "-ss" (format "%.3f" (max 0 position))
+                                  "-volume" (number-to-string (round volume)))
+                            (when (and (numberp speed) (/= speed 1))
+                              (list "-af" (format "atempo=%s" speed)))
+                            (list src))
+           :buffer buffer
+           :coding '(no-conversion . no-conversion)
+           :connection-type 'pipe
+           :noquery t
+           :sentinel (lambda (process _event)
+                       (when (memq (process-status process) '(exit signal))
+                         (when (buffer-live-p (process-buffer process))
+                           (kill-buffer (process-buffer process)))
+                         (funcall on-exit process))))
+        (error (when (buffer-live-p buffer) (kill-buffer buffer)) nil)))))
 
 (defun etaf-ui--media-natural-size (kind src size)
   "Return the pixel (WIDTH . HEIGHT) of SRC of KIND, preferring SIZE."
@@ -93,8 +123,8 @@ A modal viewer keeps the application underneath from receiving letters."
            (etaf-node 'text nil (list label))))))
 
 (etaf-define-component etaf-ui--media-viewer-open
-    (&key kind src source-size title subtitle caption on-close on-previous
-          on-next autoplay)
+    (&key kind src source-size title subtitle caption duration on-close
+          on-previous on-next autoplay)
   "Render the open viewer and own its keys and video polling."
   :bindings
   ((panel (etaf-local-ref 'panel))
@@ -106,22 +136,29 @@ A modal viewer keeps the application underneath from receiving letters."
              (current-buffer)))
    (handle (make-symbol "etaf-media-viewer"))
    (kind-input (etaf-prop 'kind))
+   (src-input (etaf-prop 'src))
+   (duration-input (etaf-prop 'duration))
    (close-input (etaf-prop 'on-close))
    (previous-input (etaf-prop 'on-previous))
    (next-input (etaf-prop 'on-next))
    (playing (etaf-ref nil :name "media-playing"))
    (position (etaf-ref 0 :name "media-position"))
-   (duration (etaf-ref 0 :name "media-duration"))
+   (total-time (etaf-ref 0 :name "media-duration"))
    (speed (etaf-ref 1 :name "media-speed"))
    (audio (etaf-ref etaf-video-audio :name "media-audio"))
+   (duration-value
+    (lambda ()
+      (if (eq (etaf-value kind-input) 'audio)
+          (or (etaf-value duration-input) 0)
+        (etaf-value total-time))))
    (clock (etaf-computed
            (lambda ()
              (format "%s / %s"
                      (etaf-ui--media-clock (etaf-value position))
-                     (etaf-ui--media-clock (etaf-value duration))))))
+                     (etaf-ui--media-clock (funcall duration-value))))))
    (progress (etaf-computed
               (lambda ()
-                (let ((total (etaf-value duration)))
+                (let ((total (funcall duration-value)))
                   (if (> total 0)
                       (min 100 (* 100.0 (/ (etaf-value position) total)))
                     0)))))
@@ -134,43 +171,105 @@ A modal viewer keeps the application underneath from receiving letters."
    (cursor-restore nil)
    (cleanup nil)
    (registration nil)
+   (audio-process nil)
+   (audio-base 0)
+   (audio-stamp 0)
    (video-p (lambda () (eq (etaf-value kind-input) 'video)))
+   (audio-p (lambda () (eq (etaf-value kind-input) 'audio)))
    (control (lambda (function &rest args)
               (when (funcall video-p)
                 (condition-case nil (apply function handle args)
                   (user-error nil)))))
+   (audio-position
+    (lambda ()
+      (if (and audio-process (etaf-value playing))
+          (let ((total (funcall duration-value)))
+            (min (if (> total 0) total most-positive-fixnum)
+                 (+ audio-base (- (float-time) audio-stamp))))
+        audio-base)))
+   (audio-stop
+    (lambda ()
+      (when (and audio-process (process-live-p audio-process))
+        (delete-process audio-process))
+      (setq audio-process nil)))
+   (audio-start
+    (lambda (at)
+      (funcall audio-stop)
+      (let ((process (etaf-ui--media-audio-start
+                      (etaf-value src-input) at (etaf-value speed)
+                      (if (etaf-value audio) etaf-video-audio-volume 0)
+                      (lambda (ended)
+                        (when (eq ended audio-process)
+                          (setq audio-process nil)
+                          (etaf-set-value playing nil)
+                          (etaf-set-value position (funcall duration-value)))))))
+        (when (and process (process-live-p process))
+          (setq audio-process process
+                audio-base at
+                audio-stamp (float-time))
+          (etaf-set-value playing t)
+          (etaf-set-value position at)))))
    (poll (lambda ()
-           (when (funcall video-p)
+           (cond
+            ((funcall audio-p)
+             (when (and audio-process (etaf-value playing))
+               (etaf-set-value position (funcall audio-position))))
+            ((funcall video-p)
              (when-let* ((state (ignore-errors (etaf-video-state handle))))
                (etaf-set-value playing (and (plist-get state :playing) t))
                (etaf-set-value position (or (plist-get state :position) 0))
-               (etaf-set-value duration (or (plist-get state :duration) 0))))))
+               (etaf-set-value total-time (or (plist-get state :duration) 0)))))))
    (toggle (lambda ()
-             (funcall control #'etaf-video-toggle-playback)
+             (cond
+              ((funcall audio-p)
+               (cond ((and audio-process (etaf-value playing))
+                      (ignore-errors (stop-process audio-process))
+                      (setq audio-base (funcall audio-position))
+                      (etaf-set-value position audio-base)
+                      (etaf-set-value playing nil))
+                     (audio-process
+                      (setq audio-stamp (float-time))
+                      (ignore-errors (continue-process audio-process))
+                      (etaf-set-value playing t))
+                     (t (funcall audio-start (etaf-value position)))))
+              (t (funcall control #'etaf-video-toggle-playback)))
              (funcall poll)))
    (seek-to-seconds (lambda (seconds)
-                      (let ((target (max 0 (if (> (etaf-value duration) 0)
-                                               (min seconds (etaf-value duration))
+                      (let ((target (max 0 (if (> (funcall duration-value) 0)
+                                               (min seconds (funcall duration-value))
                                              seconds))))
-                        (funcall control #'etaf-video-seek target)
-                        (etaf-set-value position target))))
+                        (if (funcall audio-p)
+                            (let ((was-playing (etaf-value playing)))
+                              (funcall audio-stop)
+                              (setq audio-base target)
+                              (etaf-set-value position target)
+                              (if was-playing (funcall audio-start target)
+                                (etaf-set-value playing nil)))
+                          (funcall control #'etaf-video-seek target)
+                          (etaf-set-value position target)))))
    (seek-by (lambda (delta)
               (funcall seek-to-seconds (+ (etaf-value position) delta))))
    (seek-to (lambda (percent)
-              (when (> (etaf-value duration) 0)
+              (when (> (funcall duration-value) 0)
                 (funcall seek-to-seconds
-                         (* (etaf-value duration) (/ percent 100.0))))))
+                         (* (funcall duration-value) (/ percent 100.0))))))
    (cycle-speed (lambda ()
                   (etaf-set-value
                    speed (or (cadr (member (etaf-value speed) etaf-ui--media-speeds))
-                             (car etaf-ui--media-speeds)))))
-   (toggle-audio (lambda () (etaf-update-value audio #'not)))
+                             (car etaf-ui--media-speeds)))
+                  (when (and (funcall audio-p) audio-process (etaf-value playing))
+                    (funcall audio-start (funcall audio-position)))))
+   (toggle-audio (lambda ()
+                   (etaf-update-value audio #'not)
+                   (when (and (funcall audio-p) audio-process (etaf-value playing))
+                     (funcall audio-start (funcall audio-position)))))
    (navigate (lambda (direction)
                (let ((callback (etaf-value (if (eq direction 'next)
                                                next-input
                                              previous-input))))
                  (when (functionp callback) (funcall callback)))))
    (close (lambda ()
+            (funcall audio-stop)
             (let ((callback (etaf-value close-input)))
               (when (functionp callback) (funcall callback)))))
    (outside (lambda ()
@@ -225,6 +324,7 @@ A modal viewer keeps the application underneath from receiving letters."
                                     (cancel-timer timer)))))))
     (etaf-on-unmounted
      (lambda ()
+       (funcall audio-stop)
        (when timer (cancel-timer timer) (setq timer nil))
        (when cleanup (funcall cleanup))
        (when (and cursor-restore (buffer-live-p buffer))
@@ -246,14 +346,16 @@ A modal viewer keeps the application underneath from receiving letters."
          (lines (max 8 (or (cdr viewport) 24)))
          (cw (max 1 (frame-char-width)))
          (video (eq kind 'video))
+         (playable (memq kind '(video audio)))
          (stage-rows (max 3 (- lines 6)))
          (stage-px (max (* 4 cw)
                         (- (car viewport) (* 2 etaf-ui--media-gutter cw))))
          (natural (or (gethash (cons kind src) natural-cache)
                       (puthash (cons kind src)
-                               (etaf-ui--media-natural-size kind src source-size)
+                               (or (etaf-ui--media-natural-size kind src source-size)
+                                   (and (eq kind 'audio) (cons 640 360)))
                                natural-cache)))
-         (grid (etaf-ui--media-grid natural stage-px stage-rows video))
+         (grid (etaf-ui--media-grid natural stage-px stage-rows playable))
          (fg (etaf-ui--media-color :fg))
          (muted (etaf-ui--media-color :muted))
          (accent (plist-get (etaf-ui--style-tokens :ui-accent) :ui-accent)))
@@ -312,24 +414,43 @@ A modal viewer keeps the application underneath from receiving letters."
            (list
             (etaf-node
              'box
-             (list :ref stage :width (list 'ch (car grid)) :height (list 'lh (cdr grid))
+             (list :ref stage
+                   :width (if (eq kind 'audio) 'stretch (list 'ch (car grid)))
+                   :height (if (eq kind 'audio) (list 'lh stage-rows) (list 'lh (cdr grid)))
                    :overflow 'hidden
-                   :on-press (when video toggle)
-                   :help-echo (when video "Play / pause (Space)"))
+                   :on-press (when playable toggle)
+                   :help-echo (when playable "Play / pause (Space)"))
              (list
-              (if video
-                  (etaf-node 'etaf-video
-                             (list :src src :columns (car grid) :rows (cdr grid)
-                                   :handle handle :autoplay autoplay
-                                   :audio audio :speed speed)
-                             nil)
+              (cond
+               (video
+                (etaf-node 'etaf-video
+                           (list :src src :columns (car grid) :rows (cdr grid)
+                                 :handle handle :autoplay autoplay
+                                 :audio audio :speed speed)
+                           nil))
+               ((eq kind 'audio)
+                (etaf-node 'flex (list :flex-direction 'column :justify-content 'center
+                                       :align-items 'center :width 'stretch
+                                       :height (list 'lh stage-rows) :row-gap '(lh 1)
+                                       :background-color (etaf-ui--media-color :track))
+                           (list (etaf-ui-icon 'volume :size 2.2 :min-width 4
+                                               :color (etaf-ui--media-color :control))
+                                 (etaf-node 'text (list :color muted)
+                                            (list (etaf-value clock)))
+                                 (when caption
+                                   (etaf-node 'box (list :max-width '(ch 48)
+                                                         :overflow 'hidden
+                                                         :wrap-mode 'none)
+                                              (list (etaf-node 'text (list :color fg)
+                                                               (list caption))))))))
+               (t
                 (etaf-node 'image (list :src src :columns (car grid)
                                         :rows (cdr grid))
-                           nil))))))
+                           nil)))))))
           (arrow 'chevron-right on-next "Next (n)")))
         (air)
-        ;; Footer: the transport bar for video, the caption for images.
-        (if video
+        ;; Footer: the transport bar for playable media, the caption for images.
+        (if playable
             (etaf-node
              'flex
              (list :ref footer :width 'stretch :height '(lh 1) :align-items 'center
@@ -383,12 +504,17 @@ A modal viewer keeps the application underneath from receiving letters."
         (air))))))
 
 (etaf-define-component etaf-media-viewer
-    (&key open (kind 'image) src source-size title subtitle caption on-close
+    (&key open (kind 'image) src source-size title subtitle caption duration on-close
           on-previous on-next (autoplay t))
   "Show SRC of KIND in a controlled modal viewer over the application."
   :validate
   (progn
-    (etaf-check-prop :kind kind (memq kind '(image video)) "image or video")
+    (etaf-check-prop :kind kind (memq kind '(image video audio))
+                     "image, video or audio")
+    (etaf-check-prop :duration duration
+                     (or (null duration)
+                         (and (numberp duration) (>= duration 0)))
+                     "nil or non-negative seconds")
     (etaf-check-prop :on-close on-close (functionp on-close) "a function")
     (etaf-check-prop :on-previous on-previous
                      (or (null on-previous) (functionp on-previous))
@@ -410,7 +536,8 @@ A modal viewer keeps the application underneath from receiving letters."
   (when (etaf-ui--reactive-value open)
     (etaf-node 'etaf-ui--media-viewer-open
                (list :kind kind :src src :source-size source-size :title title
-                     :subtitle subtitle :caption caption :on-close on-close
+                     :subtitle subtitle :caption caption :duration duration
+                     :on-close on-close
                      :on-previous on-previous :on-next on-next :autoplay autoplay)
                (etaf-current-slot 'default))))
 
