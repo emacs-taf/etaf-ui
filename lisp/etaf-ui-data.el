@@ -47,7 +47,7 @@ use Table's unique keys and optional `:cell' row-to-View functions."
             (_ (or error-label "Unable to load data."))))
    (etaf-ui--table-header :columns columns)
    (column
-    :class "etaf-table-body"
+    :class "etaf-table-body" :focus-group 'vertical
     (etaf-label
      :if (null (etaf-value (etaf-data-items controller)))
      :class (when (memq (etaf-value (etaf-data-status controller)) '(error cancelled))

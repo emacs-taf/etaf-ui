@@ -18,6 +18,13 @@
 ;; This Commentary is the authoritative export list; implementations and precise
 ;; docstrings remain beside their definitions. The manual contains workflows.
 ;;
+;; Every Component is keyboard operable through ETAF's key layer.  Tabs,
+;; segmented and radio selectors, desktop bars, window controls, tables,
+;; lists, trees, calendars, breadcrumbs, steps and tile grids are each one
+;; Tab stop entered at their selected item; arrows and C-n/C-p/C-b/C-f move
+;; inside them.  Dialogs, drawers, popovers and the media viewer are modal
+;; key scopes closed by Escape or C-g.  `?' lists the keys in scope.
+;;
 ;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content hover-group pointer use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
@@ -259,14 +266,18 @@
 ;;
 ;; Component: etaf-slider (&key value min max step label on-change disabled bind)
 ;; Render a controlled integer value within MIN..MAX aligned to STEP.
+;; Left and Right on the focused slider report the value moved by STEP.
 ;;
-;; Component: etaf-range (&key value min max step on-change on-commit disabled color track-color bar-height label ref fill-ref)
+;; Component: etaf-range (&key value min max step key-step on-change on-commit disabled color track-color bar-height label ref fill-ref)
 ;; Render a controlled interactive Range (progress, seek, volume) within MIN..MAX.
 ;; ON-CHANGE reports intermediate values and ON-COMMIT the released one; the bar
 ;; paints a Track and a percentage Fill inside one standard row. A retained
 ;; binding updates FILL-REF's width without re-rendering the Component.
 ;; MIN/MAX accept numbers or reactive sources. Live bounds are checked by the
 ;; retained Fill getter; invalid bounds reject publication until corrected.
+;; Left and Right on the focused range report the value moved by KEY-STEP
+;; (default STEP, else a twentieth of the span) through ON-CHANGE and
+;; ON-COMMIT; Home and End report MIN and MAX.
 
 ;; Component: etaf-pagination (&key controller previous-ref next-ref previous-label next-label class color bgcolor border padding aria-label)
 ;; Render a controlled pager whose callbacks follow its committed CONTROLLER.
@@ -333,10 +344,15 @@
 ;; property bindings (mode classes, panel visibility and the collapsed content
 ;; column) without re-rendering the shell, so the Component is stateful and
 ;; requires a mounted Runtime rather than `etaf-render'.  ON-FOCUS
-;; runs for body activation and through ETAF's explicit ancestor capture hook
-;; when a nested body control is pressed.  DRAG-LOCK-MODIFIER defaults to shift
+;; runs for body activation, through ETAF's explicit ancestor capture hook
+;; when a nested body control is pressed, and when keyboard focus enters the
+;; window, so Tab and arrows activate it like a click.  DRAG-LOCK-MODIFIER defaults to shift
 ;; and applies to both the title bar and all resize handles.  Set it to super
 ;; for a Super-modified press or nil to disable locking everywhere.
+;; With focus anywhere in the window, M-arrows move it through the title
+;; bar's ON-MOVE or MOVE-USE and M-S-arrows resize it through the right,
+;; bottom or bottom-right handle, one cell per press; the edge handles are
+;; not Tab stops.
 ;; TITLE-FONT-SIZE and CONTENT-FONT-SIZE default to nil and inherit independently;
 ;; positive CSS reference pixel numbers override only their own region.
 ;; FONT-FAMILY defaults to nil and otherwise selects the family for both regions.
@@ -413,6 +429,7 @@
 ;; binds them as retained Host properties, so a layout policy moves, relabels
 ;; or hides dividers by writing cells instead of re-rendering the tree.
 ;; VISIBLE defaults to t; a hidden divider keeps its identity and gestures off.
+;; The focused divider steps like a one-cell drag with the arrows across it.
 ;;
 ;; Component: etaf-pane-resizer (&key size side min max on-change on-end line background)
 ;; Render a vertical divider that resizes an adjacent fixed-width pane. SIZE is
@@ -422,7 +439,8 @@
 ;; the candidate width, clamped to MIN and MAX pixels when given, to ON-CHANGE;
 ;; ON-END receives the final width. LINE (default t) draws a hairline in the
 ;; divider color beside the pane over BACKGROUND. The divider is wide enough to
-;; grab and never moves other cells while dragging.
+;; grab and never moves other cells while dragging.  With a callback it is a
+;; Tab stop whose Left and Right step the width one column.
 ;; Use (etaf-view (etaf-pane-resizer :size width :on-change #'set-width)).
 ;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)
@@ -609,6 +627,7 @@
 ;;
 ;; Component: etaf-tree (&key items expanded on-toggle on-select)
 ;; Render nested items with caller-owned expanded keys and selection callbacks.
+;; Right opens and Left closes the focused branch through ON-TOGGLE.
 ;;
 ;; Component: etaf-calendar (&key month value on-change label)
 ;; Render a controlled month grid; MONTH is `(YEAR MONTH)' and ON-CHANGE gets

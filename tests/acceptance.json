@@ -124,6 +124,11 @@
       "purpose": "A pointer click reports the pointed value through on-change and on-commit in that order."
     },
     {
+      "name": "etaf-ui-range-steps-from-the-keyboard",
+      "file": "tests/etaf-ui-range-tests.el",
+      "purpose": "Left/Right step a focused Range by its key step through on-commit, and Home/End report its bounds."
+    },
+    {
       "name": "etaf-ui-range-without-ref-hit-tests-pointer-gestures",
       "file": "tests/etaf-ui-range-tests.el",
       "purpose": "A range mounted without a :ref still maps an engine pointer gesture to its value."
@@ -217,6 +222,11 @@
       "name": "etaf-ui-window-forwards-chrome-and-resize-gestures",
       "file": "tests/etaf-ui-window-tests.el",
       "purpose": "Title-bar and resize-handle gestures reach caller callbacks with their edge and phase payloads."
+    },
+    {
+      "name": "etaf-ui-window-moves-and-resizes-from-keys-inside-it",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "Focus entering a Window runs its on-focus; with focus inside, M-arrows reach its move callback and M-S-arrows its right/bottom resize callbacks as keyboard gestures."
     },
     {
       "name": "etaf-ui-resize-lock-confirms-every-edge-and-corner",
@@ -506,7 +516,7 @@
     {
       "name": "etaf-ui-floating-surfaces-nest-and-release-buffer-shortcuts",
       "file": "tests/etaf-ui-surface-tests.el",
-      "purpose": "A menu inside a dialog restores the dialog keys, then the buffer's keys."
+      "purpose": "Escape closes a menu nested in a dialog, then the dialog; outer Host keys are ignored while a surface is open and return after it closes."
     },
     {
       "name": "etaf-ui-popover-keeps-instance-state-and-independent-open-inputs",
@@ -696,7 +706,17 @@
     {
       "name": "etaf-ui-pane-resizer-reports-clamped-widths",
       "file": "tests/etaf-ui-desktop-tests.el",
-      "purpose": "Dragging a pane resizer reports widths clamped to its bounds and the final width on release."
+      "purpose": "Dragging a pane resizer reports widths clamped to its bounds and the final width on release; the focused divider steps the width with Left/Right."
+    },
+    {
+      "name": "etaf-ui-composites-are-one-tab-stop-entered-at-the-selection",
+      "file": "tests/etaf-ui-focus-composition-tests.el",
+      "purpose": "Tabs form one Tab stop entered at the active tab; arrows and C-b move between tabs without selecting them."
+    },
+    {
+      "name": "etaf-ui-tree-branches-open-right-and-close-left",
+      "file": "tests/etaf-ui-focus-composition-tests.el",
+      "purpose": "A focused Tree branch expands with Right and collapses with Left through the caller's on-toggle."
     }
   ]
 }

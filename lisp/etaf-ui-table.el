@@ -232,6 +232,7 @@ Without ROW-REF the Host receives ETAF's usual instance-local reference."
       (list :class (concat "etaf-table-row" (if selected-p " selected" ""))
             :ref host-ref :role (when interactive-p 'button)
             :tab-index (when interactive-p 0)
+            :aria-selected (and interactive-p selected-p t)
             :color
             (when selected-p (plist-get theme :ui-table-selected-fg))
             :background-color
@@ -280,7 +281,7 @@ callbacks even with equal contents; its stable key preserves cell state."
    :class "etaf-table"
    :color (plist-get (etaf-ui--style-tokens :ui-fg) :ui-fg)
    (etaf-ui--table-header :columns columns)
-   (column :class "etaf-table-body"
+   (column :class "etaf-table-body" :focus-group 'vertical
      (etaf-ui--table-row
       :for (item (etaf-ui--table-rows rows row-key))
       :key (funcall row-key item)
@@ -312,6 +313,7 @@ callbacks even with equal contents; its stable key preserves cell state."
   :render
   (etaf-view
    (column :class "etaf-list" :width 'stretch :item-gap '(lh 1)
+           :focus-group 'vertical
      (expr
       (mapcar
        (lambda (item)

@@ -247,34 +247,38 @@ props, so the catalog resolves it before the mouse face reaches Ebox."
           (etaf-unmount runtime))))))
 
 (ert-deftest etaf-ui-floating-surfaces-nest-and-release-buffer-shortcuts ()
-  "A menu inside a dialog restores the dialog keys, then the buffer's keys."
+  "Escape closes a menu inside a dialog first, then the dialog, then nothing."
   (with-temp-buffer
-    (let ((open (etaf-ref t)) (before (key-binding (kbd "<escape>"))))
+    (let ((open (etaf-ref t)) (outer 0))
       (unwind-protect
           (progn
             (etaf-mount
              (current-buffer)
              (etaf-view
               (column :width '(ch 80) :height '(lh 30)
+                      :keys (list (list "o" (lambda () (cl-incf outer))))
+                (etaf-button :ref 'start :label "Start" :on-press #'ignore)
                 (etaf-dialog :open open :title "Outer"
                              :on-close (lambda () (setf (etaf-value open) nil))
                   (etaf-dropdown-menu :label "Nested"
                                       :items '((:key one :label "Nested choice"))
                                       :on-select #'ignore)))))
             (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
-                   (trigger (etaf-ui-surface-test--control runtime "Nested"))
-                   (dialog-key (key-binding (kbd "<escape>"))))
+                   (trigger (etaf-ui-surface-test--control runtime "Nested")))
               (etaf-focus runtime trigger)
               (etaf-activate runtime)
               (should (etaf-ui-surface-test--control runtime "Nested choice"))
-              (should-not (eq dialog-key (key-binding (kbd "<escape>"))))
+              (should (eq (key-binding (kbd "o")) #'ignore))
               (etaf-ui-surface-test--key "<escape>")
+              (should-not (etaf-ui-surface-test--control runtime "Nested choice"))
               (should (etaf-value open))
               (should (equal trigger (etaf-focused-host-ref runtime)))
-              (should (eq dialog-key (key-binding (kbd "<escape>"))))
-              (etaf-activate runtime)
+              (etaf-ui-surface-test--key "<escape>")
+              (should-not (etaf-value open))
+              (etaf-ui-surface-test--key "o")
+              (should (= outer 1))
               (etaf-unmount runtime)
-              (should (eq before (key-binding (kbd "<escape>"))))))
+              (should-not (commandp (key-binding (kbd "<escape>"))))))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 

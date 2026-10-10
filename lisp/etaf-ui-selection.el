@@ -63,7 +63,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
     (etaf-view
      (column :class "etaf-radio-group" :role 'radiogroup :width 'stretch
        (etaf-label :text label :variant 'strong)
-       (row :item-gap '(ch 1)
+       (row :item-gap '(ch 1) :focus-group 'horizontal
          (expr
           (mapcar
            (lambda (option)
@@ -74,7 +74,8 @@ the writable BIND ref owns the selected value; the Component owns no state."
                (etaf-view
                 (etaf-button
                  :label (concat (if selected "(o) " "( ) ") caption)
-                 :aria-label caption :variant 'ghost :disabled disabled
+                 :aria-label caption :aria-checked selected
+                 :variant 'ghost :disabled disabled
                  :color (nth 0 colors) :bgcolor (nth 1 colors)
                  :border (nth 2 colors)
                  :on-press (and (not disabled) callback
@@ -114,6 +115,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
                      "nil or a value in :options" 'etaf-segmented)
     (etaf-view
      (row :class "etaf-segmented" :role 'tablist :item-gap '(ch 2)
+          :focus-group 'horizontal
        (expr
         (mapcar
          (lambda (option)
@@ -123,7 +125,7 @@ the writable BIND ref owns the selected value; the Component owns no state."
               ;; Selection is the button variant's job; a `* ' prefix would
               ;; change the label width and jump the whole segment on switch.
               (etaf-button :label caption
-                           :aria-label caption
+                           :aria-label caption :aria-selected selected
                            :variant (if selected 'secondary 'ghost)
                            :disabled disabled
                            :on-press (and (not disabled) callback
@@ -135,7 +137,8 @@ the writable BIND ref owns the selected value; the Component owns no state."
           (label "Value") (on-change etaf-ui--unsupplied) disabled bind)
   "Render a controlled numeric SLIDER using the native number prompt.
 VALUE must be an integer in MIN..MAX; STEP is a positive integer.  The
-native prompt keeps editing accessible while the Component remains reusable."
+native prompt keeps editing accessible while the Component remains reusable;
+Left and Right change the focused slider by STEP."
   :validate
   (progn
     (etaf-check-prop :min min (integerp min) "an integer" 'etaf-slider)
@@ -159,6 +162,15 @@ native prompt keeps editing accessible while the Component remains reusable."
          (etaf-label :text (format "%d" current) :variant 'muted))
        (etaf-button :label (format "◀  %d  ▶" current) :variant 'secondary
                     :disabled disabled :aria-label label
+                    :keys (and (not disabled) callback
+                               (list (list "<left>"
+                                           (lambda ()
+                                             (funcall callback (max min (- current step))))
+                                           (format "Decrease %s" label))
+                                     (list "<right>"
+                                           (lambda ()
+                                             (funcall callback (min max (+ current step))))
+                                           (format "Increase %s" label))))
                     :on-press
                     (and (not disabled) callback
                          (lambda ()
@@ -229,7 +241,7 @@ nil."
                             snapped)))))))
 
 (etaf-define-component etaf-range
-    (&key value (min 0) (max 100) step on-change on-commit disabled
+    (&key value (min 0) (max 100) step key-step on-change on-commit disabled
           color track-color (bar-height 40)
           label ref fill-ref)
   "Render an interactive horizontal RANGE: progress, seek or volume bar.
@@ -249,7 +261,11 @@ republishing the View, which is how a playing position advances in place.  A
 press or drag re-proportions the two parts through retained Host geometry
 before the caller's value arrives, so the gesture still follows the pointer
 while a backend reply is pending.  BAR-HEIGHT is the painted thickness as a
-percentage of the row (default 40)."
+percentage of the row (default 40).
+
+Left and Right on the focused range report the value moved by KEY-STEP
+through ON-CHANGE and ON-COMMIT; Home and End report MIN and MAX.  KEY-STEP
+defaults to STEP, else a twentieth of the span."
   :validate
   (progn
     (etaf-check-prop :min min (etaf-ui--range-bound-p min) "a number or reactive source" 'etaf-range)
@@ -263,6 +279,9 @@ percentage of the row (default 40)."
       (etaf-check-prop :max max (>= max min)
                        "greater than or equal to :min" 'etaf-range))
     (etaf-check-prop :step step (or (null step) (and (numberp step) (> step 0)))
+                     "a positive number or nil" 'etaf-range)
+    (etaf-check-prop :key-step key-step
+                     (or (null key-step) (and (numberp key-step) (> key-step 0)))
                      "a positive number or nil" 'etaf-range)
     (etaf-check-prop :bar-height bar-height (and (integerp bar-height) (> bar-height 0)
                                                   (<= bar-height 100))
@@ -309,11 +328,39 @@ percentage of the row (default 40)."
                          (etaf-set-value drag live))
                        (if commit
                            (when (and next on-commit) (funcall on-commit next))
-                         (when (and next on-change) (funcall on-change next))))))))
+                         (when (and next on-change) (funcall on-change next)))))))
+         (key-report
+          (lambda (move)
+            (lambda ()
+              (let* ((bounds (etaf-ui--range-live-bounds min max))
+                     (low (car bounds))
+                     (high (cdr bounds))
+                     (raw (etaf-ui--reactive-value value)))
+                (when (and (numberp low) (numberp high))
+                  (let* ((amount (or key-step step (/ (- high low) 20.0)))
+                         (current (if (numberp raw) raw low))
+                         (next (pcase move
+                                 ('min low)
+                                 ('max high)
+                                 (_ (max low (min high (+ current (* move amount))))))))
+                    ;; Integer bounds and steps keep integer values.
+                    (when (and (integerp low) (integerp high)
+                               (not (floatp step)) (not (floatp key-step)))
+                      (setq next (round next)))
+                    (when on-change (funcall on-change next))
+                    (when on-commit (funcall on-commit next))))))))
+         (keys (unless disabled
+                 (list (list "<left>" (funcall key-report -1)
+                             (format "Decrease %s" (or label "range")))
+                       (list "<right>" (funcall key-report 1)
+                             (format "Increase %s" (or label "range")))
+                       (list "<home>" (funcall key-report 'min) "Minimum")
+                       (list "<end>" (funcall key-report 'max) "Maximum")))))
     (etaf-view
      (flex :flex-direction 'row :class "etaf-range" :width 'stretch :height '(lh 1)
           :position 'relative :z-index 0 :overflow 'hidden
           :role 'slider :tab-index (unless disabled 0)
+          :aria-orientation 'horizontal :keys keys
           :aria-label (or label "Range")
           :disabled disabled
           :pointer 'hand
@@ -325,7 +372,10 @@ percentage of the row (default 40)."
                              (funcall report gesture t))))
           :on-drag (and (not disabled)
                         (lambda (gesture)
-                          (funcall report gesture (eq (plist-get gesture :phase) 'end))))
+                          ;; Keyboard steps carry relative deltas, not a
+                          ;; pointer position; the range's own keys own them.
+                          (unless (plist-get gesture :keyboard)
+                            (funcall report gesture (eq (plist-get gesture :phase) 'end)))))
           :ref track-target :id (symbol-name track-target)
        ;; The track is ordinary flow content: it gives the row its width and a
        ;; measurable text span for pointer hit-testing and tests.

@@ -144,6 +144,41 @@ tokens; pressing anywhere on the pill starts editing:
 (etaf-view (etaf-search-field :bind query :icon t :placeholder "Search"))
 ```
 
+## Keyboard operation
+
+Catalog Components carry their keyboard behavior, so an application composes
+them without installing keymaps. The rules come from ETAF's
+[keyboard operation contract](https://forgejo.vhkd.top/emacs-taf/etaf/src/branch/main/docs/manual.md#keyboard-operation):
+
+- Tabs, segmented and radio selectors, the workspace bar, taskbar, window
+  controls, Table and DataGrid bodies, lists, trees, calendars, breadcrumbs,
+  steps and tile grids are each one Tab stop. Tab enters at the selected,
+  current or last focused item; arrows and `C-n`/`C-p`/`C-b`/`C-f` move inside
+  and then to the nearest control in that direction.
+- Dialogs, drawers, popovers, dropdown menus and the media viewer are modal key
+  scopes: Escape or `C-g` closes them and focus returns to the opener.
+- Focus entering an `etaf-window` runs its `:on-focus`, so Tab activates a
+  window as a click does. With focus anywhere in it, `M-<arrow>` moves it and
+  `M-S-<arrow>` resizes it, one cell per press, through the same callbacks or
+  Behaviors as pointer gestures.
+- A focused `etaf-range` or `etaf-slider` changes with Left and Right (Home
+  and End reach a range's bounds); a focused splitter divider or
+  `etaf-pane-resizer` moves with the arrows across it. A tree branch opens with
+  Right and closes with Left.
+- `?` lists the labelled keys and controls in scope.
+
+Application regions add their own commands with `:keys` on the Host that owns
+them, for example a chat pane's reply key, instead of a buffer keymap:
+
+```elisp
+(etaf-view
+ (column :keys (list (list "r" #'my-chat-reply "Reply")
+                     (list "/" #'my-chat-search "Search"))
+   (etaf-tabs :items '((:key all :label "All") (:key unread :label "Unread"))
+              :active 'all :on-change #'my-chat-filter)
+   (etaf-list :items my-chat-items :on-select #'my-chat-open)))
+```
+
 ## Floating content and modal composition
 
 Use `etaf-dropdown-menu` for a short in-buffer action list; `etaf-menu` remains

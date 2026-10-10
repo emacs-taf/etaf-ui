@@ -489,7 +489,8 @@
           (etaf-mount buffer
                       (lambda ()
                         (etaf-view
-                         (row (box :width (list 'px (etaf-value size)) "pane")
+                         (row :height '(lh 1)
+                              (box :width (list 'px (etaf-value size)) "pane")
                               (etaf-pane-resizer
                                :size size :min 120 :max 300
                                :on-change (lambda (w) (etaf-set-value size w))
@@ -510,7 +511,16 @@
             (should (= (etaf-value size) 300))
             (funcall drag 'end -500)
             (should (= (etaf-value size) 120))
-            (should (equal ends '(120)))))
+            (should (equal ends '(120)))
+            ;; The focused divider steps sideways from the keyboard only.
+            (with-current-buffer buffer
+              (etaf-focus runtime ref)
+              (call-interactively (key-binding (kbd "<right>") t))
+              (etaf-runtime-flush runtime)
+              (should (> (etaf-value size) 120))
+              (should (= (length ends) 2))
+              (should-not (eq (key-binding (kbd "<up>") t)
+                              (key-binding (kbd "<right>") t))))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
 ;;; etaf-ui-desktop-tests.el ends here

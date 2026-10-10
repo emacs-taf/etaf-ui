@@ -69,10 +69,14 @@
                :row-key (lambda (row) (plist-get row :id))
                :on-row-press (lambda (row) (setq picked (list 'right (plist-get row :name))))))))
           (let ((runtime (etaf-runtime-for-buffer buffer)) refs)
-            (etaf-focus runtime)
-            (dotimes (_ 4)
-              (push (etaf-focused-host-ref runtime) refs)
-              (etaf-focus-next runtime))
+            ;; Each grid body is one Tab stop; Down moves between its rows.
+            (with-current-buffer buffer
+              (etaf-focus runtime)
+              (dotimes (grid 2)
+                (when (= grid 1) (etaf-focus-next runtime))
+                (push (etaf-focused-host-ref runtime) refs)
+                (call-interactively (key-binding (kbd "<down>") t))
+                (push (etaf-focused-host-ref runtime) refs)))
             (setq refs (nreverse refs))
             (should (= 4 (length (delete-dups (copy-sequence refs)))))
             (etaf-focus runtime (car refs))

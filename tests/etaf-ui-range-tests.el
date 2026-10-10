@@ -97,6 +97,19 @@ in one geometry commit without re-rendering the View."
       (dolist (event events)
         (should (< (abs (- (cdr event) 75)) 1.5))))))
 
+(ert-deftest etaf-ui-range-steps-from-the-keyboard ()
+  "Left/Right step a focused range by KEY-STEP; Home/End reach the bounds."
+  (let (commits)
+    (etaf-ui-range-test--with-range
+        (entry :value 40 :max 100 :key-step 5 :ref 'range-track
+               :on-commit (lambda (value) (push value commits)))
+      (pcase-let ((`(,buffer . ,runtime) entry))
+        (with-current-buffer buffer
+          (etaf-focus runtime 'range-track)
+          (dolist (key '("<right>" "<left>" "<end>" "<home>"))
+            (call-interactively (key-binding (kbd key) t)))
+          (should (equal (nreverse commits) '(45 35 100 0))))))))
+
 (ert-deftest etaf-ui-range-without-ref-hit-tests-pointer-gestures ()
   "A Range given no :ref still measures its track for an Ebox pointer gesture.
 Engine gestures carry no Host reference, so the Range names its own track."

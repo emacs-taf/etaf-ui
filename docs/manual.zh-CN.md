@@ -124,6 +124,37 @@ View 或合法的 View 序列。
 (etaf-view (etaf-search-field :bind query :icon t :placeholder "搜索"))
 ```
 
+## 键盘操作
+
+目录组件自带键盘行为，应用组合它们即可，无需安装 keymap。规则来自 ETAF 的
+[键盘操作约定](https://forgejo.vhkd.top/emacs-taf/etaf/src/branch/main/docs/manual.zh-CN.md#键盘操作)：
+
+- 标签页、分段和单选选择器、工作区栏、任务栏、窗口控制按钮、Table 和
+  DataGrid 主体、列表、树、日历、面包屑、步骤条和格子网格各占一个 Tab 停靠点。
+  Tab 进入时落在选中、当前或上次聚焦的项；方向键和 `C-n`/`C-p`/`C-b`/`C-f`
+  在其内部移动，到边缘后移到该方向上最近的控件。
+- 对话框、抽屉、弹出层、下拉菜单和媒体查看器是模态按键作用域：Escape 或
+  `C-g` 关闭它们，焦点回到打开它的控件。
+- 焦点进入 `etaf-window` 时运行其 `:on-focus`，因此 Tab 和点击一样激活窗口。
+  焦点位于窗口内任意位置时，`M-<方向键>` 移动窗口，
+  `M-S-<方向键>` 调整大小，每次一格，走与指针手势相同的回调或 Behavior。
+- 聚焦的 `etaf-range` 或 `etaf-slider` 用左右键调整（Home 和 End 到达 range
+  的边界）；聚焦的分割条或 `etaf-pane-resizer` 用跨越它的方向键移动。树的分支用
+  右键展开、左键收起。
+- `?` 列出作用域内带标签的按键和控件。
+
+应用区域在拥有它们的 Host 上用 `:keys` 添加自己的命令（例如聊天面板的回复键），
+而不是使用 buffer keymap：
+
+```elisp
+(etaf-view
+ (column :keys (list (list "r" #'my-chat-reply "Reply")
+                     (list "/" #'my-chat-search "Search"))
+   (etaf-tabs :items '((:key all :label "All") (:key unread :label "Unread"))
+              :active 'all :on-change #'my-chat-filter)
+   (etaf-list :items my-chat-items :on-select #'my-chat-open)))
+```
+
 ## 浮层与模态组合
 
 短操作列表使用 buffer 内的 `etaf-dropdown-menu`；需要补全检索时仍可使用原生

@@ -93,6 +93,7 @@ next expanded key list."
          (flat (etaf-ui--tree-items items expanded)))
     (etaf-view
      (column :class "etaf-tree" :width 'stretch :item-gap '(lh 0)
+             :focus-group 'vertical
        (expr
         (mapcar
          (lambda (entry)
@@ -101,17 +102,24 @@ next expanded key list."
                   (open (member key expanded))
                   (prefix (make-string (* 2 (plist-get entry :depth)) ?\s))
                   (caption (concat prefix (if branch (if open "v " "> ") "  ")
-                                   (plist-get entry :label))))
+                                   (plist-get entry :label)))
+                  (toggle (lambda ()
+                            (when on-toggle
+                              (funcall on-toggle
+                                       (if open (delete key (copy-sequence expanded))
+                                         (cons key (copy-sequence expanded))))))))
              (etaf-view
               (etaf-button :label caption :variant (if open 'secondary 'ghost)
                            :aria-label (plist-get entry :label)
+                           :aria-expanded (and branch (if open t 'false))
+                           ;; Right opens and left closes a branch in place.
+                           :keys (when (and branch on-toggle)
+                                   (list (list (if open "<left>" "<right>") toggle
+                                               (if open "Collapse" "Expand"))))
                            :on-press
                            (lambda ()
                              (if branch
-                                 (when on-toggle
-                                   (funcall on-toggle
-                                            (if open (delete key (copy-sequence expanded))
-                                              (cons key (copy-sequence expanded)))))
+                                 (funcall toggle)
                                (when on-select (funcall on-select key))))))))
          flat))))))
 
@@ -152,6 +160,7 @@ ON-CHANGE receives (YEAR MONTH DAY)."
                                 'etaf-button
                                 (list :label (format "%2d" day)
                                       :variant (if (equal day value) 'secondary 'ghost)
+                                      :aria-selected (equal day value)
                                       :aria-label (format "%s %d" name day)
                                       :on-press
                                       (and on-change
@@ -163,7 +172,8 @@ ON-CHANGE receives (YEAR MONTH DAY)."
            rows)))
     (etaf-node
      'column
-     (list :class "etaf-calendar" :width 'stretch :item-gap '(lh 1))
+     (list :class "etaf-calendar" :width 'stretch :item-gap '(lh 1)
+           :focus-group 'grid)
      (append
       (list (etaf-node 'row (list :item-gap '(ch 1))
                        (list (etaf-node 'etaf-label (list :text label :variant 'strong) nil)

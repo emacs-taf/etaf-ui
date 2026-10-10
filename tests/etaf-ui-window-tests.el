@@ -134,6 +134,42 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-window-moves-and-resizes-from-keys-inside-it ()
+  "Focus entering a window activates it; M-arrows move it, M-S-arrows resize it."
+  (let ((buffer-name " *etaf-ui-window-keys-test*")
+        moves resizes (focused 0))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (etaf-window :title "Inspector" :width '(px 260) :height '(lh 12)
+                         :on-move (lambda (gesture) (push gesture moves))
+                         :on-resize (lambda (edge gesture)
+                                      (push (cons edge gesture) resizes))
+                         :on-focus (lambda () (cl-incf focused))
+                         (etaf-button :label "Body" :ref 'body
+                                      :on-press #'ignore))))
+          (with-current-buffer buffer-name
+            (etaf-focus (etaf-runtime-for-buffer buffer-name) 'body)
+            (should (= focused 1))
+            (dolist (key '("M-<right>" "M-S-<down>" "M-S-<left>"))
+              (call-interactively (key-binding (kbd key) t)))
+            (let ((move-end (cl-find 'end moves
+                                     :key (lambda (g) (plist-get g :phase)))))
+              (should (> (car (plist-get move-end :delta)) 0))
+              (should (plist-get move-end :keyboard)))
+            (let ((ends (cl-remove-if-not
+                         (lambda (entry) (eq (plist-get (cdr entry) :phase) 'end))
+                         (reverse resizes))))
+              (should (equal (mapcar #'car ends) '(bottom right)))
+              (should (> (cdr (plist-get (cdar ends) :delta)) 0))
+              (should (< (car (plist-get (cdadr ends) :delta)) 0)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-resizable-panel-rejects-unknown-edge ()
   "Resize edge input is checked before a Component is mounted."
   (should-error

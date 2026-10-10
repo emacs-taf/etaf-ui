@@ -122,7 +122,9 @@ grid cell or present it like the content it covers."
                  :pointer (cond ((memq edge '(top bottom)) 'vdrag)
                                 ((memq edge '(left right)) 'hdrag)
                                 (t 'nhdrag))
-                 :tab-index (when (or on-resize use) 0))
+                 ;; Window keys resize from anywhere inside, so the edges
+                 ;; stay focusable for arrows without being Tab stops.
+                 :tab-index (when (or on-resize use) -1))
            extra
            (when ref (list :ref ref))
            (when use (list :use use))
@@ -273,6 +275,7 @@ policy; callbacks request caller-owned transitions."
                (list :class (etaf-ui--class-value
                              "etaf-window-controls" nil class)
                      :role 'toolbar :aria-label "Window controls"
+                     :focus-group 'horizontal
                      :width 'max-content :height '(lh 1)
                      :align-items 'center :column-gap '(ch 0.15))
                actions)))
@@ -495,6 +498,34 @@ or a positive CSS pixel size; FONT-FAMILY likewise inherits when nil."
                                          drag-lock-modifier)
                   content))))))
 
+(defun etaf-ui--window-keys (title-ref movable handle-refs edges)
+  "Return window-wide `:keys' that move TITLE-REF and resize through handles.
+MOVABLE enables M-arrows on the title bar.  HANDLE-REFS maps each active
+resize edge in EDGES to its Host reference; M-S-arrows drag the right or
+bottom edge, else the bottom-right corner, so focus anywhere in the window
+moves or resizes it with the pointer's gesture handlers."
+  (let* ((handle (lambda (preferred)
+                   (cl-loop for edge in preferred
+                            for ref = (cdr (assq edge handle-refs))
+                            when (and (memq edge edges) ref (symbolp ref))
+                            return ref)))
+         (wide (funcall handle '(right bottom-right)))
+         (tall (funcall handle '(bottom bottom-right)))
+         (step (lambda (ref columns rows)
+                 (lambda () (etaf-drag-step nil ref columns rows)))))
+    (append
+     (when movable
+       (list (list "M-<left>" (funcall step title-ref -1 0) "Move window left")
+             (list "M-<right>" (funcall step title-ref 1 0) "Move window right")
+             (list "M-<up>" (funcall step title-ref 0 -1) "Move window up")
+             (list "M-<down>" (funcall step title-ref 0 1) "Move window down")))
+     (when wide
+       (list (list "M-S-<right>" (funcall step wide 1 0) "Widen window")
+             (list "M-S-<left>" (funcall step wide -1 0) "Narrow window")))
+     (when tall
+       (list (list "M-S-<down>" (funcall step tall 0 1) "Heighten window")
+             (list "M-S-<up>" (funcall step tall 0 -1) "Shorten window"))))))
+
 (etaf-define-component etaf-window
     (&key title (mode 'normal) (x '(px 0)) (y '(lh 0))
           (width '(ch 42)) (height '(lh 16)) z-index (visible t)
@@ -517,6 +548,9 @@ content collapse as retained Host bindings without rebuilding the window; a
 title bar forwards ON-MOVE gestures; resize handles forward EDGE and gesture
 to ON-RESIZE.  DRAG-LOCK-MODIFIER applies to both the title and all resize
 handles; nil disables locking.  Action callbacks request a state transition.
+With focus anywhere in the window, M-arrows move it through the title bar's
+handlers and M-S-arrows resize it through the right/bottom handles.
+ON-FOCUS runs for a press in the body and whenever focus enters the window.
 TITLE-FONT-SIZE and CONTENT-FONT-SIZE independently inherit when nil (the
 default), or accept positive CSS pixel sizes.  FONT-FAMILY inherits when nil.
 Slots are
@@ -560,6 +594,12 @@ Slots are
   ;; class, height and visibility bindings instead of re-rendering the shell.
   ((mode-input (etaf-prop 'mode))
    (visible-input (etaf-prop 'visible))
+   ;; Window keys target the title bar and a resize handle, so both need a
+   ;; Host reference even when the caller supplies none.
+   (title-local-ref (etaf-local-ref 'title))
+   (handle-local-refs
+    (mapcar (lambda (edge) (cons edge (etaf-local-ref edge)))
+            '(right bottom bottom-right)))
    (class-input (etaf-prop 'class))
    (live-mode (etaf-computed
                (lambda () (etaf-ui--window-mode (etaf-value mode-input)))))
@@ -576,6 +616,18 @@ Slots are
   (let* ((body (etaf-current-slot 'default))
          (header (etaf-current-slot 'header))
          (actions (etaf-current-slot 'actions))
+         (title-ref (or chrome-ref title-local-ref))
+         (handle-refs
+          (append resize-refs
+                  (cl-remove-if (lambda (entry) (assq (car entry) resize-refs))
+                                handle-local-refs)))
+         (active-edges
+          (and resizable
+               (cl-remove-if-not (lambda (edge)
+                                   (or on-resize (assq edge resize-use)))
+                                 resize-edges)))
+         (keys (etaf-ui--window-keys title-ref (or on-move move-use)
+                                     handle-refs active-edges))
          (footer (etaf-current-slot 'footer))
          (children
           (append body
@@ -607,20 +659,21 @@ Slots are
                                    :font-family font-family
                                    :drag-lock-modifier drag-lock-modifier
                                    :group controls-group
-                                   :ref chrome-ref)
+                                   :ref title-ref)
                              (when on-move (list :on-move on-move))
                              (when move-use (list :use move-use)))
                      header
                      (list (cons 'actions actions)))))
     (etaf-node 'etaf-resizable-panel
-               (list :x x :y y :width width :height height :position 'absolute
+               (list :keys keys :on-focus-enter on-focus
+                     :x x :y y :width width :height height :position 'absolute
                      :font-size (and title-font-size content-font-size
                                      (max title-font-size content-font-size))
                      :font-family font-family
                      :z-index z-index :visible visible :min-width min-width
                      :max-width max-width :min-height min-height :max-height max-height
                      :resizable resizable
-                     :resize-edges resize-edges :resize-refs resize-refs
+                     :resize-edges resize-edges :resize-refs handle-refs
                      :resize-use resize-use :drag-lock-modifier drag-lock-modifier
                      :header-style (etaf-ui--window-title-style)
                      :on-resize on-resize

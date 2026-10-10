@@ -4,6 +4,15 @@
 
 ### Added
 
+- Catalog Components are fully keyboard operable through ETAF Host keys.
+  Selectors, bars, tables, lists, trees, calendars and grids are single Tab
+  stops navigated with arrows and `C-n`/`C-p`/`C-b`/`C-f`; `etaf-window` runs
+  `:on-focus` when keyboard focus enters it, and moves with `M-<arrow>` and
+  resizes with `M-S-<arrow>` from anywhere inside it;
+  `etaf-range` and `etaf-slider` change with Left/Right (`etaf-range` adds
+  Home/End and `:key-step`); splitter dividers and `etaf-pane-resizer` step with
+  arrows; tree branches open with Right and close with Left.
+
 - `etaf-search-field` renders a rounded search pill with an optional
   magnifier and a clear control, coloured by new `:ui-search-bg` and
   `:ui-search-fg` theme tokens.

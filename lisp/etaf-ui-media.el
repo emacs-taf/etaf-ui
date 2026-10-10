@@ -94,15 +94,6 @@ Keep the aspect ratio; enlarge beyond the natural size only when UPSCALE."
     (cons (max 2 (min (max 2 (floor width-px cw)) (round (/ (* width scale) cw))))
           (max 1 (min rows (round (/ (* height scale) lh)))))))
 
-(defun etaf-ui--media-printing-guard (map)
-  "Bind printing characters unbound in MAP to `ignore' and return MAP.
-A modal viewer keeps the application underneath from receiving letters."
-  (dotimes (offset 95)
-    (let ((key (vector (+ 32 offset))))
-      (unless (lookup-key map key)
-        (define-key map key #'ignore))))
-  map)
-
 (etaf-define-component etaf-ui--media-control
     (&key icon label help on-press (width 4) ref)
   "Render one fixed-width transport control: an icon or a short LABEL."
@@ -166,7 +157,6 @@ A modal viewer keeps the application underneath from receiving letters."
    (return-focus
     (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
       (delq nil (list (etaf-focused-host-ref runtime)))))
-   (tag (make-symbol "etaf-ui-media-keys"))
    (timer nil)
    (cursor-restore nil)
    (cleanup nil)
@@ -281,30 +271,30 @@ A modal viewer keeps the application underneath from receiving letters."
                          (etaf-event-target-within-p footer)))
                 (funcall close)))))
    (swipe (lambda (direction)
-            (funcall navigate (if (eq direction 'left) 'next 'previous)))))
+            (funcall navigate (if (eq direction 'left) 'next 'previous))))
+   (keys
+    (list (list "q" close "Close")
+          (list "SPC" toggle "Play or pause")
+          (list "k" toggle "Play or pause")
+          (list "<left>" (lambda ()
+                           (if (funcall video-p) (funcall seek-by -5)
+                             (funcall navigate 'previous)))
+                "Back 5 s or previous")
+          (list "<right>" (lambda ()
+                            (if (funcall video-p) (funcall seek-by 5)
+                              (funcall navigate 'next)))
+                "Forward 5 s or next")
+          (list "j" (lambda () (funcall seek-by -10)) "Back 10 s")
+          (list "l" (lambda () (funcall seek-by 10)) "Forward 10 s")
+          (list "p" (lambda () (funcall navigate 'previous)) "Previous")
+          (list "n" (lambda () (funcall navigate 'next)) "Next")
+          (list "m" toggle-audio "Mute or unmute")
+          (list "." cycle-speed "Cycle speed"))))
   :setup
-  (let ((map (make-sparse-keymap)))
-    (dolist (binding
-             `(("q" . ,close)
-               ("SPC" . ,toggle) ("k" . ,toggle)
-               ("<left>" . ,(lambda ()
-                              (if (funcall video-p) (funcall seek-by -5)
-                                (funcall navigate 'previous))))
-               ("<right>" . ,(lambda ()
-                               (if (funcall video-p) (funcall seek-by 5)
-                                 (funcall navigate 'next))))
-               ("j" . ,(lambda () (funcall seek-by -10)))
-               ("l" . ,(lambda () (funcall seek-by 10)))
-               ("p" . ,(lambda () (funcall navigate 'previous)))
-               ("n" . ,(lambda () (funcall navigate 'next)))
-               ("m" . ,toggle-audio)
-               ("." . ,cycle-speed)))
-      (let ((function (cdr binding)))
-        (keymap-set map (car binding) (lambda () (interactive) (funcall function)))))
-    (etaf-ui--media-printing-guard map)
+  (progn
     (etaf-on-mounted
      (lambda ()
-       (setq cleanup (etaf-ui--surface-keys buffer panel tag return-focus map))
+       (setq cleanup (etaf-ui--surface-return buffer return-focus))
        ;; The viewer owns the whole window; a text cursor has no target.
        (when (buffer-live-p buffer)
          (with-current-buffer buffer
@@ -374,6 +364,7 @@ A modal viewer keeps the application underneath from receiving letters."
        'column
        (list :ref panel :role 'dialog :aria-label (or title "Media")
              :tab-index -1 :keymap nil :on-dismiss on-close
+             :focus-scope 'modal :keys keys
              :position 'absolute :layer 'root :z-index 1001
              :left '(px 0) :top '(lh 0) :width '(% 100) :height (list 'lh lines)
              :background-color (etaf-ui--media-color :scrim) :color fg

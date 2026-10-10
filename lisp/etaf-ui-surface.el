@@ -4,7 +4,8 @@
 
 ;;; Commentary:
 ;; Ebox owns placement, occlusion and focus. These Components own the panel
-;; presentation, dismissal policy and native keyboard shortcuts.
+;; presentation and dismissal policy; each panel is an ETAF modal focus scope,
+;; so Tab, arrows and Escape stay inside it while it is open.
 
 ;;; Code:
 (require 'etaf-ui-input)
@@ -49,67 +50,17 @@ callback signal `etaf-event-error'."
           (etaf-event-error nil))))
     dismissed))
 
-(defun etaf-ui--surface-keys (buffer panel tag return-targets &optional extra)
-  "Install BUFFER-local shortcuts for committed PANEL under unique TAG.
-Retain RETURN-TARGETS for nested handoff and return cleanup.  EXTRA is an
-optional keymap of surface-specific commands layered over the shared keys.
-The shortcuts outrank application key maps, including emulation maps, while
-the surface is open.  Target selection and navigation stay with the public
-Runtime."
-  (let ((map (make-sparse-keymap)))
-    (cl-labels ((command (function)
-                  (lambda ()
-                    (interactive)
-                    (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
-                      (funcall function runtime)))))
-      (dolist (key '("<escape>" "C-g"))
-        (keymap-set map key
-                    (command (lambda (runtime)
-                               (etaf-dispatch-event runtime panel 'dismiss)))))
-      (dolist (key '("TAB" "<tab>" "<down>"))
-        (keymap-set map key
-                    (command (lambda (runtime) (etaf-focus-within runtime panel 1)))))
-      (dolist (key '("<backtab>" "S-TAB" "<up>"))
-        (keymap-set map key
-                    (command (lambda (runtime) (etaf-focus-within runtime panel -1)))))
-      (dolist (key '("RET" "<return>"))
-        (keymap-set map key (command #'etaf-activate)))
-      (when extra
-        (map-keymap (lambda (key binding) (define-key map (vector key) binding))
-                    extra)))
-    ;; A retained panel can stop painting when its anchor disappears. Resolve
-    ;; availability at key lookup, so such a panel cannot intercept commands.
-    (map-keymap
-     (lambda (key binding)
-       (define-key map (vector key)
-                   `(menu-item "" ,binding
-                               :filter ,(lambda (command)
-                                          (when-let* ((runtime (etaf-runtime-for-buffer buffer))
-                                                      ;; An unmounted or not yet
-                                                      ;; committed panel has no
-                                                      ;; address; treat it as
-                                                      ;; unavailable rather than
-                                                      ;; failing the key lookup.
-                                                      ((ignore-errors
-                                                         (etaf-host-ref-position
-                                                          runtime panel))))
-                                            command)))))
-     map)
-    ;; Applications commonly bind their screen keys through emulation maps;
-    ;; the newest open surface goes first so its shortcuts win while open.
-    (let ((entry (list (cons tag map))) (route (cons tag return-targets)))
-      (with-current-buffer buffer
-        (set (make-local-variable tag) t)
-        (setq-local emulation-mode-map-alists
-                    (cons entry emulation-mode-map-alists))
-        (push route etaf-ui--surface-return-stack))
-      (lambda ()
-        (when (buffer-live-p buffer)
-          (with-current-buffer buffer
-            (setq emulation-mode-map-alists
-                  (delq entry emulation-mode-map-alists))
-            (setq etaf-ui--surface-return-stack (delq route etaf-ui--surface-return-stack))
-            (kill-local-variable tag)))))))
+(defun etaf-ui--surface-return (buffer return-targets)
+  "Record RETURN-TARGETS of a surface opened in BUFFER; return its cleanup.
+A surface opened from another one hands focus back along this stack."
+  (let ((route (cons 'surface return-targets)))
+    (with-current-buffer buffer
+      (push route etaf-ui--surface-return-stack))
+    (lambda ()
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (setq etaf-ui--surface-return-stack
+                (delq route etaf-ui--surface-return-stack)))))))
 
 (defun etaf-ui--surface-card-children (title close compact spacious body footer)
   "Return the header, body and footer nodes of one floating card.
@@ -176,14 +127,13 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
      (delq nil (cons (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
                        (etaf-focused-host-ref runtime))
                      (copy-sequence (cdar etaf-ui--surface-return-stack))))))
-   (tag (make-symbol "etaf-ui-surface-keys"))
    (cleanup nil)
    (registration nil))
   :setup
   (progn
     (etaf-on-mounted
      (lambda ()
-       (setq cleanup (etaf-ui--surface-keys buffer panel tag return-focus))
+       (setq cleanup (etaf-ui--surface-return buffer return-focus))
        (let ((runtime (or (etaf-current-runtime)
                           (etaf-runtime-for-buffer buffer))))
          (when runtime
@@ -194,9 +144,8 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
            (when (and runtime
                       (ignore-errors (etaf-host-ref-position runtime panel)))
            ;; A surface without a focusable child does not need a second
-           ;; publication just to focus its -1 panel root.  Keymap-based
-           ;; dismissal remains buffer-local; interactive surfaces still
-           ;; focus their first eligible child through Ebox.
+           ;; publication just to focus its -1 panel root; its modal scope
+           ;; still routes Escape and keys to the panel.
            (ignore-errors (etaf-focus-within runtime panel))))))
     (etaf-on-unmounted
      (lambda ()
@@ -270,6 +219,7 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
            (list :ref panel :class "etaf-floating-panel"
                  :role (if modal 'dialog 'group) :tab-index -1
                  :aria-label title :keymap nil :on-dismiss on-close
+                 :focus-scope 'modal
                  :position 'absolute :layer 'root :z-index 1001
                  :anchor anchor :placement placement
                  :left (cond (anchor '(px 0))
@@ -315,8 +265,8 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
                                nil)
                     content))
       ;; A Desktop may request an unpainted modal while retaining its
-      ;; application surface underneath.  The panel's retained focus/keymap
-      ;; policy still owns keyboard dismissal and navigation.
+      ;; application surface underneath.  The panel's modal focus scope
+      ;; still owns keyboard dismissal and navigation.
       (if modal
           (etaf-node 'fragment nil (list content))
         content))))

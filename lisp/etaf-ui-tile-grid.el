@@ -51,7 +51,7 @@
                        (or (null (cdr entry)) (functionp (cdr entry)))
                        "a coordinate callback or nil" 'etaf-tile-grid)))
   :view
-  (column :class "etaf-tile-grid" :role 'grid
+  (column :class "etaf-tile-grid" :role 'grid :focus-group 'grid
           :width (list 'ch (* columns cell-width))
           (row :for (r (number-sequence 0 (1- rows))) :key r :role 'row
                (etaf-ui--tile :for (c (number-sequence 0 (1- columns))) :key c

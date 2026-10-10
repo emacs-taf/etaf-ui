@@ -72,6 +72,8 @@ Tone colors are Theme tokens read inside Host property bindings, so both a
 selection change and a Theme change stay retained paint updates."
   :view
   (box :ref ref :role 'button :aria-label label
+       :aria-selected (eq (etaf-ui--desktop-bar-item-tone item-key active state)
+                          'active)
        :width 'max-content :disabled disabled
        :tab-index (unless disabled 0) :pointer (unless disabled 'arrow)
        :on-press callback :padding '((lh 0) (ch 1.5))
@@ -193,6 +195,7 @@ caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
      'row
      (list :class (etaf-ui--class-value "etaf-taskbar" nil class)
            :role 'toolbar :aria-label "Taskbar" :width 'stretch
+           :focus-group 'horizontal
            :height '(lh 1) :item-gap '(ch 1)
            :padding '((lh 0) (ch 1))
            :background-color (plist-get shell :ui-shell-bg)
@@ -290,6 +293,7 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
      'flex
      (list :class (etaf-ui--class-value "etaf-workspace-bar" nil class)
            :role 'tablist :aria-label "Workspaces" :width 'stretch
+           :focus-group 'horizontal
            :height '(lh 1) :flex-direction 'row :gap '((lh 0) (ch 1))
            :padding '((lh 0) (ch 1))
            :background-color (plist-get shell :ui-shell-bg)
@@ -528,6 +532,8 @@ layout policy updates the divider through its retained bindings."
   :view
   (box :class "etaf-splitter-divider" :role 'separator :tab-index 0
        :aria-label (if (eq orientation 'horizontal) "Resize columns" "Resize rows")
+       ;; A left/right split has an upright rule that arrows move sideways.
+       :aria-orientation (if (eq orientation 'horizontal) 'vertical 'horizontal)
        :pointer (if (eq orientation 'horizontal) 'hdrag 'vdrag)
        :use use :on-drag on-change
        :z-index (etaf-ui--reactive-value z-index)
@@ -545,6 +551,7 @@ layout policy updates the divider through its retained bindings."
           (max-ratio 0.9) on-change use class overlay z-index divider-content
           overlay-rect (visible t))
   "Render a controlled split layout with a keyboard-focusable divider.
+Arrows across the focused divider step it like a pointer drag.
 
 HORIZONTAL splits left/right; VERTICAL splits top/bottom.  RATIO is the first
 pane's fraction and is caller-owned.  ON-CHANGE receives the raw divider
@@ -612,6 +619,8 @@ a ratio or window/layout policy."
             (list :class "etaf-splitter-divider" :role 'separator :tab-index 0
                   :aria-label (if (eq orientation 'horizontal)
                                   "Resize columns" "Resize rows")
+                  :aria-orientation (if (eq orientation 'horizontal)
+                                        'vertical 'horizontal)
                   :pointer (if (eq orientation 'horizontal) 'hdrag 'vdrag)
                   :use use :on-drag on-change
                   :z-index (etaf-ui--reactive-value z-index)
@@ -672,7 +681,8 @@ widens it; `left' serves a pane on the divider's right.  Each drag move
 passes the candidate width, clamped to MIN and MAX pixels when given, to
 ON-CHANGE; ON-END receives the final width.  The divider shows a hairline
 in the divider color beside the pane when LINE is non-nil, over
-BACKGROUND, and is wide enough to grab.  The width stays caller-owned."
+BACKGROUND, and is wide enough to grab.  The focused divider steps the
+width one column per Left or Right press.  The width stays caller-owned."
   :bindings ((origin (list nil)))
   :validate
   (progn
@@ -694,6 +704,8 @@ BACKGROUND, and is wide enough to grab.  The width stays caller-owned."
      (append
       (list :class "etaf-pane-resizer" :role 'separator
             :aria-label "Resize pane" :pointer 'hdrag
+            :aria-orientation 'vertical
+            :tab-index (when (or on-change on-end) 0)
             :width '(px 5) :height 'stretch :flex-shrink 0
             :background-color background
             :on-drag

@@ -52,6 +52,7 @@ ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
     (etaf-check-prop :on-change on-change (functionp on-change)
                      "a function" 'etaf-tabs)
     (etaf-node 'row (list :class (format "etaf-tabs %s" variant) :role 'tablist
+                          :focus-group 'horizontal
                           :width 'stretch :item-gap '(ch 1))
                (mapcar
                 (lambda (item)
@@ -79,6 +80,7 @@ ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
                                 (list :label label
                                       :variant (if selected 'secondary 'ghost)
                                       :padding '((lh 0) (ch 1))
+                                      :aria-selected selected
                                       :aria-label (if count
                                                       (format "%s %s" label count)
                                                     label)
@@ -154,12 +156,14 @@ ON-SELECT, when supplied, receives the zero-based item index."
                      "a function or nil" 'etaf-breadcrumb))
   :render
   (etaf-node 'row (list :class "etaf-breadcrumb" :width 'stretch
-                        :item-gap '(ch 1))
+                        :item-gap '(ch 1) :focus-group 'horizontal)
              (cl-loop for item in items for index from 0 append
                       (let ((selected-index index))
                        (list (if on-select
                                 (etaf-node 'etaf-button
                                            (list :label item :variant 'ghost
+                                                 :aria-current
+                                                 (= index (1- (length items)))
                                                  :on-press
                                                  (lambda ()
                                                    (funcall on-select selected-index)))
@@ -183,6 +187,7 @@ ON-SELECT, when supplied, receives the zero-based item index."
                      "a key present in :items" 'etaf-steps)
     (etaf-view
      (flex :class "etaf-steps" :width 'stretch :column-gap '(ch 1)
+           :focus-group 'horizontal
            :row-gap '(lh 1) :flex-wrap 'wrap :align-items 'center
        (expr
         (cl-loop for item in items for index from 1 append
@@ -192,6 +197,7 @@ ON-SELECT, when supplied, receives the zero-based item index."
                         (active (equal key current)))
                    (list (etaf-view
                           (etaf-button :label label :aria-label caption
+                                       :aria-current active
                                        :variant (if active 'secondary 'ghost)
                                        :on-press (and on-change
                                                       (lambda () (funcall on-change key)))))
