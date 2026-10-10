@@ -28,9 +28,9 @@
 
 - The icon set adds `pin`, `bell-off`, `send`, `reply`, `users`, `megaphone`,
   `at`, a filled status `dot`, `info`, `menu`, `more-vertical`, `sidebar`,
-  `eye` for view counts, and `smile`, `image`, `video` and `file` for reaction
-  and attachment affordances, with font glyphs, SVG shapes and line-safe text
-  fallbacks.
+  `eye` for view counts, and `smile`, `image`, `video`, `file` and
+  `paperclip` for reaction and attachment affordances, with font glyphs, SVG
+  shapes and line-safe text fallbacks.
 
 - `etaf-avatar` accepts `:lines` for multi-row list avatars and
   `:background` for a solid identity color with white initials.

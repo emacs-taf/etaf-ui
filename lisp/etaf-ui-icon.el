@@ -422,6 +422,7 @@ change stays a retained Host update rather than a Component rerender."
              (reply . "\uf112") (users . "\uf0c0") (megaphone . "\uf0a1")
              (at . "\uf1fa") (smile . "\uf118") (image . "\uf03e")
              (video . "\uf03d") (file . "\uf15b") (info . "\uf05a")
+             (paperclip . "\uf0c6")
              (menu . "\uf0c9") (more-vertical . "\uf142") (eye . "\uf06e")))
        (fallback '((play . ">") (pause . "||") (next . ">|") (previous . "|<")
                    (repeat . "@") (repeat-one . "@1") (shuffle . "~")
@@ -439,6 +440,7 @@ change stays a retained Host update rather than a Component rerender."
                    (pin . "^") (bell-off . "z") (send . ">") (reply . "<")
                    (users . "#") (megaphone . "!") (at . "@") (dot . "*")
                    (smile . ":)") (image . "[]") (video . "|>") (file . "=")
+                   (paperclip . "&")
                    (info . "i") (menu . "=") (more-vertical . ":")
                    (sidebar . "|]") (eye . "o")))
        (fonts
@@ -455,6 +457,7 @@ change stays a retained Host update rather than a Component rerender."
                      (music . "\ue405") (settings . "\ue8b8") (chevron-up . "\ue5ce")
                      (chevron-down . "\ue5cf") (chevron-left . "\ue5cb")
                      (chevron-right . "\ue5cc") (check . "\ue5ca")
+                     (paperclip . "\ue226")
                      (account . "\ue7fd") (loading . "\ue863")))
           (octicons ("github-octicons") 0.86
                     ((play . "\uf05a") (heart-filled . "♥") (volume . "\uf0ba")
@@ -544,6 +547,7 @@ change stays a retained Host update rather than a Component rerender."
            (image . "<rect x='1.5' y='2.5' width='11' height='9' rx='1.5'/><circle cx='5' cy='5.6' r='1'/><path d='M2 10.5L5.5 7.5L8 9.5L9.8 8L12 10'/>")
            (video . "<rect x='1.5' y='3.5' width='8' height='7' rx='1.5'/><path d='M9.5 6L12.5 4.2V9.8L9.5 8'/>")
            (file . "<path d='M3 1.5H8L11 4.5V12.5H3ZM8 1.5V4.5H11'/>")
+           (paperclip . "<path d='M12.5 6.4l-5.4 5.4a3.5 3.5 0 0 1-5-5l5.4-5.4a2.3 2.3 0 0 1 3.3 3.3l-5.4 5.4a1.2 1.2 0 0 1-1.7-1.7l5-5'/>")
            (info . "<circle cx='7' cy='7' r='5.5'/><path d='M7 6.2V10'/><circle cx='7' cy='4.3' r='0.7' fill='currentColor' stroke='none'/>")
            (menu . "<path d='M2 3.5H12M2 7H12M2 10.5H12'/>")
            (more-vertical . "<circle cx='7' cy='3' r='1.2' fill='currentColor'/><circle cx='7' cy='7' r='1.2' fill='currentColor'/><circle cx='7' cy='11' r='1.2' fill='currentColor'/>")
