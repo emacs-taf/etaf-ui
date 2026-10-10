@@ -12,6 +12,10 @@
   `etaf-range` and `etaf-slider` change with Left/Right (`etaf-range` adds
   Home/End and `:key-step`); splitter dividers and `etaf-pane-resizer` step with
   arrows; tree branches open with Right and close with Left.
+- `etaf-ui-icon` and `etaf-ui-toggle-icon` accept `:tab-index`; a negative
+  value keeps a pressable icon clickable but out of Tab order. They also accept
+  `:aria-label`, which names them in `etaf-palette` and defaults to a string
+  `:help-echo`.
 
 - `etaf-search-field` renders a rounded search pill with an optional
   magnifier and a clear control, coloured by new `:ui-search-bg` and

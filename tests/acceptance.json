@@ -89,6 +89,11 @@
       "purpose": "Mounted icons occupy exactly two rows when requested, preserve minimum width and presentation props, and dispatch a callback from the whole Host."
     },
     {
+      "name": "etaf-ui-icon-tab-index-keeps-a-pressable-icon-out-of-tab-order",
+      "file": "tests/etaf-ui-icon-tests.el",
+      "purpose": "Pressable icons are Tab stops named by their label or help text, while a negative tab index keeps an icon clickable but skipped by Tab."
+    },
+    {
       "name": "etaf-ui-icon-inside-a-control-shows-the-control-help",
       "file": "tests/etaf-ui-icon-tests.el",
       "purpose": "An icon without its own help text leaves the enclosing control's help visible over the icon."

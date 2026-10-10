@@ -698,11 +698,15 @@
 ;; replaces only an existing example mount. Unmount or kill it to dispose.
 ;; This example is a GUI workload, not a performance certification.
 ;;
-;; Component: etaf-ui-icon (&key name set size color face lines min-width help-echo on-press id class ref)
+;; Component: etaf-ui-icon (&key name set size color face lines min-width help-echo on-press tab-index aria-label id class ref)
 ;; Render NAME in one standard row, or exactly two with :lines 2. SIZE defaults
 ;; to 1.0 and is clamped within those rows; font ascent and descent must each
 ;; fit the default baseline. MIN-WIDTH is in cells (default 2). ON-PRESS is a
 ;; zero-argument callback on the complete box, with ordinary ETAF focus/events.
+;; A pressable icon is a Tab stop with TAB-INDEX (default 0); a negative
+;; TAB-INDEX keeps it clickable but out of Tab order, for example when its
+;; enclosing list already owns the keyboard. ARIA-LABEL names it in
+;; `etaf-palette' and defaults to a string HELP-ECHO, then NAME.
 ;; FACE accepts a face name or plist; only foreground/background are used so
 ;; caller typography cannot enlarge the icon. COLOR overrides its foreground.
 ;; SVG uses currentColor and cached centered images. On graphical frames with
@@ -719,7 +723,7 @@
 ;; ETAF during rendering. Invalid geometry/callback props fail before publish.
 ;; Use (etaf-view (etaf-ui-icon :name 'play :set 'svg :on-press action)).
 ;;
-;; Function: etaf-ui-icon (name &key set (size 1.0) color face (lines 1) (min-width 2) help-echo on-press id class ref)
+;; Function: etaf-ui-icon (name &key set (size 1.0) color face (lines 1) (min-width 2) help-echo on-press tab-index aria-label id class ref)
 ;;;###autoload (autoload 'etaf-ui-icon "etaf-ui" nil nil)
 ;; Return the same typed icon View from ordinary Elisp with positional NAME.
 ;; Pass it directly to etaf-mount, or use the Component's :name form in the DSL.
@@ -734,16 +738,16 @@
 ;; Host text expressions instead of adding a positioned overlay. Returned
 ;; strings are independent; shared image values must not be mutated.
 ;;
-;; Component: etaf-ui-toggle-icon (&key value off on set size color on-color face lines min-width help-echo on-press id class ref)
+;; Component: etaf-ui-toggle-icon (&key value off on set size color on-color face lines min-width help-echo on-press tab-index aria-label id class ref)
 ;; Render one icon that switches between OFF and ON through retained Host
 ;; text instead of repainting the View. VALUE is a boolean or a reactive
 ;; source; both variants resolve while rendering and each row then reads
 ;; VALUE directly, so a change publishes a retained text update. OFF and ON
 ;; may name the same icon when only ON-COLOR differs, which turns a colour
 ;; state into the same retained update. ON-COLOR defaults to COLOR. SET,
-;; SIZE, FACE, LINES, MIN-WIDTH (cells, default 2), HELP-ECHO, ON-PRESS, ID,
-;; CLASS and REF match `etaf-ui-icon'; the complete box is the ON-PRESS
-;; target.
+;; SIZE, FACE, LINES, MIN-WIDTH (cells, default 2), HELP-ECHO, ON-PRESS,
+;; TAB-INDEX, ID, CLASS and REF match `etaf-ui-icon'; the complete box is the
+;; ON-PRESS target. ARIA-LABEL defaults to a string HELP-ECHO, then "OFF / ON".
 ;; Use (etaf-view (etaf-ui-toggle-icon :value playing :off 'play :on 'pause)).
 ;;
 ;; Variable: etaf-ui-icon-default-set

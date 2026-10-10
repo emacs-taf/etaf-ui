@@ -300,6 +300,13 @@ single centered canvas, sliced at standard row boundaries by the caller."
           (push value values)))
       (nreverse values))))
 
+(defun etaf-ui--icon-label (label help fallback)
+  "Return LABEL, else a string HELP, else FALLBACK as an accessible name."
+  (cond (label label)
+        ((stringp help) help)
+        ((symbolp fallback) (symbol-name fallback))
+        (t fallback)))
+
 (cl-defun etaf-ui-icon-lines (name &key set (size 1.0) color face (lines 1))
   "Return owned propertized strings for icon NAME in LINES standard rows.
 SET, SIZE, COLOR and FACE use the same resolution as `etaf-ui-icon'. Resolve
@@ -313,10 +320,13 @@ must not be mutated; each returned string can be changed independently."
 
 (etaf-define-component etaf-ui-icon
     (&key name set (size 1.0) color face (lines 1) (min-width 2)
-          help-echo on-press id class ref)
+          help-echo on-press tab-index aria-label id class ref)
   "Render one semantic icon in one or two standard rows.
 SIZE scales within the reserved rows and is clamped to their pixel height.
-MIN-WIDTH is in cells.  The complete box is the ON-PRESS target."
+MIN-WIDTH is in cells.  The complete box is the ON-PRESS target; a pressable
+icon is a Tab stop with TAB-INDEX, default 0, and a negative TAB-INDEX keeps
+it clickable but out of Tab order.  ARIA-LABEL names it for the command
+palette and defaults to a string HELP-ECHO, then NAME."
   :render
   (progn
     (etaf-check-prop :size size (and (numberp size) (> size 0)) "a positive number" 'etaf-ui-icon)
@@ -330,8 +340,9 @@ MIN-WIDTH is in cells.  The complete box is the ON-PRESS target."
        'column
        (append
         (list :id id :ref ref :class (etaf-ui--class-value "etaf-ui-icon" nil class)
-              :role (if on-press 'button 'img) :aria-label (symbol-name name)
-              :on-press on-press :tab-index (when on-press 0)
+              :role (if on-press 'button 'img)
+              :aria-label (etaf-ui--icon-label aria-label help-echo name)
+              :on-press on-press :tab-index (and on-press (or tab-index 0))
               :width 'max-content :min-width (list 'ch min-width)
               :height (list 'lh lines) :overflow 'hidden
               :color (plist-get paint :foreground)
@@ -344,26 +355,31 @@ MIN-WIDTH is in cells.  The complete box is the ON-PRESS target."
                             (list (etaf-node 'text nil (list value))))) values)))))
 
 (cl-defun etaf-ui-icon (name &key set (size 1.0) color face (lines 1)
-                            (min-width 2) help-echo on-press id class ref)
+                            (min-width 2) help-echo on-press tab-index aria-label
+                            id class ref)
   "Construct an icon View for NAME with SET, SIZE, COLOR, FACE and LINES.
-MIN-WIDTH, HELP-ECHO, ON-PRESS, ID, CLASS and REF belong to the whole box.
+MIN-WIDTH, HELP-ECHO, ON-PRESS, TAB-INDEX, ARIA-LABEL, ID, CLASS and REF
+belong to the whole box.
 Inside `etaf-view', use the component form with :name instead of NAME."
   (etaf-node 'etaf-ui-icon
              (list :name name :set set :size size :color color :face face
                    :lines lines :min-width min-width :help-echo help-echo
-                   :on-press on-press :id id :class class :ref ref) nil))
+                   :on-press on-press :tab-index tab-index :aria-label aria-label
+                   :id id :class class :ref ref)
+             nil))
 
 (etaf-define-component etaf-ui-toggle-icon
     (&key value off on set (size 1.0) color on-color face (lines 1) (min-width 2)
-          help-echo on-press id class ref)
+          help-echo on-press tab-index aria-label id class ref)
   "Render OFF or ON as one icon that switches without re-rendering.
 VALUE is a boolean or a reactive source.  Both variants are resolved while
 rendering; each row's text then reads VALUE directly, so a change publishes a
 retained Host text update instead of rebuilding the Component.  OFF and ON
 may name the same icon when only ON-COLOR differs, which turns a colour state
 such as shuffle or repeat into the same retained update.  ON-COLOR defaults
-to COLOR.  SET, SIZE, FACE, LINES, MIN-WIDTH, HELP-ECHO, ON-PRESS, ID, CLASS
-and REF match `etaf-ui-icon'.  The complete box is the ON-PRESS target."
+to COLOR.  SET, SIZE, FACE, LINES, MIN-WIDTH, HELP-ECHO, ON-PRESS,
+TAB-INDEX, ID, CLASS and REF match `etaf-ui-icon'.  The complete box is the
+ON-PRESS target.  ARIA-LABEL defaults to a string HELP-ECHO, then \"OFF / ON\"."
   :render
   (progn
     (etaf-check-prop :size size (and (numberp size) (> size 0)) "a positive number" 'etaf-ui-toggle-icon)
@@ -384,8 +400,10 @@ and REF match `etaf-ui-icon'.  The complete box is the ON-PRESS target."
       (etaf-view
        (column :id id :ref ref :class (etaf-ui--class-value "etaf-ui-icon" nil class)
                :role (if on-press 'button 'img)
-               :aria-label (format "%s / %s" (symbol-name off) (symbol-name on))
-               :on-press on-press :tab-index (when on-press 0)
+               :aria-label (etaf-ui--icon-label
+                            aria-label help-echo
+                            (format "%s / %s" (symbol-name off) (symbol-name on)))
+               :on-press on-press :tab-index (and on-press (or tab-index 0))
                :help-echo help-echo
                :width 'max-content :min-width (list 'ch min-width)
                :height (list 'lh lines) :overflow 'hidden

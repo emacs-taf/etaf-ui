@@ -111,6 +111,34 @@ of signaling from `font-info'."
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(ert-deftest etaf-ui-icon-tab-index-keeps-a-pressable-icon-out-of-tab-order ()
+  "A negative TAB-INDEX leaves a pressable icon clickable but skipped by Tab."
+  (let ((buffer (generate-new-buffer " *etaf-ui-icon-test*")) (pressed nil))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer
+                      (etaf-view
+                       (flex :flex-direction 'row
+                         (etaf-ui-icon :name 'play :set 'svg :ref 'first
+                                       :help-echo "Play" :on-press #'ignore)
+                         (etaf-ui-icon :name 'plus :set 'svg :ref 'skipped :tab-index -1
+                                       :on-press (lambda () (push 'skipped pressed)))
+                         (etaf-ui-toggle-icon :value nil :off 'download :on 'check :set 'svg
+                                              :ref 'last :aria-label "Download"
+                                              :on-press #'ignore))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (should (equal (plist-get (etaf-runtime-host-props-for runtime 'first) :aria-label)
+                           "Play"))
+            (should (equal (plist-get (etaf-runtime-host-props-for runtime 'last) :aria-label)
+                           "Download"))
+            (etaf-focus runtime 'first)
+            (etaf-focus-next runtime)
+            (should (eq (etaf-focused-host-ref runtime) 'last))
+            (etaf-dispatch-event runtime 'skipped 'press)
+            (should (equal pressed '(skipped)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-icon-inside-a-control-shows-the-control-help ()
   "An icon without its own help leaves the enclosing control's help visible."
   (let ((buffer (generate-new-buffer " *etaf-ui-icon-test*")))
@@ -194,7 +222,7 @@ of signaling from `font-info'."
                 (should (equal (plist-get props :height) '(lh 1)))
                 (should (eq (plist-get props :role) 'img))
                 (should (equal (plist-get props :help-echo) "Play/Pause"))
-                (should (equal (plist-get props :aria-label) "stop / play")))
+                (should (equal (plist-get props :aria-label) "Play/Pause")))
               (should (string-match-p "S" (funcall text)))
               (should-not (string-match-p "P" (funcall text)))
               (should (member "#334455"
