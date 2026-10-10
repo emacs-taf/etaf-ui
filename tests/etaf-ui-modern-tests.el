@@ -117,6 +117,31 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-tabs-address-items-by-ref ()
+  "A tab item's optional :ref reaches the rendered control."
+  (with-temp-buffer
+    (let ((active (etaf-ref 'one))
+          (selected nil))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 40)
+                (etaf-tabs :items '((:key one :label "One" :ref one-tab)
+                                    (:key two :label "Two" :ref two-tab))
+                           :active active
+                           :on-change (lambda (key)
+                                        (setf selected key
+                                              (etaf-value active) key))))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (should (etaf-host-ref-position runtime 'two-tab))
+              (etaf-dispatch-event runtime 'two-tab 'press)
+              (should (eq selected 'two))
+              (should (eq (etaf-value active) 'two))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-tabs-keep-every-label-in-place-when-switching ()
   "Switching the active tab never moves any tab label."
   (with-temp-buffer

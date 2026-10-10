@@ -618,8 +618,10 @@
 ;; Compose a modal Dialog and List for caller-owned command selection.
 ;;
 ;; Component: etaf-tabs (&key items active on-change variant)
-;; Render controlled tabs from unique scalar keys and labels. ON-CHANGE receives
-;; the selected key; content can be composed with ordinary conditional Views.
+;; Render controlled tabs from unique scalar keys and labels.  An item may
+;; carry a scalar :count and a symbol :ref, so callers can address a tab by
+;; name.  ON-CHANGE receives the selected key; content can be composed with
+;; ordinary conditional Views.
 ;;
 ;; Component: etaf-accordion (&key items open on-toggle multiple)
 ;; Render controlled disclosure sections. Items contain :key, :label and

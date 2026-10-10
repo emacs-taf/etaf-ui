@@ -13,7 +13,8 @@
 
 (defun etaf-ui--navigation-items (items component)
   "Validate navigation ITEMS for COMPONENT and return them unchanged.
-An item may carry an optional scalar `:count' shown after its label."
+An item may carry an optional scalar `:count' shown after its label, and an
+optional symbol `:ref' a caller can address the tab control by."
   (etaf-check-prop :items items (proper-list-p items)
                    "a list of item plists" component)
   (let (keys labels)
@@ -25,9 +26,11 @@ An item may carry an optional scalar `:count' shown after its label."
                             (not (string-empty-p (plist-get item :label)))
                             (let ((count (plist-get item :count)))
                               (or (null count) (numberp count) (stringp count)))
+                            (let ((ref (plist-get item :ref)))
+                              (or (null ref) (symbolp ref)))
                             (not (member (plist-get item :key) keys))
                             (not (member (plist-get item :label) labels)))
-                       "unique non-nil :key, nonempty string :label and scalar :count"
+                       "unique non-nil :key, nonempty string :label, scalar :count and a symbol :ref"
                        component)
       (push (plist-get item :key) keys)
       (push (plist-get item :label) labels))
@@ -37,7 +40,8 @@ An item may carry an optional scalar `:count' shown after its label."
     (&key items active on-change (variant 'underline))
   "Render controlled navigation TABS.
 ITEMS are plists with unique scalar :key and nonempty string :label; an
-optional scalar :count renders after the label in the muted token color.
+optional scalar :count renders after the label in the muted token color, and
+an optional symbol :ref lets a caller address the tab control by name.
 ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
   :render
   (let* ((items (etaf-ui--navigation-items items 'etaf-tabs))
@@ -71,13 +75,16 @@ ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
                     ;; makes the whole strip shift on every switch.  Both
                     ;; variants share one padding for the same reason.
                     (etaf-node 'etaf-button
-                               (list :label label
-                                     :variant (if selected 'secondary 'ghost)
-                                     :padding '((lh 0) (ch 1))
-                                     :aria-label (if count
-                                                     (format "%s %s" label count)
-                                                   label)
-                                     :on-press (lambda () (funcall on-change key)))
+                               (append
+                                (list :label label
+                                      :variant (if selected 'secondary 'ghost)
+                                      :padding '((lh 0) (ch 1))
+                                      :aria-label (if count
+                                                      (format "%s %s" label count)
+                                                    label)
+                                      :on-press (lambda () (funcall on-change key)))
+                                (when (plist-get item :ref)
+                                  (list :ref (plist-get item :ref))))
                                (when count (list content)))))
                 items))))
 
