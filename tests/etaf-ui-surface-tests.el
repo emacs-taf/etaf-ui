@@ -104,6 +104,38 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(etaf-define-component etaf-ui-surface-test--themed-menu ()
+  "A dropdown that reads the application's provided theme tokens."
+  :setup (etaf-theme-provide '(:ui-accent-soft-bg "#123456"))
+  :render
+  (etaf-view
+   (column :width '(ch 80) :height '(lh 10)
+     (etaf-dropdown-menu
+      :label "Actions"
+      :items '((:key edit :label "Edit" :icon play))
+      :on-select #'ignore))))
+
+(ert-deftest etaf-ui-menu-hover-token-resolves-against-the-provided-theme ()
+  "An iconic dropdown row hovers with the application's accent tint.
+A deferred token nested in `:hover-style' is not lowered by ETAF host
+props, so the catalog resolves it before the mouse face reaches Ebox."
+  (with-temp-buffer
+    (unwind-protect
+        (progn
+          (etaf-mount (current-buffer) (etaf-view (etaf-ui-surface-test--themed-menu)))
+          (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                 (trigger (etaf-ui-surface-test--control runtime "Actions")))
+            (should trigger)
+            (etaf-focus runtime trigger)
+            (etaf-activate runtime)
+            (let* ((ref (etaf-ui-surface-test--control runtime "Edit"))
+                   (props (and ref (etaf-runtime-host-props-for runtime ref))))
+              (should ref)
+              (should (equal (plist-get (plist-get props :hover-style) :background-color)
+                             "#123456")))))
+      (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+        (etaf-unmount runtime)))))
+
 (ert-deftest etaf-ui-dialog-composes-slots-and-blocks-covered-controls ()
   "The modal canvas covers background targets and returns focus after closing."
   (with-temp-buffer

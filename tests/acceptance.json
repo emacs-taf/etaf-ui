@@ -464,6 +464,11 @@
       "purpose": "A dropdown renders its items, skips disabled ones and invokes selection once."
     },
     {
+      "name": "etaf-ui-menu-hover-token-resolves-against-the-provided-theme",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A dropdown row's hover tint resolves the provided theme token into a concrete colour."
+    },
+    {
       "name": "etaf-ui-dialog-composes-slots-and-blocks-covered-controls",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "The modal canvas covers background targets and returns focus after closing."
