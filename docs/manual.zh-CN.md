@@ -62,6 +62,7 @@ Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 回调内，每个格子就保留自己的颜色和文字更新边界；相关写入用 `etaf-batch`。
 `cell-ref` 可提供显式的公共焦点和事件地址，不传时使用实例独立的引用。
 `on-cell-press` 同时用于点击和 TAB/RET；不传时网格只读。
+`cell-label` 提供无障碍和提示名称，例如“e2 白兵”，避免只有通用坐标。
 
 ```elisp
 (let ((color (etaf-ref "#334155")))
@@ -79,6 +80,28 @@ Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 
 定时器、搜索算法和数据保存归调用方所有。网格尺寸超过窗口时沿用正常的
 布局和视口处理。完整属性契约见[根入口](../etaf-ui.el)。
+
+## 定宽文本画面
+
+`etaf-text-grid` 用于终端式字符画面，每行保留独立的文本更新边界。
+调用方提供行列数以及 `row-text` 回调，在回调内部读取对应行的 ref，
+多行变化使用 `etaf-batch` 一起提交。短行补空格；换行、制表符和超宽内容
+会被拒绝。宽字符按 Emacs 显示列宽计算；画面应使用等宽字体。
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(let ((rows (vector (etaf-ref "Ready") (etaf-ref "@..."))))
+  (etaf-mount "*Character surface*"
+    (etaf-view
+      (etaf-text-grid :rows 2 :columns 20 :label "状态画面"
+        :row-text (lambda (row) (etaf-value (aref rows row))))))
+  (setf (etaf-value (aref rows 1)) ".@.."))
+```
+
+组件不持有定时器、光标、终端解析器或输入状态。需要每格分别聚焦、点击时
+使用 `etaf-tile-grid`；文本输入等控件可在字符画面旁组合。需要显式 retained
+写入时可提供 `row-ref`，并保持调用方受控文本同步。
 
 ## 选择 `:view` 还是 `:render`
 

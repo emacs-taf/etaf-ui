@@ -71,11 +71,12 @@ menu workloads keep their respective 50 ms and 100 ms acceptance budgets.
 `etaf-tile-grid` projects a rectangular board, heatmap or seat map without
 owning its data. Dimensions are positive integers. Coordinate callbacks use
 zero-based row/column; text fits the fixed character width. Put ref reads inside
-`cell-background` and `cell-text`, not outside the grid in a parent render.
+`cell-background`, `cell-text` and `cell-label`, not outside the grid in a parent render.
 Each cell then retains its own color/text dependency, and related writes can
 share one `etaf-batch`. Use `cell-ref` for explicit public focus/event addresses;
 omitted references are local to each mounted instance. Click and TAB/RET use
-`on-cell-press`; omit it for read-only heatmaps. Use ordinary Ebox flow/viewport
+`on-cell-press`; `cell-label` supplies meaningful names such as "White pawn e2"
+for accessibility and help. Omit the press callback for read-only heatmaps. Use ordinary Ebox flow/viewport
 handling when the board is larger than its containing window.
 
 ```elisp
@@ -95,6 +96,32 @@ handling when the board is larger than its containing window.
 The grid supplies no animation scheduler, search algorithm or persisted board.
 Their lifecycle belongs to the consumer. The complete prop contract is in
 [the package entry](../etaf-ui.el).
+
+
+## Fixed-width text surfaces
+
+`etaf-text-grid` displays a terminal-like character surface without creating
+an interactive cell for every character. The caller supplies dimensions and
+one `row-text` callback. Each row has its own retained text boundary; read the
+row's ref inside the callback and batch changes to multiple rows. Short rows
+are padded; newlines, tabs and text wider than the declared columns are rejected.
+Unicode wide characters use their Emacs display width. Use a monospaced font.
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'etaf-ui)
+(let ((rows (vector (etaf-ref "Ready") (etaf-ref "@..."))))
+  (etaf-mount "*Character surface*"
+    (etaf-view
+      (etaf-text-grid :rows 2 :columns 20 :label "Status display"
+        :row-text (lambda (row) (etaf-value (aref rows row))))))
+  (setf (etaf-value (aref rows 1)) ".@.."))
+```
+
+The component owns no timer, cursor, terminal parser or input state. Use a
+tile grid for separately focusable/pressable cells, or compose text input and
+other catalog controls beside a text grid. A consumer that needs explicit
+retained writes can supply `row-ref`; keep its controlled text synchronized.
 
 ## Choosing `:view` or `:render`
 

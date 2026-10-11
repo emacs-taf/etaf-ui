@@ -10,7 +10,7 @@
 (require 'etaf-ui-basic)
 
 (etaf-define-component etaf-ui--tile
-    (&key row column cell-width cell-background cell-text cell-ref on-cell-press)
+    (&key row column cell-width cell-background cell-text cell-label cell-ref on-cell-press)
   :bindings ((local (etaf-local-ref 'tile)))
   :view
   (box :class "etaf-tile-grid-cell"
@@ -19,8 +19,13 @@
        :wrap-mode 'none :overflow 'hidden :text-align 'center
        :background-color (when cell-background (funcall cell-background row column))
        :role (if on-cell-press 'button 'cell)
-       :aria-label (format "Cell %d,%d" row column)
-       :help-echo (format "Cell %d,%d" row column)
+       :aria-label (let ((label (if cell-label (funcall cell-label row column)
+                                 (format "Cell %d,%d" row column))))
+                     (etaf-check-prop :cell-label label (stringp label)
+                                      "a string" 'etaf-tile-grid)
+                     label)
+       :help-echo (if cell-label (funcall cell-label row column)
+                    (format "Cell %d,%d" row column))
        :tab-index (when on-cell-press 0)
        :on-press (when on-cell-press
                    (lambda () (funcall on-cell-press row column)))
@@ -35,7 +40,7 @@
   :styles (("&:focus" :text-decoration-line underline)))
 
 (etaf-define-component etaf-tile-grid
-    (&key rows columns (cell-width 2) cell-background cell-text cell-ref on-cell-press)
+    (&key rows columns (cell-width 2) cell-background cell-text cell-label cell-ref on-cell-press)
   "Render a fixed rectangular grid through zero-based coordinate callbacks."
   :validate
   (progn
@@ -45,7 +50,8 @@
                        (and (integerp (cdr entry)) (> (cdr entry) 0))
                        "a positive integer" 'etaf-tile-grid))
     (dolist (entry (list (cons :cell-background cell-background)
-                        (cons :cell-text cell-text) (cons :cell-ref cell-ref)
+                        (cons :cell-text cell-text) (cons :cell-label cell-label)
+                        (cons :cell-ref cell-ref)
                         (cons :on-cell-press on-cell-press)))
       (etaf-check-prop (car entry) (cdr entry)
                        (or (null (cdr entry)) (functionp (cdr entry)))
@@ -57,6 +63,7 @@
                (etaf-ui--tile :for (c (number-sequence 0 (1- columns))) :key c
                              :row r :column c :cell-width cell-width
                              :cell-background cell-background :cell-text cell-text
+                             :cell-label cell-label
                              :cell-ref cell-ref :on-cell-press on-cell-press))))
 
 (provide 'etaf-ui-tile-grid)

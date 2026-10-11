@@ -21,6 +21,7 @@
             (etaf-tile-grid
              :rows 2 :columns 3
              :cell-ref (lambda (row column) (intern (format "tile-%d-%d" row column)))
+             :cell-label (lambda (row column) (format "Seat %d-%d" row column))
              :cell-background (lambda (row column)
                                 (if (and (= row 0) (= column 1))
                                     (etaf-value paint) "#172033"))
@@ -32,6 +33,10 @@
                  (generation (etaf-runtime-revision runtime)))
             (etaf-dispatch-event runtime 'tile-0-1 'press)
             (should (equal presses '((0 1))))
+            (should (equal (plist-get (etaf-runtime-host-props-for runtime 'tile-0-1)
+                                     :aria-label) "Seat 0-1"))
+            (should (equal (plist-get (etaf-runtime-host-props-for runtime 'tile-0-1)
+                                     :help-echo) "Seat 0-1"))
             (etaf-batch
               (setf (etaf-value paint) "#22C55E" (etaf-value label) "S"))
             (should (> (etaf-runtime-revision runtime) generation))
@@ -55,7 +60,8 @@
           (etaf-unmount (etaf-runtime-for-buffer buffer))
           (dolist (props '((:rows 0 :columns 2) (:rows 2 :columns -1)
                           (:rows 1 :columns 1 :cell-width 0)
-                          (:rows 1 :columns 1 :cell-text 42)))
+                          (:rows 1 :columns 1 :cell-text 42)
+                          (:rows 1 :columns 1 :cell-label 42)))
             (should-error (etaf-mount buffer (etaf-node 'etaf-tile-grid props nil))
                           :type 'etaf-component-call-error))
           (should-error

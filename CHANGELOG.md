@@ -4,6 +4,11 @@
 
 ### Added
 
+- `etaf-text-grid` displays fixed-width character surfaces with independent
+  retained rows, Unicode width validation and caller-owned data.
+- `etaf-tile-grid` accepts `:cell-label` for meaningful accessibility names
+  and help text while keeping its existing coordinate and activation contract.
+
 - Catalog Components are fully keyboard operable through ETAF Host keys.
   Selectors, bars, tables, lists, trees, calendars and grids are single Tab
   stops navigated with arrows and `C-n`/`C-p`/`C-b`/`C-f`; `etaf-window` runs

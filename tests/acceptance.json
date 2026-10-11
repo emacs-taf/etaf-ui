@@ -722,6 +722,16 @@
       "name": "etaf-ui-tree-branches-open-right-and-close-left",
       "file": "tests/etaf-ui-focus-composition-tests.el",
       "purpose": "A focused Tree branch expands with Right and collapses with Left through the caller's on-toggle."
+    },
+    {
+      "name": "etaf-ui-text-grid-updates-rows-with-stable-extents",
+      "file": "tests/etaf-ui-text-grid-tests.el",
+      "purpose": "Independent Unicode rows update in place with exact padded widths, stable neighbors and no focus targets."
+    },
+    {
+      "name": "etaf-ui-text-grid-rejects-invalid-shapes-and-text",
+      "file": "tests/etaf-ui-text-grid-tests.el",
+      "purpose": "Invalid dimensions, callbacks, multiline, tabbed and overflowing text fail through the public component interface."
     }
   ]
 }

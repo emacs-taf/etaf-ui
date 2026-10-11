@@ -58,11 +58,12 @@
 ;; the control's handlers and subscriptions without owning the caller's ref.
 ;; Use inside (etaf-view (etaf-checkbox ...)); keyword arguments are component props.
 ;;
-;; Component: etaf-tile-grid (&key rows columns cell-width cell-background cell-text cell-ref on-cell-press)
+;; Component: etaf-tile-grid (&key rows columns cell-width cell-background cell-text cell-label cell-ref on-cell-press)
 ;; Render ROWS by COLUMNS fixed cells with stable coordinate identities.
 ;; Dimensions and CELL-WIDTH (character columns, default 2) are positive integers.
 ;; Optional callbacks take zero-based ROW and COLUMN. CELL-BACKGROUND returns
 ;; a color or nil; CELL-TEXT returns one line fitting CELL-WIDTH (default space).
+;; CELL-LABEL returns a string for accessibility and help (default "Cell r,c").
 ;; Read caller refs inside those callbacks to retain property/text boundaries.
 ;; ON-CELL-PRESS handles keyboard and mouse activation. Without it cells are
 ;; read-only. CELL-REF returns a distinct supported Host reference per cell;
@@ -70,6 +71,20 @@
 ;; the grid does not run timers or maintain a second selection/board state.
 ;; Invalid dimensions, callbacks or text signal etaf-component-call-error.
 ;; Use (etaf-view (etaf-tile-grid :rows 8 :columns 12 ...)).
+;;
+;; Component: etaf-text-grid (&key rows columns row-text row-ref label)
+;; Display ROWS fixed text lines, each COLUMNS character columns wide.
+;; Dimensions are positive integers. ROW-TEXT is a required callback receiving
+;; the zero-based row; return a single-line string whose display width fits
+;; COLUMNS. Short rows are padded with spaces. Read refs inside the callback to
+;; update individual rows; each row keeps a stable identity. ROW-REF optionally
+;; returns distinct Text Host references for retained content updates. Those
+;; updates must also fit and pad to COLUMNS; keep the callback's state in sync.
+;; LABEL names the read-only surface (default "Text grid"). The component has
+;; no focus targets, input handling, timers or terminal escape interpretation.
+;; Use monospaced text; wide characters occupy their Emacs display width.
+;; Invalid dimensions, callbacks or row content signal etaf-component-call-error.
+;; Use (etaf-view (etaf-text-grid :rows 24 :columns 80 :row-text read-row)).
 ;;
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
 ;; Render DATA CONTROLLER state through the public Component DSL.
@@ -824,6 +839,7 @@
 (require 'etaf-ui-table)
 (require 'etaf-ui-data)
 (require 'etaf-ui-tile-grid)
+(require 'etaf-ui-text-grid)
 (require 'etaf-ui-advanced)
 (require 'etaf-ui-window)
 (require 'etaf-ui-desktop)
