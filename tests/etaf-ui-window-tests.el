@@ -212,4 +212,24 @@
         (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(ert-deftest etaf-ui-window-full-bleed-body-reaches-the-frame-edges ()
+  "A full-bleed window gives its body the edge cells of its handles."
+  (dolist (sample '((t 11) (nil 10)))
+    (let ((buffer (generate-new-buffer " *etaf-ui-window-bleed*"))
+          (seen (cons nil nil)))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             buffer
+             (etaf-view
+              (etaf-window :title "Bleed" :width '(px 260) :height '(lh 12)
+                           :full-bleed (car sample)
+                           :resize-refs '((bottom-right . bleed-bottom-right))
+                           :on-resize (lambda (_edge _gesture) nil)
+                           (etaf-ui-window-test-viewport :seen seen))))
+            (should (= (cdr (car seen)) (cadr sample))))
+        (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
+          (etaf-unmount runtime))
+        (kill-buffer buffer)))))
+
 ;;; etaf-ui-window-tests.el ends here

@@ -4,6 +4,10 @@
 
 ### Added
 
+- `etaf-window` and `etaf-resizable-panel` accept `:full-bleed`: the default
+  slot spans the panel's full body and enabled handles paint after it, so the
+  body reaches the frame edges.  Pair it with handles whose cells sit in the
+  header or in the body's own margin when the body must stay seamless.
 - `etaf-text-grid` displays fixed-width character surfaces with independent
   retained rows, Unicode width validation and caller-owned data.
 - `etaf-tile-grid` accepts `:cell-label` for meaningful accessibility names

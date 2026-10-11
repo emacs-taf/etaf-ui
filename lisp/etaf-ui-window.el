@@ -135,18 +135,20 @@ grid cell or present it like the content it covers."
                (list (etaf-node 'text nil (list " "))))))
 
 (defun etaf-ui--panel-frame
-    (content edges on-resize refs behaviors &optional header header-style drag-lock-modifier)
-  "Surround CONTENT with edge-owned resize cells for EDGES.
+    (content edges on-resize refs behaviors &optional header header-style drag-lock-modifier full-bleed)
+  "Surround CONTENT with edge-owned resize handles for EDGES.
 
 HEADER, when supplied, owns the frame's first row between the two corner
 cells so a caller's title bar reaches both panel borders; HEADER-STYLE
 presents those corner cells with the same background and rule, keeping the
 covered title row visually closed.  Without HEADER the first row belongs to
-the enabled top cells.  The text backend's hit regions are whole rows and
-columns, so each enabled side cell keeps the body rows and the bottom cells
-keep the last row.  CONTENT spans the panel's remaining body area instead of
-shrinking behind reserved handle columns.  DRAG-LOCK-MODIFIER is forwarded
-to each handle's native gesture binding."
+the enabled top cells.  CONTENT owns the grid cell beside the handle cells;
+with FULL-BLEED it instead spans the panel's full body and the handles paint
+after it, so the body reaches the panel edges and a handle covers only the
+cells it owns.  Callers that want a seamless body enable FULL-BLEED with the
+top edge and the corners, whose cells sit in the title row or in the
+content's own margin.
+DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
   (let* ((left (cl-intersection edges '(left top-left bottom-left)))
          (right (cl-intersection edges '(right top-right bottom-right)))
          (bottom (cl-intersection edges '(bottom bottom-left bottom-right)))
@@ -206,17 +208,26 @@ to each handle's native gesture binding."
         (unless header
           (funcall handle 'top '(:grid-column 2 :grid-row 1) nil))
         (funcall title-cell 'top-right '(:grid-column 3 :grid-row 1))
-        (etaf-node 'column
-                   (list :key 'content :width 'stretch :height 'stretch
-                         :min-width '(px 0) :min-height '(lh 0)
-                         :grid-column 2 :grid-row 2
-                         :overflow 'hidden)
-                   content)
+        (unless full-bleed
+          (etaf-node 'column
+                     (list :key 'content :width 'stretch :height 'stretch
+                           :min-width '(px 0) :min-height '(lh 0)
+                           :grid-column 2 :grid-row 2
+                           :overflow 'hidden)
+                     content))
         (funcall handle 'left '(:grid-column 1 :grid-row 2) nil)
         (funcall handle 'right '(:grid-column 3 :grid-row 2) nil)
         (funcall handle 'bottom-left '(:grid-column 1 :grid-row 3) nil)
         (funcall handle 'bottom '(:grid-column 2 :grid-row 3) nil)
-        (funcall handle 'bottom-right '(:grid-column 3 :grid-row 3) nil)))))))
+        (funcall handle 'bottom-right '(:grid-column 3 :grid-row 3) nil)
+        (when full-bleed
+          (etaf-node 'column
+                     (list :key 'content :width 'stretch :height 'stretch
+                           :min-width '(px 0) :min-height '(lh 0)
+                           :grid-column '(1 :span 3)
+                           :grid-row (if bottom '(2 :span 2) 2)
+                           :overflow 'hidden)
+                     content))))))))
 
 (defconst etaf-ui--window-resize-edges
   '(top right bottom left top-left top-right bottom-right bottom-left)
@@ -403,7 +414,7 @@ is nil to inherit typography, or a positive CSS pixel size."
           z-index (visible t) (min-width '(px 80)) max-width
           (min-height '(lh 2)) max-height (resizable t)
           (resize-edges etaf-ui--window-resize-edges) resize-refs resize-use
-          on-resize on-move header-style drag-lock-modifier
+          on-resize on-move header-style drag-lock-modifier full-bleed
           font-size font-family ref id class role use overflow)
   "Render a controlled positioned panel with optional resize handles.
 
@@ -452,6 +463,8 @@ or a positive CSS pixel size; FONT-FAMILY likewise inherits when nil."
                                       (memq (car entry) etaf-ui--window-resize-edges)))
                                resize-use)))
                      "an edge-to-Behavior alist" 'etaf-resizable-panel)
+    (etaf-check-prop :full-bleed full-bleed (booleanp full-bleed)
+                     "a boolean" 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-resize on-resize 'etaf-resizable-panel)
     (etaf-ui--window-callback :on-move on-move 'etaf-resizable-panel)
     (etaf-check-prop :drag-lock-modifier drag-lock-modifier
@@ -495,7 +508,7 @@ or a positive CSS pixel size; FONT-FAMILY likewise inherits when nil."
           (expr (if framed
                     (etaf-ui--panel-frame content edges on-resize
                                          resize-refs resize-use header header-style
-                                         drag-lock-modifier)
+                                         drag-lock-modifier full-bleed)
                   content))))))
 
 (defun etaf-ui--window-keys (title-ref movable handle-refs edges)
@@ -531,7 +544,7 @@ moves or resizes it with the pointer's gesture handlers."
           (width '(ch 42)) (height '(lh 16)) z-index (visible t)
           (min-width '(px 160)) max-width (min-height '(lh 2)) max-height
           (resizable t) (resize-edges etaf-ui--window-resize-edges)
-          resize-refs resize-use move-use
+          resize-refs resize-use move-use full-bleed
           on-move on-resize on-focus on-minimize on-maximize on-restore on-close
           (drag-lock-modifier 'shift)
           title-font-size content-font-size font-family
@@ -558,8 +571,11 @@ Slots are
 `default' (window body) and `footer'.  The default slot is wrapped in one
 viewport region, so a Component rendered in the body reads the space it was
 given as `(PIXELS . ROWS)` with `etaf-viewport'.  The window adds no inset of
-its own: the body rectangle reaches the frame's resize handles and content
-owns its inner spacing."
+its own and content owns its inner spacing; with FULL-BLEED the body rectangle
+reaches the frame edges and enabled handles are hit strips over its edge
+cells, while without it a handle keeps its own cell.  Pair FULL-BLEED with the
+top edge and the corners when the body must stay seamless, since their cells
+sit in the title row or in the content's own margin."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -589,6 +605,8 @@ owns its inner spacing."
                      (or (null content-font-size)
                          (and (numberp content-font-size) (> content-font-size 0)))
                      "nil or a positive CSS pixel size" 'etaf-window)
+    (etaf-check-prop :full-bleed full-bleed (booleanp full-bleed)
+                     "a boolean" 'etaf-window)
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-window))
@@ -680,6 +698,7 @@ owns its inner spacing."
                      :resizable resizable
                      :resize-edges resize-edges :resize-refs handle-refs
                      :resize-use resize-use :drag-lock-modifier drag-lock-modifier
+                     :full-bleed full-bleed
                      :header-style (etaf-ui--window-title-style)
                      :on-resize on-resize
                      :ref ref :id id :class panel-class

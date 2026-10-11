@@ -737,6 +737,11 @@
       "name": "etaf-ui-window-body-reads-the-content-region",
       "file": "tests/etaf-ui-window-tests.el",
       "purpose": "Window body content reads the window's content box as its viewport."
+    },
+    {
+      "name": "etaf-ui-window-full-bleed-body-reaches-the-frame-edges",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "A full-bleed window gives its body the rows of its edge handles."
     }
   ]
 }

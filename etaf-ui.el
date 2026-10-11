@@ -305,7 +305,7 @@
 ;; Render a titled Panel with named header and default slots.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
 
-;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier font-size font-family ref id class role use overflow)
+;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier full-bleed font-size font-family ref id class role use overflow)
 ;; Render a controlled positioned panel and optional edge/corner resize handles.
 ;; Geometry props are passed to Ebox and may be values, refs or computed values;
 ;; CLASS may also be a ref or computed so a caller's mode class changes stay a
@@ -318,7 +318,11 @@
 ;; callbacks.  Geometry restoration remains the caller's responsibility.
 ;; The `header' slot owns the first row between the corner cells, HEADER-STYLE
 ;; presents those cells like the header, and the default slot fills the body
-;; area, so a caller's title bar reaches both panel borders.
+;; area, so a caller's title bar reaches both panel borders.  With FULL-BLEED
+;; the default slot instead owns the full body and enabled handles paint after
+;; it, so the body reaches the panel edges; a handle sharing a cell covers it,
+;; so pair FULL-BLEED with handles that sit in the header or in the body's own
+;; margin when the body must stay seamless.
 ;; Callers own geometry updates and constraints.  This component stores no
 ;; state, does not assign z-order and does not implement a window manager.
 ;; FONT-SIZE and FONT-FAMILY default to nil, inheriting the surrounding
@@ -350,14 +354,16 @@
 ;; Within a positioned window, the font must fit its canvas's shared line height;
 ;; Ebox rejects a larger resolved font before publishing the candidate.
 
-;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier title-font-size content-font-size font-family controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use full-bleed on-move on-resize on-focus drag-lock-modifier title-font-size content-font-size font-family controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  The
 ;; default slot is wrapped in one viewport region, so a Component rendered in
 ;; the body reads the space it was given as `(PIXELS . ROWS)` with
-;; `etaf-viewport'.  The window adds no inset of its own: the body rectangle
-;; reaches the frame's resize handles and content owns its inner spacing.
+;; `etaf-viewport'.  The window adds no inset of its own and content owns its
+;; inner spacing; with FULL-BLEED the body rectangle reaches the frame edges
+;; and enabled handles are hit strips over its edge cells, while without it a
+;; handle keeps its own cell.
 ;; Maximizing or
 ;; minimizing never changes geometry or global focus/z-order policy.  MODE and
 ;; VISIBLE may be refs or computed values: their changes publish as Host
