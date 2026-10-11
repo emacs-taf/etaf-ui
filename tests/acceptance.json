@@ -782,6 +782,26 @@
       "name": "etaf-ui-window-full-bleed-handles-own-edge-input",
       "file": "tests/etaf-ui-window-tests.el",
       "purpose": "All eight resize handles own their painted cells and directional pointers across full-bleed geometry changes; child controls retain their authored pointer."
+    },
+    {
+      "name": "etaf-ui-svg-elements-emit-compact-escaped-markup",
+      "file": "tests/etaf-ui-svg-tests.el",
+      "purpose": "Scene helpers format numbers compactly, keep attribute order and escape XML values."
+    },
+    {
+      "name": "etaf-ui-svg-elements-reject-invalid-geometry-and-attributes",
+      "file": "tests/etaf-ui-svg-tests.el",
+      "purpose": "Invalid geometry, attribute keys, repeated keys and values signal one readable condition."
+    },
+    {
+      "name": "etaf-ui-svg-image-builds-valid-documents",
+      "file": "tests/etaf-ui-svg-tests.el",
+      "purpose": "The image descriptor wraps a well-formed desktop-sized SVG document with viewbox and aspect ratio."
+    },
+    {
+      "name": "etaf-ui-svg-image-feeds-a-retained-image-host",
+      "file": "tests/etaf-ui-svg-tests.el",
+      "purpose": "A composed scene keeps fixed cell metrics, accessibility names, focus and activation."
     }
   ]
 }

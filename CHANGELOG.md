@@ -16,6 +16,9 @@
 
 ### Added
 
+- `etaf-ui-svg-*` composes validated, XML-escaped SVG scenes and returns image
+  descriptors for image sources and image Hosts such as `etaf-tile-grid`
+  `:cell-image`, keeping ordinary box layout, focus and terminal text fallback.
 - Tile grids can display caller-owned images or SVG in fixed multirow cells
   through `:cell-image` and `:cell-height`, retaining keyboard/mouse targets
   and text fallback. `:on-cell-focus` reports coordinates for media focus cues.

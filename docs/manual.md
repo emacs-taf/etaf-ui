@@ -92,6 +92,7 @@ text. Return nil to use the ordinary `cell-text` projection (for example on a
 terminal). Read refs inside `cell-image` so unchanged cells retain their images.
 `on-cell-focus` reports the same coordinates as activation; callers may use it
 to paint a cursor and announce its label. Focus itself remains owned by ETAF.
+Build in-memory scenes with `etaf-ui-svg-*`; see "Vector scenes".
 
 ```elisp
 (let ((color (etaf-ref "#334155")))
@@ -110,6 +111,45 @@ to paint a cursor and announce its label. Focus itself remains owned by ETAF.
 The grid supplies no animation scheduler, search algorithm or persisted board.
 Their lifecycle belongs to the consumer. The complete prop contract is in
 [the package entry](../etaf-ui.el).
+
+## Vector scenes
+
+`etaf-ui-svg-*` places non-text content such as boards, charts, gauges or
+sprites inside ordinary boxes and cells without adding a second layout system:
+a scene is SVG markup, and `etaf-ui-svg-image` hands it to an image source or
+image Host (for example a tile grid's `cell-image`). Ebox slices the prepared
+image at text rows, so layout, focus, keyboard and mouse targets, accessible
+names and the terminal fallback stay ordinary ETAF behaviour.
+
+The element helpers are `etaf-ui-svg-rect`, `-circle`, `-line`, `-path`,
+`-text` and `-group`: geometry is passed as numbers and optional attributes as
+keywords. Attribute values are XML escaped, numbers use one compact format
+(integers without decimals, fractions with at most four), and unknown or
+repeated attribute keys, invalid geometry, invalid text and attribute values
+of the wrong kind signal `etaf-ui-svg-error` instead of painting a wrong
+scene; a nil attribute value omits that attribute.
+
+```elisp
+(etaf-ui-svg-image
+ (concat (etaf-ui-svg-rect 0 0 16 10 :fill "#F0E2C6" :stroke "#A98956")
+         (etaf-ui-svg-circle 8 5 3.6 :fill "#FFF8E7" :stroke "#C6AC7D")
+         (etaf-ui-svg-text 8 6.4 "车" :fill "#AD3830" :font-size 8
+                           :text-anchor "middle"))
+ 48 30 '(0 0 16 10))
+```
+
+Pass the descriptor through `cell-image` to get vector cells with focus and
+activation. `etaf-ui-svg-image` takes WIDTH and HEIGHT in pixels and VIEWBOX as
+the scene coordinate window; pass `none` as the last argument to scale the
+scene to the box. SVG exists only on graphical frames, so callers keep a text
+fallback such as `cell-text`.
+
+Images slice per displayed row: each row is one glyph drawing the complete
+row-wide image, and redisplay draws it once per glyph (see Ebox's image
+invariant). Emit passive artwork as whole blocks; slice per cell only where
+each cell owns its own target, otherwise scrolling and repaint cost grows with
+the row's cell count. Cache a composed scene by its state key and clear the
+cache at a fixed bound instead of rebuilding the document on every redraw.
 
 
 ## Playing cards and stacks
@@ -666,7 +706,10 @@ Integration notes when embedding a field in an application:
 - Unmounting leaves an active field with its text kept, without submit or
   cancel callbacks.
 - The field's `:keymap` bindings run as commands in the application buffer;
-  other keys edit the value.
+  other keys edit the value.  The map may not bind framework-reserved keys
+  (`Escape`, `Tab`, `?`, the arrows, `M-g`, `C-g`): such a declaration signals
+  `etaf-component-call-error` during validation, and direction behavior
+  belongs to `:on-direction`.
 
 `etaf-select` chooses a value from an ordinary
 alist, such as `((nil . "Pending") (t . "Done"))`, without the minibuffer:

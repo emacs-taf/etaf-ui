@@ -73,7 +73,8 @@ Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 图片比例由调用方保持，`cell-label` 提供无障碍名称。返回 nil 时使用
 `cell-text`，例如在终端内回退到文字。在 `cell-image` 回调内读取 ref，
 未变化的格子保留图片。`on-cell-focus` 在焦点进入时报告行列，可用于绘制
-图形光标和显示位置；焦点本身仍归 ETAF 管理。
+图形光标和显示位置；焦点本身仍归 ETAF 管理。内联场景用 `etaf-ui-svg-*`
+构造，见「矢量场景」。
 
 ```elisp
 (let ((color (etaf-ref "#334155")))
@@ -91,6 +92,38 @@ Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 
 定时器、搜索算法和数据保存归调用方所有。网格尺寸超过窗口时沿用正常的
 布局和视口处理。完整属性契约见[根入口](../etaf-ui.el)。
+
+## 矢量场景
+
+`etaf-ui-svg-*` 把棋盘、图表、仪表或精灵等非文字内容放进普通盒子和格子，
+不引入第二套布局系统：场景是 SVG 标记，`etaf-ui-svg-image` 把它交给图片
+来源或图片 Host（例如格子网格的 `cell-image`），Ebox 再按文本行切图。布局、
+焦点、键鼠目标、无障碍名称和终端降级因此仍是原来的 ETAF 行为。
+
+元素助手是 `etaf-ui-svg-rect`、`-circle`、`-line`、`-path`、`-text` 和
+`-group`：几何参数用数字，可选属性用关键字传入；属性值会做 XML 转义，
+数字统一压缩格式（整数不带小数，小数至多四位），未知或重复的属性名、非法
+几何、非法文本和类型不符的属性值都会以 `etaf-ui-svg-error` 报错，而不是
+画出错图；`nil` 属性值表示省略该属性。
+
+```elisp
+(etaf-ui-svg-image
+ (concat (etaf-ui-svg-rect 0 0 16 10 :fill "#F0E2C6" :stroke "#A98956")
+         (etaf-ui-svg-circle 8 5 3.6 :fill "#FFF8E7" :stroke "#C6AC7D")
+         (etaf-ui-svg-text 8 6.4 "车" :fill "#AD3830" :font-size 8
+                           :text-anchor "middle"))
+ 48 30 '(0 0 16 10))
+```
+
+把描述符交给 `etaf-tile-grid` 的 `cell-image` 就得到带焦点和点击的矢量格子。
+`etaf-ui-svg-image` 的 `WIDTH`/`HEIGHT` 是像素尺寸，`VIEWBOX` 是场景坐标
+窗口，最后传入 `none` 让场景缩放到盒子。SVG 只在图形 frame 上可用，调用方
+必须保留 `cell-text` 一类文字回退。
+
+图像按显示行切片：每行是一个显示整行图片的字形，redisplay 对每个字形绘制
+一次（见 Ebox 架构的图片不变式）。被动画面整块出图；只有每格需要独立目标时
+才按格切图，否则滚动和重绘成本会随该行的格子数放大。组好的场景用状态键缓存，
+到固定上限就清空，不要每次重绘重建文档。
 
 ## 定宽文本画面
 
@@ -495,6 +528,8 @@ C-j 换行；C-c C-c 或 Ctrl+Return 提交；Escape、C-c C-k 和 C-g 取消并
   应用值。`:on-change` 收到每次编辑后的值。
 - 卸载时活动字段直接离开并保留文本，不触发提交或取消回调。
 - 字段 `:keymap` 中的绑定作为命令在应用 buffer 中执行；其他按键编辑值。
+  该 keymap 不得绑定框架保留键（`Escape`、`Tab`、`?`、方向键、`M-g`、`C-g`）：
+  这种声明在校验期直接报 `etaf-component-call-error`，方向行为由 `:on-direction` 承担。
 
 `etaf-select` 从普通 alist
 选择值，例如 `((nil . "进行中") (t . "已完成"))`。两者使用 `:value`／

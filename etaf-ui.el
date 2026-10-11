@@ -854,6 +854,61 @@
 ;; fonts report nil pixel height/fit. In batch/TTY the declared relative height
 ;; gives an estimate, not a font-availability guarantee. SVG reports its line
 ;; box. FRAME defaults to selected-frame; an unknown SET signals user-error.
+;;
+;; Function: etaf-ui-svg-rect (x y width height &rest attributes)
+;;;###autoload (autoload 'etaf-ui-svg-rect "etaf-ui" nil nil)
+;; Return SVG markup for a rectangle at X/Y with positive WIDTH and HEIGHT.
+;; ATTRIBUTES accept :rx, :ry, :transform and the shared paint family
+;; :fill, :stroke, :stroke-width, :stroke-linecap, :stroke-linejoin,
+;; :stroke-dasharray and :opacity.
+;;
+;; Function: etaf-ui-svg-circle (cx cy radius &rest attributes)
+;;;###autoload (autoload 'etaf-ui-svg-circle "etaf-ui" nil nil)
+;; Return SVG markup for a circle centred at CX/CY with positive RADIUS.
+;; ATTRIBUTES accept :transform and the shared paint family :fill, :stroke,
+;; :stroke-width, :stroke-linecap, :stroke-linejoin, :stroke-dasharray and
+;; :opacity.
+;;
+;; Function: etaf-ui-svg-line (x1 y1 x2 y2 &rest attributes)
+;;;###autoload (autoload 'etaf-ui-svg-line "etaf-ui" nil nil)
+;; Return SVG markup for a line from X1/Y1 to X2/Y2. ATTRIBUTES accept
+;; :stroke, :stroke-width, :stroke-linecap, :stroke-linejoin,
+;; :stroke-dasharray and :opacity.
+;;
+;; Function: etaf-ui-svg-path (d &rest attributes)
+;;;###autoload (autoload 'etaf-ui-svg-path "etaf-ui" nil nil)
+;; Return SVG markup for path data D, a nonempty string. ATTRIBUTES accept
+;; :fill :stroke :stroke-width :stroke-linecap :stroke-linejoin
+;; :stroke-dasharray :opacity.
+;;
+;; Function: etaf-ui-svg-text (x y text &rest attributes)
+;;;###autoload (autoload 'etaf-ui-svg-text "etaf-ui" nil nil)
+;; Return SVG markup for single-line TEXT anchored at X/Y; its content is XML
+;; escaped. ATTRIBUTES accept :font-family :font-size :font-weight
+;; :text-anchor :dominant-baseline :fill :stroke :stroke-width :opacity.
+;;
+;; Function: etaf-ui-svg-group (children &rest attributes)
+;;;###autoload (autoload 'etaf-ui-svg-group "etaf-ui" nil nil)
+;; Return SVG markup for group CHILDREN sharing ATTRIBUTES.
+;;
+;; Function: etaf-ui-svg-image (body width height viewbox &optional preserve-aspect-ratio)
+;;;###autoload (autoload 'etaf-ui-svg-image "etaf-ui" nil nil)
+;; Return an (image :type svg :data STRING) descriptor showing scene BODY in a
+;; WIDTH by HEIGHT pixel box over viewbox (X Y WIDTH HEIGHT). Callers compose
+;; BODY from the element helpers above and pass the result to an image source
+;; or image Host, such as `etaf-tile-grid' :cell-image. PRESERVE-ASPECT-RATIO
+;; is nil (SVG default centring) or `none' (scale the complete scene to the
+;; box). Keep a text fallback for terminal frames; Ebox draws one image per
+;; displayed row, so slice per cell only where each cell owns its own target
+;; and slice once per block row for passive artwork. Cache a composed scene
+;; with its state key and clear the cache at a fixed bound.
+;; All element helpers validate geometry and attribute keys, escape text and
+;; attribute values, format numbers identically, and omit nil values;
+;; invalid input signals `etaf-ui-svg-error'.
+;;
+;; Error: etaf-ui-svg-error
+;; Invalid input to the etaf-ui-svg scene helpers
+;; Catch this condition with condition-case; invalid scenes produce no markup.
 
 ;;; Code:
 
@@ -868,6 +923,7 @@
 
 (require 'etaf-ui-basic)
 (require 'etaf-ui-icon)
+(require 'etaf-ui-svg)
 (require 'etaf-ui-input)
 (require 'etaf-ui-field)
 (require 'etaf-ui-editor)
