@@ -160,29 +160,32 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
                      ;; Overlapping grid flow cells do not form a stacking
                      ;; layer.  Full-bleed body handles are absolute strips
                      ;; in the frame, sized by CSS from its current viewport.
+                     ;; Each strip owns exactly the outermost row or column of
+                     ;; the body, so the frame stays seamless while an
+                     ;; application keeps one margin cell clear for it.
                      (when full-bleed
                        (when-let* ((strip
                                     (pcase edge
                                       ('left
                                        (list :left '(px 0) :top '(lh 1)
-                                             :width '(px 6)
+                                             :width '(ch 1)
                                              :height `(calc (- (% 100) (lh ,(if bottom 2 1))))))
                                       ('right
-                                       (list :left '(calc (- (% 100) (px 6))) :top '(lh 1)
-                                             :width '(px 6)
+                                       (list :left '(calc (- (% 100) (ch 1))) :top '(lh 1)
+                                             :width '(ch 1)
                                              :height `(calc (- (% 100) (lh ,(if bottom 2 1))))))
                                       ('bottom-left
                                        '(:left (px 0) :top (calc (- (% 100) (lh 1)))
-                                         :width (px 6) :height (lh 1)))
+                                         :width (ch 1) :height (lh 1)))
                                       ('bottom
-                                       (list :left (list 'px left-width)
-                                             :top '(calc (- (% 100) (lh 1)))
-                                             :width `(calc (- (% 100) (px ,(+ left-width right-width))))
-                                             :height '(lh 1)))
-                                      ('bottom-right
-                                       '(:left (calc (- (% 100) (px 6)))
+                                       '(:left (ch 1)
                                          :top (calc (- (% 100) (lh 1)))
-                                         :width (px 6) :height (lh 1))))))
+                                         :width (calc (- (% 100) (ch 2)))
+                                         :height (lh 1)))
+                                      ('bottom-right
+                                       '(:left (calc (- (% 100) (ch 1)))
+                                         :top (calc (- (% 100) (lh 1)))
+                                         :width (ch 1) :height (lh 1))))))
                          (setq placement (append '(:position absolute :z-index 1) strip))))
                      (etaf-ui--window-handle
                       edge on-resize (cdr (assq edge refs))
