@@ -180,4 +180,36 @@
   (when-let* ((buffer (get-buffer " *etaf-ui-window-invalid-test*")))
     (kill-buffer buffer)))
 
+(etaf-define-component etaf-ui-window-test-viewport (&key seen)
+  "Record the Component subtree's viewport into the cons cell SEEN."
+  :setup
+  (progn
+    (etaf-watch-effect
+     (lambda () (setcar seen (etaf-viewport))))
+    nil)
+  :view (text "body"))
+
+(ert-deftest etaf-ui-window-body-reads-the-content-region ()
+  "Window body content reads the window's content box as its viewport."
+  (let ((buffer (generate-new-buffer " *etaf-ui-window-viewport*"))
+        (height (etaf-ref '(lh 12)))
+        (seen (cons nil nil)))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window :title "Viewport" :width '(px 260) :height height
+                         (etaf-ui-window-test-viewport :seen seen))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (should (consp (car seen)))
+            (should (< 0 (car (car seen)) 260))
+            (should (= (cdr (car seen)) 9))
+            (etaf-set-value height '(lh 20))
+            (etaf-runtime-flush runtime)
+            (should (= (cdr (car seen)) 17))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
+        (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 ;;; etaf-ui-window-tests.el ends here

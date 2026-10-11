@@ -353,7 +353,10 @@
 ;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use on-move on-resize on-focus drag-lock-modifier title-font-size content-font-size font-family controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
-;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  Maximizing or
+;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  The
+;; default slot is wrapped in one viewport region, so a Component rendered in
+;; the body reads the space it was given as `(PIXELS . ROWS)` with
+;; `etaf-viewport'.  Maximizing or
 ;; minimizing never changes geometry or global focus/z-order policy.  MODE and
 ;; VISIBLE may be refs or computed values: their changes publish as Host
 ;; property bindings (mode classes, panel visibility and the collapsed content

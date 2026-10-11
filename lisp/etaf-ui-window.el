@@ -555,7 +555,9 @@ TITLE-FONT-SIZE and CONTENT-FONT-SIZE independently inherit when nil (the
 default), or accept positive CSS pixel sizes.  FONT-FAMILY inherits when nil.
 Slots are
 `header' (extra title-bar content), `actions' (extra title-bar actions),
-`default' (window body) and `footer'."
+`default' (window body) and `footer'.  The default slot is wrapped in one
+viewport region, so a Component rendered in the body reads the space it was
+given as `(PIXELS . ROWS)` with `etaf-viewport'."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -630,7 +632,8 @@ Slots are
                                      handle-refs active-edges))
          (footer (etaf-current-slot 'footer))
          (children
-          (append body
+          (append (when body
+                    (list (etaf-node 'etaf-viewport-region nil body)))
                   (when footer
                     (list (etaf-node 'row
                                      (list :class "etaf-window-footer"
@@ -638,7 +641,8 @@ Slots are
                                      footer)))))
          (content
           (etaf-view
-           (column :class "etaf-window-content" :width 'stretch
+           (flex :class "etaf-window-content" :flex-direction 'column
+                   :width 'stretch
                    :height (if (etaf-value collapsed) '(lh 0) 'stretch)
                    :visibility (if (etaf-value collapsed) 'hidden 'visible)
                    :font-size content-font-size
