@@ -443,7 +443,8 @@ composes both Components and provides `header`, `actions`, `default`, and
 
 The `default` slot is wrapped in one viewport region, so content rendered in
 the body can read the space it was given as `(PIXELS . ROWS)` with
-`etaf-viewport`.
+`etaf-viewport`.  The window adds no inset of its own: the body rectangle
+reaches the frame's resize handles and content owns its inner spacing.
 
 The callbacks in a real application convert the gesture into geometry writes,
 or can be supplied by an ETAF Behavior.  Run `M-x etaf-ui-window-resize-open`

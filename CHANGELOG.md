@@ -112,6 +112,10 @@
 
 ### Changed
 
+- `etaf-window` no longer adds a built-in inset around its body slot.  The
+  window provides the full body rectangle up to the frame's resize handles
+  and content owns its own spacing, so an application can fill its window
+  edge to edge.
 - `etaf-text-input` edits its value in a native session inside the layout:
   the field grows with wrapped or new lines while keeping its padding and
   frame, mouse clicks and drags place the caret and select, printing keys

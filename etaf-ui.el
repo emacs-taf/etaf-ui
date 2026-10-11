@@ -356,7 +356,9 @@
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  The
 ;; default slot is wrapped in one viewport region, so a Component rendered in
 ;; the body reads the space it was given as `(PIXELS . ROWS)` with
-;; `etaf-viewport'.  Maximizing or
+;; `etaf-viewport'.  The window adds no inset of its own: the body rectangle
+;; reaches the frame's resize handles and content owns its inner spacing.
+;; Maximizing or
 ;; minimizing never changes geometry or global focus/z-order policy.  MODE and
 ;; VISIBLE may be refs or computed values: their changes publish as Host
 ;; property bindings (mode classes, panel visibility and the collapsed content

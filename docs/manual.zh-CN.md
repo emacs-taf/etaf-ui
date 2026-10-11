@@ -352,7 +352,8 @@ Escape、C-g、q、关闭按钮，以及鼠标点击标题栏、媒体和底栏�
 ```
 
 `default` slot 的内容会被包进一个 viewport 区域：在正文中渲染的 Component 可以
-用 `etaf-viewport` 读到自己拿到的 `(PIXELS . ROWS)`。
+用 `etaf-viewport` 读到自己拿到的 `(PIXELS . ROWS)`。窗口自身不加内边距，正文矩
+形一直延伸到边框的缩放手柄，间距由内容自己决定。
 
 真实应用的回调应把 gesture 转换为几何写入，也可以由 ETAF Behavior 提供；目录
 组件只提供交互目标和视觉组合。最大化、最小化不会自动修改几何、z-order、焦点

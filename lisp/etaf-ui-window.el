@@ -557,7 +557,9 @@ Slots are
 `header' (extra title-bar content), `actions' (extra title-bar actions),
 `default' (window body) and `footer'.  The default slot is wrapped in one
 viewport region, so a Component rendered in the body reads the space it was
-given as `(PIXELS . ROWS)` with `etaf-viewport'."
+given as `(PIXELS . ROWS)` with `etaf-viewport'.  The window adds no inset of
+its own: the body rectangle reaches the frame's resize handles and content
+owns its inner spacing."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -648,7 +650,6 @@ given as `(PIXELS . ROWS)` with `etaf-viewport'."
                    :font-size content-font-size
                    :font-family font-family
                    :overflow 'hidden
-                   :padding '((lh 1) (ch 1))
                    :on-press on-focus
                    :on-press-capture on-focus
                    (expr children))))
