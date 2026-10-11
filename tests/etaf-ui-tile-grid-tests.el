@@ -124,5 +124,55 @@
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(ert-deftest etaf-ui-tile-grid-media-preserves-geometry-and-input ()
+  "An image cell and text fallback share metrics, focus and activation."
+  (let ((buffer (generate-new-buffer " *media tiles*"))
+        (media (etaf-ref t)) (caption (etaf-ref "First")) pressed focused)
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-tile-grid
+             :rows 2 :columns 2 :cell-width 6 :cell-height 3
+             :cell-ref (lambda (r c) (intern (format "media-%d-%d" r c)))
+             :cell-image (lambda (_r _c)
+                           (when (etaf-value media)
+                             '(image :type svg :data "<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><circle cx='24' cy='24' r='20' fill='red'/></svg>")))
+             :cell-text (lambda (_r _c) "+")
+             :cell-label (lambda (_r _c) (etaf-value caption))
+             :on-cell-focus (lambda (r c) (setq focused (list r c)))
+             :on-cell-press (lambda (r c) (setq pressed (list r c)))))
+           '(:viewport-width 400 :viewport-height 12))
+          (let* ((runtime (etaf-runtime-for-buffer buffer))
+                 (size (etaf-host-ref-size runtime 'media-0-1)))
+            (should (equal size (cons (* 6 (frame-char-width)) 3)))
+            (etaf-focus runtime 'media-0-1)
+            (should (equal focused '(0 1)))
+            (etaf-activate runtime)
+            (should (equal pressed '(0 1)))
+            (etaf-batch (setf (etaf-value media) nil (etaf-value caption) "Second"))
+            (etaf-runtime-refit runtime 800 20)
+            (should (equal size (etaf-host-ref-size runtime 'media-0-1)))
+            (should (equal 'media-0-1 (etaf-focused-host-ref runtime)))
+            (let ((label (plist-get (etaf-runtime-host-props-for runtime 'media-0-1) :aria-label)))
+              (should (equal label "Second")))
+            (with-current-buffer buffer
+              (should (string-match-p "+" (buffer-substring-no-properties (point-min) (point-max)))))
+            (setf (etaf-value media) t)
+            (should (equal size (etaf-host-ref-size runtime 'media-0-1)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-tile-grid-rejects-invalid-media-props ()
+  "Image callbacks, focus callbacks and multirow dimensions are validated."
+  (with-temp-buffer
+    (dolist (extra '((:cell-height 0) (:cell-height 1.5)
+                     (:cell-image 42) (:on-cell-focus 42)))
+      (should-error
+       (etaf-mount (current-buffer)
+                   (etaf-node 'etaf-tile-grid (append '(:rows 1 :columns 1) extra) nil))
+       :type 'etaf-component-call-error))))
+
 (provide 'etaf-ui-tile-grid-tests)
 ;;; etaf-ui-tile-grid-tests.el ends here

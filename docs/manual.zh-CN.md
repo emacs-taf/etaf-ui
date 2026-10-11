@@ -65,8 +65,15 @@ Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 `cell-label` 提供无障碍和提示名称，例如“e2 白兵”，避免只有通用坐标。
 `cell-color` 和 `cell-background` 分别提供前景与背景色，也可返回 Theme token，
 以便地图等场景保持字符与地形的对比度；在回调内读取 ref 保留局部更新边界。
-`cell-width` 表示固定字符列数，高度固定为一行。窗口变化时重排外围布局或
-裁切视口，容器变宽不会拉伸格子。
+`cell-width` 表示固定字符列数，`cell-height` 是正整数行数，默认一行。
+窗口变化时重排外围布局或裁切视口，容器变宽不会拉伸格子。
+
+图形棋盘和资源地图可用 `cell-image` 返回本地图片路径或 Emacs 图片描述符，
+包括内存中的 SVG。ETAF 的 image Host 将图片切入固定行格，不撑高正文行。
+图片比例由调用方保持，`cell-label` 提供无障碍名称。返回 nil 时使用
+`cell-text`，例如在终端内回退到文字。在 `cell-image` 回调内读取 ref，
+未变化的格子保留图片。`on-cell-focus` 在焦点进入时报告行列，可用于绘制
+图形光标和显示位置；焦点本身仍归 ETAF 管理。
 
 ```elisp
 (let ((color (etaf-ref "#334155")))

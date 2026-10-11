@@ -16,6 +16,9 @@
 
 ### Added
 
+- Tile grids can display caller-owned images or SVG in fixed multirow cells
+  through `:cell-image` and `:cell-height`, retaining keyboard/mouse targets
+  and text fallback. `:on-cell-focus` reports coordinates for media focus cues.
 - `etaf-window` and `etaf-resizable-panel` accept `:full-bleed`: the default
   slot spans the panel's full body and enabled handles paint after it, so the
   body reaches the frame edges.  Pair it with handles whose cells sit in the

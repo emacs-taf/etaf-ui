@@ -14,6 +14,16 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-tile-grid-media-preserves-geometry-and-input",
+      "file": "tests/etaf-ui-tile-grid-tests.el",
+      "purpose": "Image cells and text fallback retain fixed metrics, focus, names and activation coordinates."
+    },
+    {
+      "name": "etaf-ui-tile-grid-rejects-invalid-media-props",
+      "file": "tests/etaf-ui-tile-grid-tests.el",
+      "purpose": "Invalid image callbacks, focus callbacks and cell heights are rejected."
+    },
+    {
       "name": "etaf-ui-playing-card-preserves-metrics-and-controlled-activation",
       "file": "tests/etaf-ui-playing-card-tests.el",
       "purpose": "Face, selection and container width keep fixed card geometry and callbacks."

@@ -80,9 +80,18 @@ for accessibility and help. Omit the press callback for read-only heatmaps. Use 
 handling when the board is larger than its containing window.
 `cell-color` and `cell-background` provide independent foreground/background
 colors, including deferred Theme tokens, for maps with contrasting terrain and glyphs.
-Cell width is an intrinsic character count and height is one text row.
-Resize the surrounding layout or clip the viewport while preserving these
-metrics; a wider container does not stretch the cells.
+Cell width is an intrinsic character count; `cell-height` is a positive line
+count, defaulting to one. Resize the surrounding layout or clip the viewport
+while preserving these metrics; a wider container does not stretch the cells.
+
+For graphical boards or asset maps, `cell-image` projects a local image path or
+an Emacs image descriptor, including in-memory SVG. The ETAF image Host slices
+it into the cell's fixed rows; neither a large image nor its text can grow the
+standard line height. Supply aspect-correct images and meaningful `cell-label`
+text. Return nil to use the ordinary `cell-text` projection (for example on a
+terminal). Read refs inside `cell-image` so unchanged cells retain their images.
+`on-cell-focus` reports the same coordinates as activation; callers may use it
+to paint a cursor and announce its label. Focus itself remains owned by ETAF.
 
 ```elisp
 (let ((color (etaf-ref "#334155")))

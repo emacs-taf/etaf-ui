@@ -60,18 +60,25 @@
 ;; the control's handlers and subscriptions without owning the caller's ref.
 ;; Use inside (etaf-view (etaf-checkbox ...)); keyword arguments are component props.
 ;;
-;; Component: etaf-tile-grid (&key rows columns cell-width cell-background cell-color cell-text cell-label cell-ref on-cell-press)
+;; Component: etaf-tile-grid (&key rows columns cell-width cell-height cell-background cell-color cell-text cell-label cell-image cell-ref on-cell-press on-cell-focus)
 ;; Render ROWS by COLUMNS fixed cells with stable coordinate identities.
-;; Dimensions and CELL-WIDTH (character columns, default 2) are positive integers.
+;; Dimensions, CELL-WIDTH (character columns, default 2) and CELL-HEIGHT
+;; (text lines, default 1) are positive integers.
 ;; Cell dimensions remain fixed when the containing viewport changes.
 ;; Optional callbacks take zero-based ROW and COLUMN. CELL-BACKGROUND returns
 ;; a color or nil; CELL-COLOR supplies the foreground color (nil inherits).
 ;; Both color callbacks may return deferred Theme tokens.
 ;; CELL-TEXT returns one line fitting CELL-WIDTH (default space).
+;; CELL-IMAGE returns a local file path, an Emacs image descriptor (including
+;; generated SVG) or nil. An image fills the fixed cell via ETAF's image Host;
+;; nil uses CELL-TEXT instead. Supply aspect-correct sources and CELL-LABEL
+;; for media; source decoding failures use the image Host's placeholder.
 ;; CELL-LABEL returns a string for accessibility and help (default "Cell r,c").
 ;; Read caller refs inside those callbacks to retain property/text boundaries.
 ;; ON-CELL-PRESS handles keyboard and mouse activation. Without it cells are
-;; read-only. CELL-REF returns a distinct supported Host reference per cell;
+;; read-only. ON-CELL-FOCUS reports ROW/COLUMN when focus enters a cell, so
+;; callers can paint a media focus indicator without another focus model.
+;; CELL-REF returns a distinct supported Host reference per cell;
 ;; omitted references are instance-local. Caller owns data and lifecycle;
 ;; the grid does not run timers or maintain a second selection/board state.
 ;; Invalid dimensions, callbacks or text signal etaf-component-call-error.
