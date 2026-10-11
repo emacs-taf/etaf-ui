@@ -153,8 +153,37 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
          (right (cl-intersection edges '(right top-right bottom-right)))
          (bottom (cl-intersection edges '(bottom bottom-left bottom-right)))
          (top-cells (cl-intersection edges '(top top-left top-right)))
+         (left-width (if (or left top-cells) 6 0))
+         (right-width (if (or right top-cells) 6 0))
          (handle (lambda (edge placement style)
                    (when (memq edge edges)
+                     ;; Overlapping grid flow cells do not form a stacking
+                     ;; layer.  Full-bleed body handles are absolute strips
+                     ;; in the frame, sized by CSS from its current viewport.
+                     (when full-bleed
+                       (when-let* ((strip
+                                    (pcase edge
+                                      ('left
+                                       (list :left '(px 0) :top '(lh 1)
+                                             :width '(px 6)
+                                             :height `(calc (- (% 100) (lh ,(if bottom 2 1))))))
+                                      ('right
+                                       (list :left '(calc (- (% 100) (px 6))) :top '(lh 1)
+                                             :width '(px 6)
+                                             :height `(calc (- (% 100) (lh ,(if bottom 2 1))))))
+                                      ('bottom-left
+                                       '(:left (px 0) :top (calc (- (% 100) (lh 1)))
+                                         :width (px 6) :height (lh 1)))
+                                      ('bottom
+                                       (list :left (list 'px left-width)
+                                             :top '(calc (- (% 100) (lh 1)))
+                                             :width `(calc (- (% 100) (px ,(+ left-width right-width))))
+                                             :height '(lh 1)))
+                                      ('bottom-right
+                                       '(:left (calc (- (% 100) (px 6)))
+                                         :top (calc (- (% 100) (lh 1)))
+                                         :width (px 6) :height (lh 1))))))
+                         (setq placement (append '(:position absolute :z-index 1) strip))))
                      (etaf-ui--window-handle
                       edge on-resize (cdr (assq edge refs))
                       (cdr (assq edge behaviors))
@@ -167,9 +196,9 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
      'grid
      (list :width 'stretch :height 'stretch
            :grid-template-columns
-           (list (if (or left top-cells) '(px 6) '(px 0))
+           (list (list 'px left-width)
                  '(minmax (px 0) (fr 1))
-                 (if (or right top-cells) '(px 6) '(px 0)))
+                 (list 'px right-width))
            :grid-template-rows
            (list '(lh 1) '(minmax (lh 0) (fr 1))
                  (if bottom '(lh 1) '(lh 0)))
@@ -215,11 +244,6 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
                            :grid-column 2 :grid-row 2
                            :overflow 'hidden)
                      content))
-        (funcall handle 'left '(:grid-column 1 :grid-row 2) nil)
-        (funcall handle 'right '(:grid-column 3 :grid-row 2) nil)
-        (funcall handle 'bottom-left '(:grid-column 1 :grid-row 3) nil)
-        (funcall handle 'bottom '(:grid-column 2 :grid-row 3) nil)
-        (funcall handle 'bottom-right '(:grid-column 3 :grid-row 3) nil)
         (when full-bleed
           (etaf-node 'column
                      (list :key 'content :width 'stretch :height 'stretch
@@ -227,7 +251,13 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
                            :grid-column '(1 :span 3)
                            :grid-row (if bottom '(2 :span 2) 2)
                            :overflow 'hidden)
-                     content))))))))
+                     content))
+        ;; Full-bleed handles paint above the body in the frame's own layer.
+        (funcall handle 'left '(:grid-column 1 :grid-row 2) nil)
+        (funcall handle 'right '(:grid-column 3 :grid-row 2) nil)
+        (funcall handle 'bottom-left '(:grid-column 1 :grid-row 3) nil)
+        (funcall handle 'bottom '(:grid-column 2 :grid-row 3) nil)
+        (funcall handle 'bottom-right '(:grid-column 3 :grid-row 3) nil)))))))
 
 (defconst etaf-ui--window-resize-edges
   '(top right bottom left top-left top-right bottom-right bottom-left)
@@ -668,6 +698,7 @@ sit in the title row or in the content's own margin."
                    :font-size content-font-size
                    :font-family font-family
                    :overflow 'hidden
+                   :pointer 'arrow
                    :on-press on-focus
                    :on-press-capture on-focus
                    (expr children))))

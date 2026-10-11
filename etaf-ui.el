@@ -372,7 +372,8 @@
 ;; requires a mounted Runtime rather than `etaf-render'.  ON-FOCUS
 ;; runs for body activation, through ETAF's explicit ancestor capture hook
 ;; when a nested body control is pressed, and when keyboard focus enters the
-;; window, so Tab and arrows activate it like a click.  DRAG-LOCK-MODIFIER defaults to shift
+;; window, so Tab and arrows activate it like a click. Ordinary body space uses
+;; an arrow pointer; nested controls may override it. DRAG-LOCK-MODIFIER defaults to shift
 ;; and applies to both the title bar and all resize handles.  Set it to super
 ;; for a Super-modified press or nil to disable locking everywhere.
 ;; With focus anywhere in the window, M-arrows move it through the title

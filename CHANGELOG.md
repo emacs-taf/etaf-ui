@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+
+- Full-bleed window side and bottom handles stay above the body for pointer
+  feedback and dragging, including after geometry changes.
+- Ordinary window body space uses the arrow pointer when pressed to focus;
+  child controls retain their own pointer semantics.
+
 ### Added
 
 - `etaf-window` and `etaf-resizable-panel` accept `:full-bleed`: the default

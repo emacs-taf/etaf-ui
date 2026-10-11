@@ -742,6 +742,11 @@
       "name": "etaf-ui-window-full-bleed-body-reaches-the-frame-edges",
       "file": "tests/etaf-ui-window-tests.el",
       "purpose": "A full-bleed window gives its body the rows of its edge handles."
+    },
+    {
+      "name": "etaf-ui-window-full-bleed-handles-own-edge-input",
+      "file": "tests/etaf-ui-window-tests.el",
+      "purpose": "All eight resize handles own their painted cells and directional pointers across full-bleed geometry changes; child controls retain their authored pointer."
     }
   ]
 }

@@ -443,9 +443,11 @@ composes both Components and provides `header`, `actions`, `default`, and
 
 The `default` slot is wrapped in one viewport region, so content rendered in
 the body can read the space it was given as `(PIXELS . ROWS)` with
-`etaf-viewport`.  The window adds no inset of its own: the body rectangle
-reaches the frame edges (the resize handles are hit strips over its edge
-cells) and content owns its inner spacing.
+`etaf-viewport`. With `:full-bleed t`, the body rectangle reaches the frame
+edges and enabled resize strips cover its edge cells; content must leave those
+cells clear of controls. Without it, handles reserve their own cells around
+the body. Ordinary body space uses an arrow pointer, including when a press
+focuses the window; nested controls retain their authored pointer.
 
 The callbacks in a real application convert the gesture into geometry writes,
 or can be supplied by an ETAF Behavior.  Run `M-x etaf-ui-window-resize-open`

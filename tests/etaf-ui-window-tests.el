@@ -232,4 +232,39 @@
           (etaf-unmount runtime))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-window-full-bleed-handles-own-edge-input ()
+  "All eight full-bleed handles remain painted targets after geometry changes."
+  (let ((buffer (generate-new-buffer " *etaf-ui-window-edge-input*"))
+        (width (etaf-ref '(px 360))) (height (etaf-ref '(lh 12)))
+        (edges '(left right top bottom top-left top-right bottom-left bottom-right)))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window :title "Edges" :width width :height height :full-bleed t
+                         :on-focus #'ignore :on-resize (lambda (_edge _gesture) nil)
+                         :resize-refs (mapcar (lambda (edge) (cons edge edge)) edges)
+                         (box :padding '((lh 0) (px 8))
+                              (etaf-button :ref 'body-action :label "Action" :pointer 'hand
+                                           :on-press #'ignore)))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (dolist (size '((360 12) (420 16) (260 8)))
+              (etaf-set-value width (list 'px (car size)))
+              (etaf-set-value height (list 'lh (cadr size)))
+              (etaf-runtime-flush runtime)
+              (with-current-buffer buffer
+                (dolist (edge edges)
+                  (let ((position (etaf-host-ref-position runtime edge)))
+                    (should position)
+                    (should (eq edge (etaf-host-ref-at runtime position)))
+                    (should (eq (get-text-property position 'pointer)
+                                (cond ((memq edge '(left right)) 'hdrag)
+                                      ((memq edge '(top bottom)) 'vdrag)
+                                      (t 'nhdrag))))))
+                (should (eq 'hand (get-text-property
+                                  (etaf-host-ref-position runtime 'body-action) 'pointer)))))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
 ;;; etaf-ui-window-tests.el ends here
