@@ -77,6 +77,22 @@
 ;; Invalid dimensions, callbacks or text signal etaf-component-call-error.
 ;; Use (etaf-view (etaf-tile-grid :rows 8 :columns 12 ...)).
 ;;
+;; Component: etaf-playing-card (&key rank suit face-down empty selected disabled on-press label ref columns lines)
+;; Present a controlled playing card or empty pile as one activation target.
+;; RANK is a one-line string up to three columns; SUIT is spades, hearts,
+;; clubs, diamonds or nil. FACE-DOWN conceals the rank/suit, including the
+;; generated accessible label. EMPTY presents a pile placeholder. SELECTED
+;; changes paint without changing geometry. COLUMNS defaults to 9 (minimum 7);
+;; LINES defaults to 5 (minimum 1); one row exposes just a card's corner in a
+;; stack. These intrinsic dimensions never stretch to fill a viewport.
+;; ON-PRESS receives no arguments; omitted/disabled cards are noninteractive.
+;; LABEL overrides the accessible name and help, so callers must not put
+;; hidden information there. Caller owns selection, stacks, moves and rules.
+;; Colors use :ui-playing-card-* theme tokens; default faces are warm ivory
+;; with contrasting red/black suits. Invalid rank/suit/dimensions signal
+;; etaf-component-call-error. Use (etaf-view (etaf-playing-card :rank "A"
+;; :suit 'hearts :on-press (lambda () ...))). No game backend is required.
+;;
 ;; Component: etaf-text-grid (&key rows columns row-text row-ref label)
 ;; Display ROWS fixed text lines, each COLUMNS character columns wide.
 ;; Dimensions are positive integers. ROW-TEXT is a required callback receiving
@@ -858,6 +874,7 @@
 (require 'etaf-ui-data)
 (require 'etaf-ui-tile-grid)
 (require 'etaf-ui-text-grid)
+(require 'etaf-ui-playing-card)
 (require 'etaf-ui-advanced)
 (require 'etaf-ui-window)
 (require 'etaf-ui-desktop)

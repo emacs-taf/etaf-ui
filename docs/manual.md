@@ -103,6 +103,32 @@ Their lifecycle belongs to the consumer. The complete prop contract is in
 [the package entry](../etaf-ui.el).
 
 
+## Playing cards and stacks
+
+`etaf-playing-card` presents one card as one focus/activation target. It is not
+`etaf-card`, which is a general content container. The caller supplies rank,
+suit, selection and its press callback; this component never owns a deck,
+checks a move or talks to a game engine.
+
+```elisp
+(etaf-view
+ (row :item-gap '(ch 2)
+   (etaf-playing-card :rank "A" :suit 'hearts :on-press (lambda () (message "Ace")))
+   (etaf-playing-card :face-down t)
+   (etaf-playing-card :empty t :suit 'spades)))
+```
+
+The default face is nine character columns by five text rows. Compose stacks
+as columns with one-row cards (`:lines 1`) above a full-height last card; each
+exposed corner keeps its own accessible target. Resize the surrounding layout,
+not the cards. A face-down card does not display or announce its rank/suit;
+custom labels are the caller's responsibility. Omit `:on-press` for passive
+cards and use `:disabled` for temporarily unavailable actions.
+
+Override `:ui-playing-card-bg`, `-black`, `-red`, `-back-bg`, `-back-fg`,
+`-empty-bg`, `-empty-fg`, `-selected-bg` and `-hover-bg` through an ordinary
+scoped ETAF theme. Selection and hover change paint, not line metrics.
+
 ## Fixed-width text surfaces
 
 `etaf-text-grid` displays a terminal-like character surface without creating

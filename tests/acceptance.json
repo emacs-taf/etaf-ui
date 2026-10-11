@@ -14,6 +14,16 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-playing-card-preserves-metrics-and-controlled-activation",
+      "file": "tests/etaf-ui-playing-card-tests.el",
+      "purpose": "Face, selection and container width keep fixed card geometry and callbacks."
+    },
+    {
+      "name": "etaf-ui-playing-card-corners-placeholders-and-validation",
+      "file": "tests/etaf-ui-playing-card-tests.el",
+      "purpose": "Short corners and empty piles remain readable without leaking hidden cards."
+    },
+    {
       "name": "etaf-ui-tile-grid-follows-replaced-projection-callbacks",
       "file": "tests/etaf-ui-tile-grid-tests.el",
       "purpose": "Replacing caller projections updates retained cell text, help and colors."

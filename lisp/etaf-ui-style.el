@@ -49,6 +49,15 @@
     :ui-panel-fg "#252A2E"
     :ui-panel-bg "#FFFDF8"
     :ui-panel-border "#687386"
+    :ui-playing-card-bg "#F7F4EC"
+    :ui-playing-card-black "#253546"
+    :ui-playing-card-red "#B73951"
+    :ui-playing-card-back-bg "#315C76"
+    :ui-playing-card-back-fg "#BFD8E5"
+    :ui-playing-card-empty-bg "#E7EDF1"
+    :ui-playing-card-empty-fg "#788B99"
+    :ui-playing-card-selected-bg "#F6D994"
+    :ui-playing-card-hover-bg "#FBE8B8"
     ;; Desktop surface tokens.  Bars, windows, dividers and pickers read
     ;; these so a Desktop Theme restyles the whole shell through paint slots.
     :ui-accent "#2F6FE4"
