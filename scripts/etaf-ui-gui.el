@@ -49,19 +49,17 @@
                                     (buffer-substring-no-properties (point-min) (point-max)))
                          "Missing rendered text %s" text))
 (defun etaf-ui-gui-input (text &optional cancel label)
-  (let ((entered nil))
-    (setq etaf-ui-gui-expected-quit cancel)
-    (minibuffer-with-setup-hook
-        (lambda ()
-          (setq entered t)
-          (delete-minibuffer-contents)
-          (setq unread-command-events
-                (append (listify-key-sequence (vconcat text (kbd (if cancel "C-g" "RET"))))
-                        unread-command-events)))
-      (etaf-ui-gui-press (or label "名称")))
-    (etaf-ui-gui-expect entered "Native minibuffer was not entered")
-    (etaf-ui-gui-expect (not (active-minibuffer-window)) "Minibuffer stayed active")
-    (etaf-ui-gui-focused (or label "名称"))))
+  "Type TEXT into the field at LABEL and leave it; CANCEL discards the draft.
+The field edits in place, so the text goes through the command loop and the
+session ends with its submit or its cancel key."
+  (let ((label (or label "名称")))
+    (etaf-ui-gui-press label)
+    (etaf-ui-gui-expect (etaf-text-input-active-p (etaf-ui-gui-runtime))
+                        "Field session did not start")
+    (execute-kbd-macro (vconcat text (kbd (if cancel "C-c C-k" "RET"))))
+    (etaf-ui-gui-expect (not (etaf-text-input-active-p (etaf-ui-gui-runtime)))
+                        "Field session stayed active")
+    (etaf-ui-gui-focused label)))
 (defun etaf-ui-gui-mouse (label)
   (let* ((ref (or (etaf-ui-gui-control label) (error "Missing mouse target %s" label)))
          (position (etaf-host-ref-position (etaf-ui-gui-runtime) ref)))
