@@ -83,6 +83,21 @@ The buffer is selected so keyboard macros reach it."
       (should (equal (etaf-value value) "初始不要"))
       (should-not (etaf-text-input-active-p runtime)))))
 
+(ert-deftest etaf-ui-text-input-arrow-boundary-keeps-draft-and-caret ()
+  "Left at the value start leaves the field; re-editing resumes there."
+  (etaf-ui-field-test--with (buffer runtime value)
+    (etaf-dispatch-event runtime 'field 'press)
+    (etaf-ui-field-test--type "AB")
+    (should (equal (etaf-value value) "初始AB"))
+    (etaf-ui-field-test--type "C-a")
+    (etaf-ui-field-test--type "<left>")
+    (should-not (etaf-text-input-active-p runtime))
+    (should (equal (etaf-value value) "初始AB"))
+    (should (eq 'field (etaf-focused-host-ref runtime)))
+    (etaf-dispatch-event runtime 'field 'press)
+    (etaf-ui-field-test--type "X")
+    (should (equal (etaf-value value) "X初始AB"))))
+
 (ert-deftest etaf-ui-text-input-multiline-grows-with-newlines ()
   "A multi-line field inserts unindented newlines and grows until submit."
   (let (submitted)

@@ -162,15 +162,13 @@ Left and Right change the focused slider by STEP."
          (etaf-label :text (format "%d" current) :variant 'muted))
        (etaf-button :label (format "◀  %d  ▶" current) :variant 'secondary
                     :disabled disabled :aria-label label
-                    :keys (and (not disabled) callback
-                               (list (list "<left>"
-                                           (lambda ()
-                                             (funcall callback (max min (- current step))))
-                                           (format "Decrease %s" label))
-                                     (list "<right>"
-                                           (lambda ()
-                                             (funcall callback (min max (+ current step))))
-                                           (format "Increase %s" label))))
+                    :on-direction
+                    (and (not disabled) callback
+                         (lambda (direction)
+                           (pcase direction
+                             ('left (funcall callback (max min (- current step))) 'handled)
+                             ('right (funcall callback (min max (+ current step))) 'handled)
+                             (_ 'release))))
                     :on-press
                     (and (not disabled) callback
                          (lambda ()
@@ -350,17 +348,19 @@ defaults to STEP, else a twentieth of the span."
                     (when on-change (funcall on-change next))
                     (when on-commit (funcall on-commit next))))))))
          (keys (unless disabled
-                 (list (list "<left>" (funcall key-report -1)
-                             (format "Decrease %s" (or label "range")))
-                       (list "<right>" (funcall key-report 1)
-                             (format "Increase %s" (or label "range")))
-                       (list "<home>" (funcall key-report 'min) "Minimum")
-                       (list "<end>" (funcall key-report 'max) "Maximum")))))
+                 (list (list "<home>" (funcall key-report 'min) "Minimum")
+                       (list "<end>" (funcall key-report 'max) "Maximum"))))
+         (direction (unless disabled
+                      (lambda (direction)
+                        (pcase direction
+                          ('left (funcall (funcall key-report -1)) 'handled)
+                          ('right (funcall (funcall key-report 1)) 'handled)
+                          (_ 'release))))))
     (etaf-view
      (flex :flex-direction 'row :class "etaf-range" :width 'stretch :height '(lh 1)
           :position 'relative :z-index 0 :overflow 'hidden
           :role 'slider :tab-index (unless disabled 0)
-          :aria-orientation 'horizontal :keys keys
+          :aria-orientation 'horizontal :keys keys :on-direction direction
           :aria-label (or label "Range")
           :disabled disabled
           :pointer 'hand

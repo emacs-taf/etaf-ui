@@ -18,6 +18,10 @@
 (require 'etaf-ui-input)
 (require 'etaf-ui-icon)
 
+(defvar ebox-input-edit-commands)
+(declare-function etaf-direction "etaf" (direction &optional runtime))
+(declare-function etaf-runtime-mounted-p "etaf-runtime" (runtime))
+
 (cl-defstruct (etaf-ui--text-input (:constructor etaf-ui--text-input-create))
   runtime ref text-ref props-fn session snapshot active focused)
 
@@ -105,10 +109,50 @@ WINDOW defaults to the selected window."
       (etaf-text-input-end 'blur)
       (etaf-focus-previous runtime))))
 
+(defun etaf-ui-field--leave (direction)
+  "Leave the active field at a text boundary and continue in DIRECTION."
+  (when-let* ((field etaf-ui--active-text-input))
+    (let ((runtime (etaf-ui--text-input-runtime field))
+          (ref (etaf-ui--text-input-ref field)))
+      (etaf-text-input-end 'blur)
+      (when (etaf-runtime-mounted-p runtime)
+        (etaf-focus runtime ref)
+        (etaf-direction direction runtime)))))
+
+(defun etaf-ui-field--left ()
+  "Move the caret left; at the value start leave toward the left region."
+  (interactive)
+  (unless (condition-case nil (progn (left-char 1) t) (error nil))
+    (etaf-ui-field--leave 'left)))
+
+(defun etaf-ui-field--right ()
+  "Move the caret right; at the value end leave toward the right region."
+  (interactive)
+  (unless (condition-case nil (progn (right-char 1) t) (error nil))
+    (etaf-ui-field--leave 'right)))
+
+(defun etaf-ui-field--up ()
+  "Move the caret up one visual line; at the first line leave upward."
+  (interactive)
+  (unless (condition-case nil (progn (line-move -1) t) (error nil))
+    (etaf-ui-field--leave 'up)))
+
+(defun etaf-ui-field--down ()
+  "Move the caret down one visual line; at the last line leave downward."
+  (interactive)
+  (unless (condition-case nil (progn (line-move 1) t) (error nil))
+    (etaf-ui-field--leave 'down)))
+
+(dolist (command '(etaf-ui-field--left etaf-ui-field--right
+                   etaf-ui-field--up etaf-ui-field--down))
+  (add-to-list 'ebox-input-edit-commands command))
+
 (defun etaf-ui--text-input-keymap (props)
   "Return the session keymap of a field with PROPS.
-`newline' bindings edit the value; the other commands run in the
-application buffer.  PROPS' :keymap is consulted first."
+`newline' bindings edit the value; commands listed in
+`ebox-input-edit-commands' run in the session buffer and the other commands
+run in the application buffer.  Arrow keys move the caret and leave the
+field at its text boundary.  PROPS' :keymap is consulted first."
   (let ((map (make-sparse-keymap)))
     (when (etaf-ui--text-input-submit-on-return-p props)
       (define-key map (kbd "RET") #'etaf-ui-field--submit)
@@ -121,6 +165,11 @@ application buffer.  PROPS' :keymap is consulted first."
     (define-key map (kbd "<escape>") #'etaf-ui-field--blur)
     (define-key map (kbd "TAB") #'etaf-ui-field--next)
     (define-key map (kbd "<backtab>") #'etaf-ui-field--previous)
+    (dolist (binding '(("<left>" . etaf-ui-field--left)
+                       ("<right>" . etaf-ui-field--right)
+                       ("<up>" . etaf-ui-field--up)
+                       ("<down>" . etaf-ui-field--down)))
+      (define-key map (kbd (car binding)) (cdr binding)))
     (if-let* ((own (plist-get props :keymap)))
         (make-composed-keymap (list own) map)
       map)))

@@ -339,7 +339,8 @@ current item; the viewer fits the media to the live window, keeps its aspect
 ratio and follows resizes. Video gets a transport bar with play/pause,
 ten-second skips, elapsed and total time, a seek bar that accepts clicks and
 drags, playback speed and sound. Passing `:on-previous` and `:on-next` adds
-side arrows, p/n keys and two-finger swipes for browsing a gallery.
+p/n keys and two-finger swipes for browsing a gallery; the left and right
+arrows seek ten seconds with video and browse with images.
 
 ```elisp
 ;;; -*- lexical-binding: t; -*-

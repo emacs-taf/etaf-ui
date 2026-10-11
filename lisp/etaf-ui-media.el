@@ -275,21 +275,18 @@ Keep the aspect ratio; enlarge beyond the natural size only when UPSCALE."
    (keys
     (list (list "q" close "Close")
           (list "SPC" toggle "Play or pause")
-          (list "k" toggle "Play or pause")
-          (list "<left>" (lambda ()
-                           (if (funcall video-p) (funcall seek-by -5)
-                             (funcall navigate 'previous)))
-                "Back 5 s or previous")
-          (list "<right>" (lambda ()
-                            (if (funcall video-p) (funcall seek-by 5)
-                              (funcall navigate 'next)))
-                "Forward 5 s or next")
-          (list "j" (lambda () (funcall seek-by -10)) "Back 10 s")
-          (list "l" (lambda () (funcall seek-by 10)) "Forward 10 s")
           (list "p" (lambda () (funcall navigate 'previous)) "Previous")
           (list "n" (lambda () (funcall navigate 'next)) "Next")
           (list "m" toggle-audio "Mute or unmute")
-          (list "." cycle-speed "Cycle speed"))))
+          (list "." cycle-speed "Cycle speed")))
+   (direction
+    (lambda (direction)
+      (pcase direction
+        ('left (if (funcall video-p) (funcall seek-by -10) (funcall navigate 'previous))
+               'handled)
+        ('right (if (funcall video-p) (funcall seek-by 10) (funcall navigate 'next))
+                'handled)
+        (_ 'release)))))
   :setup
   (progn
     (etaf-on-mounted
@@ -364,7 +361,7 @@ Keep the aspect ratio; enlarge beyond the natural size only when UPSCALE."
        'column
        (list :ref panel :role 'dialog :aria-label (or title "Media")
              :tab-index -1 :keymap nil :on-dismiss on-close
-             :focus-scope 'modal :keys keys
+             :focus-scope 'modal :keys keys :on-direction direction
              :position 'absolute :layer 'root :z-index 1001
              :left '(px 0) :top '(lh 0) :width '(% 100) :height (list 'lh lines)
              :background-color (etaf-ui--media-color :scrim) :color fg

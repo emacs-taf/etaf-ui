@@ -664,6 +664,11 @@
       "purpose": "Escape leaves the session keeping its text and Host focus; C-c C-k restores the value captured at activation."
     },
     {
+      "name": "etaf-ui-text-input-arrow-boundary-keeps-draft-and-caret",
+      "file": "tests/etaf-ui-field-tests.el",
+      "purpose": "Left at the value start leaves the field keeping the draft, and re-editing resumes at the same caret."
+    },
+    {
       "name": "etaf-ui-text-input-multiline-grows-with-newlines",
       "file": "tests/etaf-ui-field-tests.el",
       "purpose": "A multi-row field inserts unindented newlines on Return, Shift+Return and C-j, grows with them and submits on C-c C-c."

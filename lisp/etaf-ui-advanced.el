@@ -113,9 +113,15 @@ next expanded key list."
                            :aria-label (plist-get entry :label)
                            :aria-expanded (and branch (if open t 'false))
                            ;; Right opens and left closes a branch in place.
-                           :keys (when (and branch on-toggle)
-                                   (list (list (if open "<left>" "<right>") toggle
-                                               (if open "Collapse" "Expand"))))
+                           :on-direction
+                           (when (and branch on-toggle)
+                             (lambda (direction)
+                               (pcase direction
+                                 ('right (if open 'release
+                                           (funcall toggle) 'handled))
+                                 ('left (if open (progn (funcall toggle) 'handled)
+                                         'release))
+                                 (_ 'release))))
                            :on-press
                            (lambda ()
                              (if branch
