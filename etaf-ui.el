@@ -243,7 +243,10 @@
 ;; `etaf-text-input-begin'. READ-ONLY stays focusable
 ;; without a session; DISABLED also removes activation. COMPLETION-FUNCTIONS
 ;; configures CAPF during the session and KEYMAP adds field-local bindings,
-;; which run in the application buffer. Other application changes publish
+;; which run in the application buffer; KEYMAP may not bind framework-reserved
+;; keys (Escape, Tab, `?', the arrows, `M-g', `C-g') and such a value signals
+;; `etaf-component-call-error' during validation, with direction behavior left
+;; to `:on-direction'. Other application changes publish
 ;; while editing. Invalid props signal contextual `etaf-view-error'.
 ;; Use inside (etaf-view (etaf-text-input ...)); companion functions above drive
 ;; it programmatically.

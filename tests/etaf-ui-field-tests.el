@@ -259,13 +259,25 @@ The buffer is selected so keyboard macros reach it."
 
 (ert-deftest etaf-ui-text-input-validates-props-and-ends-once ()
   "Invalid props are reported in context; ending twice releases once."
-  (dolist (props '((:rows 0) (:rows "3") (:label 7) (:placeholder 7)
-                   (:completion-functions '(not-a-function))
-                   (:keymap "map")))
-    (with-temp-buffer
-      (should-error (etaf-mount (current-buffer)
-                                (etaf-node 'etaf-text-input props nil))
+  (let ((reserved (let ((map (make-sparse-keymap)))
+                    (define-key map (kbd "TAB") #'ignore)
+                    (define-key map (kbd "<left>") #'ignore)
+                    map)))
+    (dolist (props (list (list :rows 0) (list :rows "3") (list :label 7)
+                         (list :placeholder 7)
+                         (list :completion-functions '(not-a-function))
+                         (list :keymap "map") (list :keymap reserved)))
+      (with-temp-buffer
+        (should-error (etaf-mount (current-buffer)
+                                  (etaf-node 'etaf-text-input props nil))
                     :type 'etaf-component-call-error)))
+    (with-temp-buffer
+      (let ((error (should-error
+                    (etaf-mount (current-buffer)
+                                (etaf-node 'etaf-text-input (list :keymap reserved) nil))
+                    :type 'etaf-component-call-error)))
+        (should (string-match-p "TAB" (error-message-string error)))
+        (should (string-match-p "<left>" (error-message-string error))))))
   (etaf-ui-field-test--with (buffer runtime value)
     (etaf-dispatch-event runtime 'field 'press)
     (etaf-ui-field-test--type [?一 ?次])

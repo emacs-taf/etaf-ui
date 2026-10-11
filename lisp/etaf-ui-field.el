@@ -20,6 +20,7 @@
 
 (defvar ebox-input-edit-commands)
 (declare-function etaf-direction "etaf" (direction &optional runtime))
+(declare-function etaf-keymap-reserved-events "etaf" (keymap))
 (declare-function etaf-runtime-mounted-p "etaf-runtime" (runtime))
 
 (cl-defstruct (etaf-ui--text-input (:constructor etaf-ui--text-input-create))
@@ -335,8 +336,15 @@ buffer."
                      (and (proper-list-p completion-functions)
                           (cl-every #'functionp completion-functions))
                      "a list of completion functions" 'etaf-text-input)
-    (etaf-check-prop :keymap keymap (or (null keymap) (keymapp keymap))
-                     "a keymap or nil" 'etaf-text-input))
+    (let ((reserved (and keymap (keymapp keymap)
+                        (etaf-keymap-reserved-events keymap))))
+      (etaf-check-prop :keymap keymap
+                       (and (or (null keymap) (keymapp keymap)) (null reserved))
+                       (if reserved
+                           (format "a keymap or nil without framework-reserved keys (found %s)"
+                                   (mapconcat #'key-description reserved ", "))
+                         "a keymap or nil")
+                       'etaf-text-input)))
   :setup
   (let ((sources (mapcar (lambda (name) (cons name (etaf-prop name)))
                          '(:value :bind :on-change :placeholder :rows :disabled
