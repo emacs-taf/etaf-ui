@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- A caller-supplied `:keymap` that binds framework-reserved keys (`Escape`,
+  `Tab`, `?`, the arrows, `M-g`, `C-g`) is rejected with an
+  `etaf-component-call-error` naming them, instead of silently replacing the
+  framework binding.
 - Full-bleed window side and bottom handles stay above the body for pointer
   feedback and dragging, including after geometry changes.
 - Ordinary window body space uses the arrow pointer when pressed to focus;
