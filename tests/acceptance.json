@@ -639,9 +639,9 @@
       "purpose": "Typing through the command loop edits the bound value in place without moving surrounding lines; Return submits."
     },
     {
-      "name": "etaf-ui-text-input-cancel-restores-the-activation-value",
+      "name": "etaf-ui-text-input-escape-keeps-text-and-c-c-c-k-restores",
       "file": "tests/etaf-ui-field-tests.el",
-      "purpose": "Escape cancels the session and restores the value captured at activation."
+      "purpose": "Escape leaves the session keeping its text and Host focus; C-c C-k restores the value captured at activation."
     },
     {
       "name": "etaf-ui-text-input-multiline-grows-with-newlines",

@@ -23,7 +23,8 @@
 ;; lists, trees, calendars, breadcrumbs, steps and tile grids are each one
 ;; Tab stop entered at their selected item; arrows and C-n/C-p/C-b/C-f move
 ;; inside them.  Dialogs, drawers, popovers and the media viewer are modal
-;; key scopes closed by Escape or C-g.  `?' lists the keys in scope.
+;; key scopes closed by Escape.  `?' opens read-only key help listing the
+;; keys in scope.
 ;;
 ;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content hover-group pointer use variant)
 ;; Render a standard pressable Button with a committed callback.
@@ -207,8 +208,8 @@
 ;; the application binds them. Return submits when :submit-on-return is
 ;; non-nil (default for one row) and otherwise inserts a newline;
 ;; Shift+Return and C-j insert an unindented newline; C-c C-c and
-;; Ctrl+Return submit; C-c C-k, Escape and C-g cancel and restore the
-;; activation value; TAB/backtab leave and move application focus; M-TAB
+;; Ctrl+Return submit; C-c C-k cancels and restores the activation value;
+;; Escape leaves the session keeping its text and Host focus; TAB/backtab leave and move application focus; M-TAB
 ;; completes. A press or click outside the field leaves it, keeping the text.
 ;; ON-SUBMIT and ON-CANCEL receive the session text; ON-FOCUS runs without
 ;; arguments once a session begins, by pointer, keyboard or
@@ -238,7 +239,8 @@
 ;; "Actions". ITEMS are plists with unique non-nil scalar :key values, unique
 ;; nonempty string :label values and optional :disabled. Native choices include
 ;; only enabled items. ON-SELECT receives the chosen key once, after the input
-;; boundary validates the entry and restores focus. Empty input or C-g cancels.
+;; boundary validates the entry and restores focus. Empty input or C-c C-k
+;; cancels.
 ;; No enabled items, nil ON-SELECT or DISABLED disables the Button. Like other
 ;; inputs, :on-press is an additive observer. Current props supply each published
 ;; menu; no application value or extra open-state ref is owned by the control.
@@ -498,7 +500,7 @@
 ;; and a right-aligned footer row. Default and footer slots retain their
 ;; author Context and state.
 ;; Opening focuses the first eligible control (or the panel when empty).
-;; TAB/Shift-TAB and arrow keys navigate within the panel; Escape/C-g request
+;; TAB/Shift-TAB and arrow keys navigate within the panel; Escape requests
 ;; close. Closing restores a still-valid prior focus. Shortcuts are buffer-local
 ;; and disposed with the open panel; they outrank application key maps,
 ;; including emulation maps, while it is open.  Outside controls remain
@@ -545,7 +547,7 @@
 ;; bar, the playback speed and sound.  Clicking the media toggles playback.
 ;; ON-PREVIOUS and ON-NEXT, when functions, add side arrows, the p/n keys and
 ;; two-finger swipes for browsing a gallery; with images the arrow keys
-;; browse too, with video they seek five seconds.  Escape, C-g, q, the close
+;; browse too, with video they seek five seconds.  Escape, q, the close
 ;; control and a press on the backdrop outside the header, media and footer
 ;; request ON-CLOSE.  Space or k toggles playback, j/l seek ten seconds, m
 ;; toggles sound and . cycles the speed.  While open the viewer's keys

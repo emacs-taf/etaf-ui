@@ -79,6 +79,16 @@ WINDOW defaults to the selected window."
   (interactive)
   (etaf-text-input-end t))
 
+(defun etaf-ui-field--blur ()
+  "Leave the active field keeping its text and its Host focus."
+  (interactive)
+  (when-let* ((field etaf-ui--active-text-input))
+    (let ((runtime (etaf-ui--text-input-runtime field))
+          (ref (etaf-ui--text-input-ref field)))
+      (etaf-text-input-end 'blur)
+      (when (etaf-runtime-mounted-p runtime)
+        (etaf-focus runtime ref)))))
+
 (defun etaf-ui-field--next ()
   "Leave the field and focus the next application control."
   (interactive)
@@ -108,8 +118,7 @@ application buffer.  PROPS' :keymap is consulted first."
     (define-key map (kbd "C-<return>") #'etaf-ui-field--submit)
     (define-key map (kbd "C-c C-c") #'etaf-ui-field--submit)
     (define-key map (kbd "C-c C-k") #'etaf-ui-field--cancel)
-    (define-key map (kbd "C-g") #'etaf-ui-field--cancel)
-    (define-key map (kbd "<escape>") #'etaf-ui-field--cancel)
+    (define-key map (kbd "<escape>") #'etaf-ui-field--blur)
     (define-key map (kbd "TAB") #'etaf-ui-field--next)
     (define-key map (kbd "<backtab>") #'etaf-ui-field--previous)
     (if-let* ((own (plist-get props :keymap)))
@@ -239,7 +248,8 @@ padding and wrapping stay in place; a click inside the field moves the caret
 and a click elsewhere leaves it, keeping the text.  Return submits when
 `:submit-on-return' is non-nil (default for one row) and otherwise inserts a
 newline; Shift+Return and C-j insert a newline; C-c C-c and Ctrl+Return
-submit; C-c C-k, Escape and C-g cancel and restore the activation value; TAB
+submit; C-c C-k cancels and restores the activation value; Escape leaves
+the session keeping its text and its Host focus; TAB
 and backtab leave and move application focus.
 
 ON-SUBMIT and ON-CANCEL receive the session text; ON-FOCUS runs without

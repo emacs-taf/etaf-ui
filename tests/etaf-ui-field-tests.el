@@ -63,8 +63,8 @@ The buffer is selected so keyboard macros reach it."
         (should (equal (etaf-value value) "初始 文本"))
         (should (string-match-p "初始 文本" (etaf-ui-field-test--text buffer)))))))
 
-(ert-deftest etaf-ui-text-input-cancel-restores-the-activation-value ()
-  "Escape restores the value captured when editing began."
+(ert-deftest etaf-ui-text-input-escape-keeps-text-and-c-c-c-k-restores ()
+  "Escape leaves the session keeping its text and Host focus; C-c C-k restores."
   (let (cancelled)
     (etaf-ui-field-test--with (buffer runtime value
                                       :on-cancel (lambda (text) (setq cancelled text)))
@@ -72,9 +72,16 @@ The buffer is selected so keyboard macros reach it."
       (etaf-ui-field-test--type [?不 ?要])
       (should (equal (etaf-value value) "初始不要"))
       (etaf-ui-field-test--type "<escape>")
-      (should (equal cancelled "初始不要"))
-      (should (equal (etaf-value value) "初始"))
-      (should-not (string-match-p "不要" (etaf-ui-field-test--text buffer))))))
+      (should-not cancelled)
+      (should-not (etaf-text-input-active-p runtime))
+      (should (equal (etaf-value value) "初始不要"))
+      (should (eq 'field (etaf-focused-host-ref runtime)))
+      (etaf-dispatch-event runtime 'field 'press)
+      (etaf-ui-field-test--type [?改])
+      (etaf-ui-field-test--type "C-c C-k")
+      (should (equal cancelled "初始不要改"))
+      (should (equal (etaf-value value) "初始不要"))
+      (should-not (etaf-text-input-active-p runtime)))))
 
 (ert-deftest etaf-ui-text-input-multiline-grows-with-newlines ()
   "A multi-line field inserts unindented newlines and grows until submit."

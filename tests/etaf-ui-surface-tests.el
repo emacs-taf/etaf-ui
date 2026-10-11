@@ -167,7 +167,7 @@ props, so the catalog resolves it before the mouse face reaches Ebox."
               (dotimes (_ 5)
                 (etaf-ui-surface-test--key "TAB")
                 (should-not (memq (etaf-focused-host-ref runtime) '(entry background))))
-              (etaf-ui-surface-test--key "C-g")
+              (etaf-ui-surface-test--key "<escape>")
               (should-not (etaf-value open))
               (should (eq 'entry (etaf-focused-host-ref runtime)))
               (should (etaf-host-ref-position runtime 'background))
