@@ -1,4 +1,5 @@
-;;; etaf-ui.el --- Official ETAF Component catalog -*- lexical-binding: t; -*-
+;;; -*- lexical-binding: t; -*-
+;;; etaf-ui.el --- Official ETAF Component catalog
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
@@ -59,11 +60,14 @@
 ;; the control's handlers and subscriptions without owning the caller's ref.
 ;; Use inside (etaf-view (etaf-checkbox ...)); keyword arguments are component props.
 ;;
-;; Component: etaf-tile-grid (&key rows columns cell-width cell-background cell-text cell-label cell-ref on-cell-press)
+;; Component: etaf-tile-grid (&key rows columns cell-width cell-background cell-color cell-text cell-label cell-ref on-cell-press)
 ;; Render ROWS by COLUMNS fixed cells with stable coordinate identities.
 ;; Dimensions and CELL-WIDTH (character columns, default 2) are positive integers.
+;; Cell dimensions remain fixed when the containing viewport changes.
 ;; Optional callbacks take zero-based ROW and COLUMN. CELL-BACKGROUND returns
-;; a color or nil; CELL-TEXT returns one line fitting CELL-WIDTH (default space).
+;; a color or nil; CELL-COLOR supplies the foreground color (nil inherits).
+;; Both color callbacks may return deferred Theme tokens.
+;; CELL-TEXT returns one line fitting CELL-WIDTH (default space).
 ;; CELL-LABEL returns a string for accessibility and help (default "Cell r,c").
 ;; Read caller refs inside those callbacks to retain property/text boundaries.
 ;; ON-CELL-PRESS handles keyboard and mouse activation. Without it cells are

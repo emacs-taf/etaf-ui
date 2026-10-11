@@ -9,6 +9,11 @@
 - Ordinary window body space uses the arrow pointer when pressed to focus;
   child controls retain their own pointer semantics.
 
+### Changed
+
+- Tile grids retain equal projected cell values, reducing rendering work when
+  a shared observation changes only a few cells.
+
 ### Added
 
 - `etaf-window` and `etaf-resizable-panel` accept `:full-bleed`: the default
@@ -19,9 +24,12 @@
   retained rows, Unicode width validation and caller-owned data.
 - `etaf-tile-grid` accepts `:cell-label` for meaningful accessibility names
   and help text while keeping its existing coordinate and activation contract.
+- `etaf-tile-grid` accepts `:cell-color` to control each cell's foreground
+  independently from its background, including reactive Theme colors.
 - `etaf-window` wraps its body slot in a viewport region, so content rendered
   in the window reads the space it was given as `(PIXELS . ROWS)` with
   `etaf-viewport`.
+
 - Catalog Components are fully keyboard operable through ETAF Host keys.
   Selectors, bars, tables, lists, trees, calendars and grids are single Tab
   stops navigated with arrows and `C-n`/`C-p`/`C-b`/`C-f`; `etaf-window` runs

@@ -63,6 +63,10 @@ Review 与菜单的独立场景仍分别按 50 ms、100 ms 验收。
 `cell-ref` 可提供显式的公共焦点和事件地址，不传时使用实例独立的引用。
 `on-cell-press` 同时用于点击和 TAB/RET；不传时网格只读。
 `cell-label` 提供无障碍和提示名称，例如“e2 白兵”，避免只有通用坐标。
+`cell-color` 和 `cell-background` 分别提供前景与背景色，也可返回 Theme token，
+以便地图等场景保持字符与地形的对比度；在回调内读取 ref 保留局部更新边界。
+`cell-width` 表示固定字符列数，高度固定为一行。窗口变化时重排外围布局或
+裁切视口，容器变宽不会拉伸格子。
 
 ```elisp
 (let ((color (etaf-ref "#334155")))

@@ -71,13 +71,18 @@ menu workloads keep their respective 50 ms and 100 ms acceptance budgets.
 `etaf-tile-grid` projects a rectangular board, heatmap or seat map without
 owning its data. Dimensions are positive integers. Coordinate callbacks use
 zero-based row/column; text fits the fixed character width. Put ref reads inside
-`cell-background`, `cell-text` and `cell-label`, not outside the grid in a parent render.
+`cell-background`, `cell-color`, `cell-text` and `cell-label`, not outside the grid in a parent render.
 Each cell then retains its own color/text dependency, and related writes can
 share one `etaf-batch`. Use `cell-ref` for explicit public focus/event addresses;
 omitted references are local to each mounted instance. Click and TAB/RET use
 `on-cell-press`; `cell-label` supplies meaningful names such as "White pawn e2"
 for accessibility and help. Omit the press callback for read-only heatmaps. Use ordinary Ebox flow/viewport
 handling when the board is larger than its containing window.
+`cell-color` and `cell-background` provide independent foreground/background
+colors, including deferred Theme tokens, for maps with contrasting terrain and glyphs.
+Cell width is an intrinsic character count and height is one text row.
+Resize the surrounding layout or clip the viewport while preserving these
+metrics; a wider container does not stretch the cells.
 
 ```elisp
 (let ((color (etaf-ref "#334155")))

@@ -14,6 +14,16 @@
   "support": [],
   "cases": [
     {
+      "name": "etaf-ui-tile-grid-follows-replaced-projection-callbacks",
+      "file": "tests/etaf-ui-tile-grid-tests.el",
+      "purpose": "Replacing caller projections updates retained cell text, help and colors."
+    },
+    {
+      "name": "etaf-ui-tile-grid-preserves-cell-metrics-in-resized-containers",
+      "file": "tests/etaf-ui-tile-grid-tests.el",
+      "purpose": "Resized containers preserve intrinsic cell dimensions, text and activation coordinates."
+    },
+    {
       "name": "etaf-ui-editor-preserves-native-editing-state",
       "file": "tests/etaf-ui-editor-tests.el",
       "purpose": "Enabling/configuring/disabling UI editing preserves multiline Unicode text, native keymaps, completion, point, selection, modification state and undo."
