@@ -218,16 +218,21 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                (help (or (cdr code-link) url))
                (open (plist-get env :open-link))
                (props (if url
-                          (append props
-                                  (list :role 'link :tab-index 0 :help-echo help
-                                        :hover-style
-                                        (list :background-color
-                                              (etaf-ui-markdown--env-color
-                                               env :accent-soft)))
-                                  (when code-link
-                                    (list :text-decoration-line '(underline)))
-                                  (list :on-press (when open
-                                                    (lambda () (funcall open url)))))
+                          (let ((result (append props
+                                                (list :role 'link :tab-index 0 :help-echo help
+                                                      :hover-style
+                                                      (list :background-color
+                                                            (etaf-ui-markdown--env-color
+                                                             env :accent-soft))))))
+                            ;; A code link may share a span with its own text
+                            ;; decoration; a second entry would be a duplicate
+                            ;; View property.
+                            (when code-link
+                              (setq result (plist-put
+                                            result :text-decoration-line '(underline))))
+                            (append result
+                                    (list :on-press (when open
+                                                      (lambda () (funcall open url))))))
                         props)))
           (push (etaf-node 'text props (list text)) nodes))))
     (nreverse nodes)))

@@ -261,6 +261,21 @@
           (execute-kbd-macro (kbd "RET")))
         (should (equal '("app:target") opened))))))
 
+(ert-deftest etaf-ui-markdown-code-link-inside-a-link-keeps-one-decoration ()
+  "A linked code span that is also a code link renders without a duplicate."
+  (etaf-ui-markdown-test--with-mount
+      "A [`target`](app:link) span.\n"
+      (etaf-ui-markdown-test--env
+       :code-link (lambda (text)
+                    (when (equal text "target")
+                      (cons "app:target" "Go to target"))))
+    (let* ((published (etaf-ui-markdown-test--text buffer-name))
+           (position (string-match "target" published)))
+      (should position)
+      (with-current-buffer buffer-name
+        (should (equal "Go to target"
+                       (get-text-property (1+ position) 'help-echo)))))))
+
 (ert-deftest etaf-ui-markdown-code-bg-colors-code-spans ()
   "A `:code-bg' palette entry colors inline code; without it code uses `:panel'."
   (etaf-ui-markdown-test--with-mount

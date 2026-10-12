@@ -8,6 +8,9 @@
 
 ### Fixed
 
+- A linked inline code span that is also a code link keeps one
+  `:text-decoration-line` instead of building a duplicate View property and
+  failing to render.
 - A Button keeps its label on one line: it no longer shrinks below its
   content in a narrow Flex line, so a toolbar wraps its buttons as whole
   items instead of splitting their text.  Tabs inherit this because their
