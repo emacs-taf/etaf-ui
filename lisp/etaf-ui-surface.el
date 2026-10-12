@@ -5,13 +5,20 @@
 ;;; Commentary:
 ;; Ebox owns placement, occlusion and focus. These Components own the panel
 ;; presentation and dismissal policy; each panel is an ETAF modal focus scope,
-;; so Tab, arrows and Escape stay inside it while it is open.
+;; so Tab, arrows and Escape stay inside it while it is open.  A modal's
+;; backdrop keeps the application underneath painted and dims it through
+;; Ebox's backdrop filter instead of covering it with an opaque color.
 
 ;;; Code:
 (require 'etaf-ui-input)
 (require 'etaf-ui-feedback)
 (require 'etaf-ui-icon)
 (require 'ebox)
+
+(defconst etaf-ui--modal-backdrop-brightness 0.55
+  "Brightness of the shared modal backdrop behind floating panels.
+Below 1 dims whatever the application already painted, which stays visible
+with its images and text; Ebox applies the filter to every covered cell.")
 
 (defvar-local etaf-ui--surface-return-stack nil
   "Saved return routes for open surfaces, newest first; not current focus.")
@@ -251,7 +258,9 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
                                      :width '(% 100) :height '(% 100)
                                      :z-index 1001
                                      :class "etaf-modal-backdrop"
-                                     :background-color "#243039"
+                                     :backdrop-filter
+                                     (list 'brightness
+                                           etaf-ui--modal-backdrop-brightness)
                                      :role 'presentation :keymap nil)
                                nil)
                     content))

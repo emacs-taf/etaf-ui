@@ -464,17 +464,17 @@
 ;;   `:ui-picker-item-fg' `:ui-picker-item-muted-fg' (launcher and switcher
 ;;   rows).  Dialogs keep using `:ui-panel-*'; a selected picker row, chip,
 ;;   radio, switch or checkbox mark paints `:ui-button-secondary-fg' on
-;;   `:ui-button-secondary-bg', dialog tokens that a Desktop keeps crisp while
-;;   it dims the shell tokens behind a modal.  Without a provided Theme the
-;;   Components paint their light fallback colors.
+;;   `:ui-button-secondary-bg', dialog tokens that stay crisp while a modal's
+;;   backdrop dims the shell.  Without a provided Theme the Components paint
+;;   their light fallback colors.
 ;;
 ;; Component: etaf-launcher (&key open title items on-select on-close close-label backdrop)
 ;; Render a controlled modal application launcher from item plists.  The
 ;; caller owns the registry and OPEN state; ON-SELECT receives a selected key.
 ;; Items show their :label caption with an optional muted :description below
 ;; it.  The Dialog is centered and sized to its items.  BACKDROP defaults to
-;; t; nil keeps the underlying surface painted so a Desktop can dim it through
-;; its own Theme instead of covering it.
+;; t and dims the application underneath while keeping it painted; nil paints
+;; no backdrop at all, leaving the underlying surface fully visible.
 ;;
 ;; Component: etaf-switcher (&key open title items selected on-select on-close close-label backdrop)
 ;; Render a controlled modal application/window switcher.  SELECTED marks the
@@ -557,14 +557,14 @@
 ;; "Close") ends the footer and requests ON-CLOSE; CLOSE-LABEL nil omits it so
 ;; the footer slot orders every action, for example [Cancel] [Delete].  A fixed
 ;; HEIGHT needs the body rows plus five for header, body air and footer.
-;; The opaque backdrop covers the root canvas, blocking covered controls and
-;; their focus targets. It does not close on a backdrop click; a shell root
-;; may call `etaf-ui-dismiss-outside-press' from its press callbacks to close
-;; surfaces on outside presses. Keyboard
-;; navigation, dismissal and focus return follow Popover. The backdrop uses
-;; solid paint; Ebox does not provide alpha blending. Set BACKDROP nil for an
-;; application-owned unpainted modal projection when the underlying surface
-;; must remain visible. Dialogs own no form data.
+;; The backdrop covers the root canvas and dims it, so covered text and
+;; images stay visible while covered controls and their focus targets are
+;; blocked. It does not close on a backdrop click; a shell root may call
+;; `etaf-ui-dismiss-outside-press' from its press callbacks to close surfaces
+;; on outside presses. Keyboard navigation, dismissal and focus return follow
+;; Popover. Set BACKDROP nil to paint no backdrop at all, for an
+;; application-owned projection that keeps the underlying surface fully
+;; visible. Dialogs own no form data.
 ;;
 ;; Component: etaf-media-viewer (&key open kind src source-size title subtitle caption duration on-close on-previous on-next autoplay)
 ;; Show one image, video or audio file in a controlled modal viewer over the

@@ -529,6 +529,11 @@
       "purpose": "The modal canvas covers background targets and returns focus after closing."
     },
     {
+      "name": "etaf-ui-modal-backdrop-dims-and-restores-the-painted-application",
+      "file": "tests/etaf-ui-surface-tests.el",
+      "purpose": "A modal keeps the application painted and dims it, then restores its original paint on close."
+    },
+    {
       "name": "etaf-ui-media-viewer-owns-keys-browses-and-closes",
       "file": "tests/etaf-ui-surface-tests.el",
       "purpose": "An open media viewer covers the application, outranks its emulation keys, browses with n/p and the arrows, swallows other printing keys, closes with q or Escape and returns focus."

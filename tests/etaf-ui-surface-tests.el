@@ -60,6 +60,47 @@
           (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
             (etaf-unmount runtime)))))))
 
+(defun etaf-ui-surface-test--underlay-face ()
+  "Return the face of the painted \"Underlay\" run in the current buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (when (search-forward "Underlay" nil t)
+      (get-text-property (match-beginning 0) 'face))))
+
+(ert-deftest etaf-ui-modal-backdrop-dims-and-restores-the-painted-application ()
+  "A modal keeps the application painted, dims it, and restores it on close."
+  (with-temp-buffer
+    (let ((open (etaf-ref nil)) (pressed 0))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :ref 'root :width '(ch 60) :height '(lh 20)
+                (box :color "#FFFFFF" "Underlay")
+                (etaf-button :ref 'entry :label "Open"
+                             :on-press (lambda ()
+                                         (cl-incf pressed)
+                                         (setf (etaf-value open) t)))
+                (etaf-dialog :open open :title "Preferences"
+                             :on-close (lambda () (setf (etaf-value open) nil))
+                  (etaf-label :text "Content")))))
+            (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                   (before (etaf-ui-surface-test--underlay-face)))
+              (should before)
+              (etaf-dispatch-event runtime 'entry 'press)
+              (should (etaf-value open))
+              (should (string-match-p "Underlay" (buffer-string)))
+              (should (string-match-p "Preferences" (buffer-string)))
+              (let ((dimmed (etaf-ui-surface-test--underlay-face)))
+                (should dimmed)
+                (should-not (equal before dimmed)))
+              (etaf-ui-surface-test--key "<escape>")
+              (should-not (etaf-value open))
+              (should (equal (etaf-ui-surface-test--underlay-face) before))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-dropdown-opens-navigates-selects-and-restores-focus ()
   "A dropdown renders its items, skips disabled ones and invokes selection once."
   (with-temp-buffer
