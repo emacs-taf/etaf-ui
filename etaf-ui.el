@@ -962,7 +962,7 @@
 ;; overriding the callout labels kind by kind; `:features' is the document's
 ;; resolved extension plist, which gates the alert callouts.
 ;;
-;; Variable: etaf-ui-markdown-flavor (default 'gfm)
+;; Variable: etaf-ui-markdown-flavor
 ;; Default markdown dialect of `etaf-ui-markdown-parse'.
 ;; A FLAVOR argument overrides it. `gfm' enables the GitHub extensions and
 ;; front matter, `commonmark' parses the core specification only, and a
