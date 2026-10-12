@@ -56,7 +56,8 @@
 ;; Alternatively, pass an existing writable ref as :bind; its current value
 ;; supplies CHECKED and the next boolean is written to the same ref.  Non-nil
 ;; BIND rejects explicitly supplied CHECKED or ON-CHANGE, including nil, with
-;; `etaf-view-error'.  Nil BIND leaves the explicit controlled interface active.
+;; `etaf-component-call-error'.  Nil BIND leaves the explicit controlled
+;; interface active.
 ;; Native root attributes request Ebox pointer, help and hover feedback,
 ;; using the same forwarding contract as Button.
 ;; No additional state is created. External ref writes update the control;
