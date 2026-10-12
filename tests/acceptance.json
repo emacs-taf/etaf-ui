@@ -862,6 +862,11 @@
       "name": "etaf-ui-markdown-code-link-links-a-code-span",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "The code-link callback turns a code span into an activatable link while the span keeps its code style."
+    },
+    {
+      "name": "etaf-ui-markdown-code-bg-colors-code-spans",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "An optional code-bg palette entry colors inline code and falls back to panel without it."
     }
   ]
 }

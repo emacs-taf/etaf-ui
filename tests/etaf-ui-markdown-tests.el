@@ -177,6 +177,16 @@
             (push (char-after (1+ index)) scaled))))
       (concat (nreverse scaled)))))
 
+(defun etaf-ui-markdown-test--background (buffer-name position)
+  "Return the face background at POSITION in BUFFER-NAME, or nil."
+  (with-current-buffer buffer-name
+    (let ((face (get-text-property position 'face)))
+      (cl-loop for spec in (if (and (consp face) (keywordp (car face)))
+                               (list face)
+                             (ensure-list face))
+               when (and (consp spec) (plist-get spec :background))
+               return (plist-get spec :background)))))
+
 (ert-deftest etaf-ui-markdown-line-grid-keeps-body-size ()
   "`:line-grid' renders headings and footnote references at the body size."
   (let ((text "# Title\n\n## Part\n\nBody[^n]\n\n[^n]: note\n"))
@@ -250,6 +260,23 @@
           (goto-char (1+ position))
           (execute-kbd-macro (kbd "RET")))
         (should (equal '("app:target") opened))))))
+
+(ert-deftest etaf-ui-markdown-code-bg-colors-code-spans ()
+  "A `:code-bg' palette entry colors inline code; without it code uses `:panel'."
+  (etaf-ui-markdown-test--with-mount
+      "A `span` here.\n" (etaf-ui-markdown-test--env)
+    (should (equal "#f6f8fa"
+                   (etaf-ui-markdown-test--background
+                    buffer-name (1+ (string-match "span"
+                                                  (etaf-ui-markdown-test--text buffer-name)))))))
+  (etaf-ui-markdown-test--with-mount
+      "A `span` here.\n"
+      (etaf-ui-markdown-test--env :palette (cons '(:code-bg . "#123456")
+                                                 etaf-ui-markdown-test--palette))
+    (should (equal "#123456"
+                   (etaf-ui-markdown-test--background
+                    buffer-name (1+ (string-match "span"
+                                                  (etaf-ui-markdown-test--text buffer-name))))))))
 
 (provide 'etaf-ui-markdown-tests)
 ;;; etaf-ui-markdown-tests.el ends here

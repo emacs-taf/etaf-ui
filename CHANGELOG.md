@@ -26,7 +26,10 @@
   alist, and delegates links, footnotes, media, code blocks and code spans
   to caller callbacks (a `:code-link` callback can turn a code span into a
   link while it keeps its code style), so the previewer, the manual reader
-  and other document views share one rendering path.  Table columns share
+  and other document views share one rendering path.  A `:code-bg' palette
+  entry colors inline code and default code blocks, falling back to
+  `:panel' when absent, so a document can keep code readable on tinted
+  panels.  Table columns share
   the width by content, never go below a column's min-content so a word or a
   short CJK run stays whole, and wrap at word boundaries; the `:line-grid`
   environment keeps every line at the standard height for documents that

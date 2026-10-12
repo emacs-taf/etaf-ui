@@ -73,6 +73,12 @@ code spans then use the frame's own font instead of guessing a family."
   (etaf-node 'box (list :height (list 'lh (or lines 1))) nil))
 
 
+(defun etaf-ui-markdown--code-color (env)
+  "Return ENV's background for code surfaces.
+The palette may provide `:code-bg'; without it code uses `:panel'."
+  (etaf-ui-markdown--env-color
+   env (if (assq :code-bg (plist-get env :palette)) :code-bg :panel)))
+
 (defun etaf-ui-markdown--run-props (run env)
   "Return the ETAF style props of inline RUN in ENV."
   (let ((props nil))
@@ -84,7 +90,7 @@ code spans then use the frame's own font instead of guessing a family."
       (setq props (plist-put props :text-decoration-line '(line-through))))
     (when (plist-get run :code)
       (setq props (plist-put props :background-color
-                             (etaf-ui-markdown--env-color env :panel)))
+                             (etaf-ui-markdown--code-color env)))
       (let ((mono (etaf-ui-markdown--mono-family)))
         (when mono (setq props (plist-put props :font-family mono)))))
     (when (plist-get run :link)
@@ -308,7 +314,7 @@ nil keeps the default fenced block."
                                                nil))))))
     (etaf-node 'box
                (list :width 'stretch
-                     :background-color (etaf-ui-markdown--env-color env :panel)
+                     :background-color (etaf-ui-markdown--code-color env)
                      :border (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border))
                      :padding-top (if header '(lh 0) '(lh 1))
                      :padding-bottom '(lh 1)

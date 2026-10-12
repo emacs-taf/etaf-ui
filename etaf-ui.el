@@ -948,7 +948,9 @@
 ;;
 ;; The rendering environment is a plist.  `:palette' is required: an alist of
 ;; semantic color keys (`:ink', `:muted', `:faint', `:heading', `:accent',
-;; `:accent-soft', `:panel', `:border', `:quote-bg', `:quote-bar',
+;; `:accent-soft', `:panel', `:code-bg' (optional; inline code and code
+;; blocks use it when present and fall back to `:panel'), `:border',
+;; `:quote-bg', `:quote-bar',
 ;; `:table-header', `:table-stripe', `:ok', `:ok-soft', `:warn',
 ;; `:warn-soft', `:danger', `:danger-soft', `:important' and
 ;; `:important-soft'); every color is read through it, so a palette change
