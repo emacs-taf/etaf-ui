@@ -673,7 +673,7 @@ a ratio or window/layout policy."
                                  second))))))))
 
 (etaf-define-component etaf-pane-resizer
-    (&key size (side 'right) min max on-change on-end (line t) background)
+    (&key size (side 'right) min max on-change on-end (line t) background ref)
   "Render a vertical divider that resizes an adjacent fixed-width pane.
 SIZE is the pane's current width in pixels, a number, ref or computed.
 SIDE `right' places the divider on the pane's right, so dragging right
@@ -682,7 +682,8 @@ passes the candidate width, clamped to MIN and MAX pixels when given, to
 ON-CHANGE; ON-END receives the final width.  The divider shows a hairline
 in the divider color beside the pane when LINE is non-nil, over
 BACKGROUND, and is wide enough to grab.  The focused divider steps the
-width one column per Left or Right press.  The width stays caller-owned."
+width one column per Left or Right press.  The width stays caller-owned;
+REF reaches the rendered divider so callers can focus or address it."
   :bindings ((origin (list nil)))
   :validate
   (progn
@@ -703,6 +704,7 @@ width one column per Left or Right press.  The width stays caller-owned."
      'box
      (append
       (list :class "etaf-pane-resizer" :role 'separator
+            :ref ref
             :aria-label "Resize pane" :pointer 'hdrag
             :aria-orientation 'vertical
             :tab-index (when (or on-change on-end) 0)

@@ -492,12 +492,13 @@
                          (row :height '(lh 1)
                               (box :width (list 'px (etaf-value size)) "pane")
                               (etaf-pane-resizer
+                               :ref 'pane-resizer
                                :size size :min 120 :max 300
                                :on-change (lambda (w) (etaf-set-value size w))
                                :on-end (lambda (w) (push w ends))))))
                       '(:viewport-width 600 :viewport-height 4))
           (let* ((runtime (etaf-runtime-for-buffer buffer))
-                 (ref (etaf-ui-desktop-test--ref runtime "Resize pane"))
+                 (ref 'pane-resizer)
                  (drag (lambda (phase dx)
                          (etaf-dispatch-event
                           runtime ref 'drag

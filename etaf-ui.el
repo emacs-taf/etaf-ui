@@ -492,7 +492,7 @@
 ;; VISIBLE defaults to t; a hidden divider keeps its identity and gestures off.
 ;; The focused divider steps like a one-cell drag with the arrows across it.
 ;;
-;; Component: etaf-pane-resizer (&key size side min max on-change on-end line background)
+;; Component: etaf-pane-resizer (&key size side min max on-change on-end line background ref)
 ;; Render a vertical divider that resizes an adjacent fixed-width pane. SIZE is
 ;; the pane's caller-owned width in pixels (a number, ref or computed). SIDE
 ;; `right' (default) places the divider on the pane's right so dragging right
@@ -501,7 +501,8 @@
 ;; ON-END receives the final width. LINE (default t) draws a hairline in the
 ;; divider color beside the pane over BACKGROUND. The divider is wide enough to
 ;; grab and never moves other cells while dragging.  With a callback it is a
-;; Tab stop whose Left and Right step the width one column.
+;; Tab stop whose Left and Right step the width one column.  REF reaches the
+;; rendered divider so callers can focus or address it.
 ;; Use (etaf-view (etaf-pane-resizer :size width :on-change #'set-width)).
 ;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)

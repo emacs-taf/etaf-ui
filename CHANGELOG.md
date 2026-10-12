@@ -24,6 +24,8 @@
 
 ### Added
 
+- `etaf-pane-resizer` accepts `:ref` and puts it on the rendered divider,
+  so a caller can focus or address the resize handle.
 - `etaf-ui-markdown-parse`, `etaf-ui-markdown-view-block` and
   `etaf-ui-markdown-view-blocks` parse and render Markdown documents into
   ordinary ETAF Views.  The renderer takes the document tree and a `:palette`
