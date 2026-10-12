@@ -394,7 +394,10 @@ instead of mutated."
 (defun etaf-ui-markdown--table-tracks (rows columns)
   "Return the grid tracks of COLUMNS for table ROWS.
 Each column's fraction follows its widest cell, bounded so a short column
-keeps a readable minimum and one long column cannot starve the others."
+keeps a readable minimum and one long column cannot starve the others.  A
+column also never becomes narrower than its min-content, measured with the
+fonts its cells use, so a word or a short CJK run stays whole instead of
+being split mid-word."
   (let ((widths (make-list columns 0)))
     (dolist (row rows)
       (cl-loop for inlines in row
@@ -402,14 +405,17 @@ keeps a readable minimum and one long column cannot starve the others."
                do (setf (nth column widths)
                         (max (nth column widths)
                              (etaf-ui-markdown--inline-width inlines)))))
-    (mapcar (lambda (width) (list 'fr (max 4 (min 32 width)))) widths)))
+    (mapcar (lambda (width)
+              (list 'minmax 'min-content (list 'fr (max 4 (min 32 width)))))
+            widths)))
 
 (defun etaf-ui-markdown--table-node (block env)
   "Return the table View of BLOCK in ENV.
 The table draws its own grid: an outer border, a row separator, a column
 separator, a tinted header row and zebra striping, so every column and
 alignment stays visible at a glance.  Columns share the width in proportion
-to their content, and cells wrap at word boundaries."
+to their content and never go narrower than their min-content, so a word or
+a short CJK run stays whole, and cells wrap at word boundaries."
   (let* ((aligns (plist-get block :aligns))
          (columns (length aligns))
          (rows (append (list (plist-get block :header))

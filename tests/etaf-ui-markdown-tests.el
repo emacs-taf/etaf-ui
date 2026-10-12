@@ -207,5 +207,18 @@
         (dolist (word (split-string long))
           (should (string-match-p (format "\\_<%s\\_>" word) published)))))))
 
+(ert-deftest etaf-ui-markdown-table-keeps-unbroken-columns ()
+  "A column is never narrower than the widest unbreakable cell text."
+  (let ((identifier "etaf-manual-reader--section")
+        (prose (concat "this is a very long description with many many words "
+                       "that push the fraction to the cap")))
+    (etaf-ui-markdown-test--with-mount
+        (format "| Property | Inheritance | Meaning |\n| --- | --- | --- |\n| `%s` | 继承 | %s |\n"
+                identifier prose)
+        (etaf-ui-markdown-test--env)
+      (let ((published (etaf-ui-markdown-test--text buffer-name)))
+        (should (string-match-p (regexp-quote identifier) published))
+        (should (string-match-p "继承" published))))))
+
 (provide 'etaf-ui-markdown-tests)
 ;;; etaf-ui-markdown-tests.el ends here

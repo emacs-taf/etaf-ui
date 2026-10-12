@@ -966,8 +966,9 @@
 ;; headings and footnote references keep the body font size, a level-1
 ;; heading uses the accent color and a level-2 heading gains a left accent
 ;; bar, so scrolling never changes the height of the lines it reveals.
-;; Table columns share the width in proportion to their widest cell, within
-;; bounds, and cells wrap at word boundaries.
+;; Table columns share the width in proportion to their widest cell and
+;; never go below a column's min-content, so a word or a short CJK run stays
+;; whole; cells wrap at word boundaries.
 ;;
 ;; Variable: etaf-ui-markdown-flavor
 ;; Default markdown dialect of `etaf-ui-markdown-parse'.
