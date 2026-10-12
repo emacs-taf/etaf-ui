@@ -842,6 +842,16 @@
       "name": "etaf-ui-markdown-alert-labels-override-defaults",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "The alert-labels environment overrides the label of its kind only."
+    },
+    {
+      "name": "etaf-ui-markdown-line-grid-keeps-body-size",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The line-grid environment keeps headings and footnote references at the body font size."
+    },
+    {
+      "name": "etaf-ui-markdown-table-columns-follow-content",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "Table columns share the width by content and cells wrap at word boundaries."
     }
   ]
 }

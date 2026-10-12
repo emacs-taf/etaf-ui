@@ -162,5 +162,50 @@
       (should (string-match-p "当心" published))
       (should-not (string-match-p "Warning" published)))))
 
+(defun etaf-ui-markdown-test--scaled-text (buffer-name)
+  "Return the published characters of BUFFER-NAME whose face sets a height."
+  (with-current-buffer buffer-name
+    (let ((scaled nil))
+      (dotimes (index (buffer-size))
+        (let ((faces (get-text-property (1+ index) 'face)))
+          (when (cl-some (lambda (face)
+                           (and (consp face) (keywordp (car face))
+                                (plist-get face :height)))
+                         (if (and (consp faces) (keywordp (car faces)))
+                             (list faces)
+                           (ensure-list faces)))
+            (push (char-after (1+ index)) scaled))))
+      (concat (nreverse scaled)))))
+
+(ert-deftest etaf-ui-markdown-line-grid-keeps-body-size ()
+  "`:line-grid' renders headings and footnote references at the body size."
+  (let ((text "# Title\n\n## Part\n\nBody[^n]\n\n[^n]: note\n"))
+    (etaf-ui-markdown-test--with-mount text (etaf-ui-markdown-test--env)
+      (let ((scaled (etaf-ui-markdown-test--scaled-text buffer-name)))
+        (should (string-match-p "Title" scaled))
+        (should (string-match-p "Part" scaled))))
+    (etaf-ui-markdown-test--with-mount
+        text (etaf-ui-markdown-test--env :line-grid t)
+      (let ((scaled (etaf-ui-markdown-test--scaled-text buffer-name))
+            (published (etaf-ui-markdown-test--text buffer-name)))
+        (should (equal "" scaled))
+        (should (string-match-p "Title" published))
+        (should (string-match-p "Part" published))))))
+
+(ert-deftest etaf-ui-markdown-table-columns-follow-content ()
+  "Table columns take width in proportion to their content and wrap by word."
+  (let ((long "alpha bravo charlie delta echo foxtrot"))
+    (etaf-ui-markdown-test--with-mount
+        (format "| k | text |\n| --- | --- |\n| a | %s |\n" long)
+        (etaf-ui-markdown-test--env)
+      (let ((published (etaf-ui-markdown-test--text buffer-name)))
+        (should (string-match-p (regexp-quote long) published))))
+    (etaf-ui-markdown-test--with-mount
+        (format "| text | more |\n| --- | --- |\n| %s | %s |\n" long long)
+        (etaf-ui-markdown-test--env)
+      (let ((published (etaf-ui-markdown-test--text buffer-name)))
+        (dolist (word (split-string long))
+          (should (string-match-p (format "\\_<%s\\_>" word) published)))))))
+
 (provide 'etaf-ui-markdown-tests)
 ;;; etaf-ui-markdown-tests.el ends here

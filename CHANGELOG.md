@@ -25,7 +25,9 @@
   ordinary ETAF Views.  The renderer takes the document tree and a `:palette`
   alist, and delegates links, footnotes, media and code blocks to caller
   callbacks, so the previewer, the manual reader and other document views
-  share one rendering path.
+  share one rendering path.  Table columns share the width by content and wrap at
+  word boundaries; the `:line-grid` environment keeps every line at the
+  standard height for documents that scroll beside other content.
 - `etaf-ui-svg-*` composes validated, XML-escaped SVG scenes and returns image
   descriptors for image sources and image Hosts such as `etaf-tile-grid`
   `:cell-image`, keeping ordinary box layout, focus and terminal text fallback.

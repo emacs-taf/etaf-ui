@@ -961,6 +961,13 @@
 ;; nil keeps the default fenced block; `:alert-labels' is an alist
 ;; overriding the callout labels kind by kind; `:features' is the document's
 ;; resolved extension plist, which gates the alert callouts.
+;; `:line-grid' non-nil keeps every rendered line at the standard line
+;; height, for documents shown in a scrolling pane beside other content:
+;; headings and footnote references keep the body font size, a level-1
+;; heading uses the accent color and a level-2 heading gains a left accent
+;; bar, so scrolling never changes the height of the lines it reveals.
+;; Table columns share the width in proportion to their widest cell, within
+;; bounds, and cells wrap at word boundaries.
 ;;
 ;; Variable: etaf-ui-markdown-flavor
 ;; Default markdown dialect of `etaf-ui-markdown-parse'.

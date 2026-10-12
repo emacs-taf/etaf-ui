@@ -211,13 +211,15 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                     (plist-get node :label)))
         (label (plist-get node :label)))
     (etaf-node 'text
-               (list :color (etaf-ui-markdown--env-color env :accent)
-                     :font-size (round (* (etaf-ui-markdown--base-pixels) 0.8))
-                     :role 'link :tab-index 0
+               (append
+                (list :color (etaf-ui-markdown--env-color env :accent))
+                (unless (plist-get env :line-grid)
+                  (list :font-size (round (* (etaf-ui-markdown--base-pixels) 0.8))))
+                (list :role 'link :tab-index 0
                      :help-echo (format "Footnote %s" label)
                      :on-press (lambda ()
                                  (when-let* ((jump (plist-get env :footnote-jump)))
-                                   (funcall jump label))))
+                                   (funcall jump label)))))
                (list (format "[%s]" number)))))
 
 (defun etaf-ui-markdown--paragraph-node (block env)
@@ -232,23 +234,35 @@ A paragraph that contains only one image delegates to ENV's `:render-media'."
                (etaf-ui-markdown--runs-view (plist-get block :children) env nil))))
 
 (defun etaf-ui-markdown--heading-node (block env)
-  "Return the heading View of BLOCK in ENV."
+  "Return the heading View of BLOCK in ENV.
+With ENV's `:line-grid' the heading keeps the body font size, so its line
+has the standard height; the level then shows through color and, for level
+2, an accent bar drawn as a left border that occupies no line."
   (let* ((level (plist-get block :level))
-         (color (if (>= level 5)
-                    (etaf-ui-markdown--env-color env :muted)
-                  (etaf-ui-markdown--env-color env :heading)))
+         (grid (plist-get env :line-grid))
+         (color (cond ((>= level 5) (etaf-ui-markdown--env-color env :muted))
+                      ((and grid (= level 1))
+                       (etaf-ui-markdown--env-color env :accent))
+                      (t (etaf-ui-markdown--env-color env :heading))))
          (children
           (etaf-ui-markdown--runs-view
            (plist-get block :children) env (list :bold t)
-           (list :font-size (etaf-ui-markdown--heading-pixels level)
-                 :color color))))
+           (append (unless grid
+                     (list :font-size (etaf-ui-markdown--heading-pixels level)))
+                   (list :color color)))))
     (etaf-node 'box
-               (list :id (plist-get block :id)
-                     :width 'stretch
-                     ;; Headings carry no margin or rule of their own: the block
-                     ;; flow separates every sibling with exactly one blank
-                     ;; line, including heading-to-heading.
-                     :margin '((lh 0) (ch 0)))
+               (append
+                (list :id (plist-get block :id)
+                      :width 'stretch
+                      ;; Headings carry no margin or rule of their own: the
+                      ;; block flow separates every sibling with exactly one
+                      ;; blank line, including heading-to-heading.
+                      :margin '((lh 0) (ch 0)))
+                (when (and grid (= level 2))
+                  (list :border-left
+                        (list '(px 3) 'solid
+                              (etaf-ui-markdown--env-color env :accent))
+                        :padding-left '(ch 1))))
                children)))
 
 (defun etaf-ui-markdown--code-block-node (block env)
@@ -367,15 +381,40 @@ instead of mutated."
                                (cdr children)))))
           (cdr blocks))))
 
+(defun etaf-ui-markdown--inline-width (inlines)
+  "Return the display width of the text of INLINES and their children."
+  (let ((width 0))
+    (dolist (node inlines)
+      (setq width (+ width
+                     (string-width (or (plist-get node :text) ""))
+                     (etaf-ui-markdown--inline-width
+                      (plist-get node :children)))))
+    width))
+
+(defun etaf-ui-markdown--table-tracks (rows columns)
+  "Return the grid tracks of COLUMNS for table ROWS.
+Each column's fraction follows its widest cell, bounded so a short column
+keeps a readable minimum and one long column cannot starve the others."
+  (let ((widths (make-list columns 0)))
+    (dolist (row rows)
+      (cl-loop for inlines in row
+               for column from 0
+               do (setf (nth column widths)
+                        (max (nth column widths)
+                             (etaf-ui-markdown--inline-width inlines)))))
+    (mapcar (lambda (width) (list 'fr (max 4 (min 32 width)))) widths)))
+
 (defun etaf-ui-markdown--table-node (block env)
   "Return the table View of BLOCK in ENV.
 The table draws its own grid: an outer border, a row separator, a column
 separator, a tinted header row and zebra striping, so every column and
-alignment stays visible at a glance."
+alignment stays visible at a glance.  Columns share the width in proportion
+to their content, and cells wrap at word boundaries."
   (let* ((aligns (plist-get block :aligns))
          (columns (length aligns))
          (rows (append (list (plist-get block :header))
                        (plist-get block :rows)))
+         (tracks (etaf-ui-markdown--table-tracks rows columns))
          (last-row (1- (length rows)))
          (border (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border)))
          (grids nil))
@@ -390,7 +429,7 @@ alignment stays visible at a glance."
                                           (list :padding '((lh 0) (ch 1))
                                                 :width 'stretch
                                                 :overflow 'hidden
-                                                :wrap-mode 'char
+                                                :wrap-mode 'word
                                                 :text-align (or align 'left)
                                                 :border-bottom (and (/= row-index last-row)
                                                                     border)
@@ -413,7 +452,7 @@ alignment stays visible at a glance."
                   ;; the native renderer can accelerate.
                   (push (etaf-node 'grid
                                    (list :width 'stretch
-                                         :grid-template-columns (make-list columns '(fr 1)))
+                                         :grid-template-columns tracks)
                                    (nreverse cells))
                         grids)))
     (etaf-node 'box
