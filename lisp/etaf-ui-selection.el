@@ -202,10 +202,8 @@ nil."
         (let* ((start (car bounds))
                (end (cdr bounds))
                (origin (save-excursion (goto-char start) (line-beginning-position)))
-               ;; Pixel measurement still belongs to the engine layer; the
-               ;; ETAF wrapper lands with the framework measurement pass.
-               (left (ebox-string-pixel-width (buffer-substring origin start)))
-               (width (ebox-string-pixel-width (buffer-substring start end))))
+               (left (etaf-string-pixel-width (buffer-substring origin start)))
+               (width (etaf-string-pixel-width (buffer-substring start end))))
           (when (> width 0)
             (max 0.0 (min 1.0 (/ (- (float (car xy)) left) width)))))))))
 

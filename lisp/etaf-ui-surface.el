@@ -13,9 +13,6 @@
 (require 'etaf-ui-icon)
 (require 'ebox)
 
-(defvar ebox-viewport-height)
-(defvar ebox-viewport-width)
-
 (defvar-local etaf-ui--surface-return-stack nil
   "Saved return routes for open surfaces, newest first; not current focus.")
 
@@ -163,19 +160,13 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
                  (etaf-event-error nil)))))))))
   :render
   (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
-         (target-buffer
-          (if-let* ((runtime (etaf-current-runtime)))
-              (etaf-runtime-buffer runtime)
-            (current-buffer)))
-         (display-window (and (display-graphic-p)
-                              (get-buffer-window target-buffer t)))
-         (viewport-width
-          (or (and display-window
-                   (ebox-viewport-window-width display-window))
-              (and (numberp ebox-viewport-width) ebox-viewport-width)))
-         (viewport-height
-          (or (and display-window (window-body-height display-window))
-              (and (numberp ebox-viewport-height) ebox-viewport-height)))
+         (runtime (etaf-current-runtime))
+         (window-viewport
+          (and runtime (display-graphic-p)
+               (etaf-runtime-window-viewport runtime)))
+         (canvas-viewport (and runtime (etaf-runtime-viewport runtime)))
+         (viewport-width (or (car window-viewport) (car canvas-viewport)))
+         (viewport-height (or (cdr window-viewport) (cdr canvas-viewport)))
          (viewport-height-known
           (and (display-graphic-p)
                (numberp viewport-height) (> viewport-height 0)))

@@ -18,7 +18,6 @@
 (require 'etaf-ui-input)
 (require 'etaf-ui-icon)
 
-(defvar ebox-input-edit-commands)
 (declare-function etaf-direction "etaf" (direction &optional runtime))
 (declare-function etaf-keymap-reserved-events "etaf" (keymap))
 (declare-function etaf-runtime-mounted-p "etaf-runtime" (runtime))
@@ -146,12 +145,12 @@ WINDOW defaults to the selected window."
 
 (dolist (command '(etaf-ui-field--left etaf-ui-field--right
                    etaf-ui-field--up etaf-ui-field--down))
-  (add-to-list 'ebox-input-edit-commands command))
+  (etaf-input-edit-command-add command))
 
 (defun etaf-ui--text-input-keymap (props)
   "Return the session keymap of a field with PROPS.
-`newline' bindings edit the value; commands listed in
-`ebox-input-edit-commands' run in the session buffer and the other commands
+`newline' bindings edit the value; commands registered with
+`etaf-input-edit-command-add' run in the session buffer and the other commands
 run in the application buffer.  Arrow keys move the caret and leave the
 field at its text boundary.  PROPS' :keymap is consulted first."
   (let ((map (make-sparse-keymap)))
