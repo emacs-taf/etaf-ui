@@ -33,7 +33,7 @@
 (etaf-mount "*etaf-preferences*" (etaf-view (demo-preferences)))
 ```
 
-[完整用法与接口契约](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/zh-CN/ui-overview.md)。
+[完整用法与接口契约](https://etaf.top/zh-cn/ui-overview/)。
 
 运行 `M-x etaf-ui-gallery-open` 查看维护中的 Atelier 现代化工作台。它把布局、
 反馈、导航、输入、数据和浮层组件组合到同一个由调用方持有状态的流程中。

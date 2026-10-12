@@ -4,7 +4,7 @@
 
 ### Removed
 
-- The package manual `docs/manual.md` is replaced by the [UI chapters](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/en/ui-overview.md) of the ETAF Reference Manual, which the README and the package Commentary link.
+- The package manual `docs/manual.md` is replaced by the [UI chapters](https://etaf.top/ui-overview/) of the ETAF Reference Manual, which the README and the package Commentary link.
 
 ### Fixed
 
@@ -25,6 +25,11 @@
   child controls retain their own pointer semantics.
 
 ### Changed
+
+- A modal surface's default backdrop keeps the application painted and dims
+  it through Ebox's `:backdrop-filter`, so covered text and images stay
+  visible while covered controls keep their blocked pointers and focus
+  targets.  `:backdrop` nil now paints no backdrop at all.
 
 - Tile grids retain equal projected cell values, reducing rendering work when
   a shared observation changes only a few cells.
