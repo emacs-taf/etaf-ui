@@ -255,7 +255,7 @@ tokens; pressing anywhere on the pill starts editing:
 
 Catalog Components carry their keyboard behavior, so an application composes
 them without installing keymaps. The rules come from ETAF's
-[keyboard operation contract](https://forgejo.vhkd.top/emacs-taf/etaf/src/branch/main/docs/manual.md#keyboard-operation):
+[keyboard operation contract](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/en/keyboard.md):
 
 - Tabs, segmented and radio selectors, the workspace bar, taskbar, window
   controls, Table and DataGrid bodies, lists, trees, calendars, breadcrumbs,
@@ -469,7 +469,7 @@ Explicit font settings must fit that canvas's line height. Ebox rejects a
 larger resolved font before publication, preserving the last committed pixels
 and input. A custom glyph can still select a different fallback font at the
 same CSS size; checking the numeric size alone does not prove its physical
-row height. See the Ebox manual's [positioned composition contract](https://forgejo.vhkd.top/emacs-taf/ebox/src/branch/main/docs/manual.md).
+row height. See the [positioned composition contract](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/en/positioning-layers-and-overlays.md).
 
 
 `etaf-resizable-panel` is the low-level catalog shell for a positioned panel.
@@ -851,7 +851,7 @@ controls block pointer activation from falling through to their parent row.
 Disabled input Behaviors are not installed. A conflicting fallthrough `:role`
 or owned aria state, such as `:aria-checked`, is an input error; accessible
 `:aria-label` and `:aria-description` remain caller-overridable. See the
-[interaction and migration rules](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf/src/branch/main/docs/manual.md#interaction-migration)
+[interaction and migration rules](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/en/hosts.md#semantic-properties)
 for the complete contract.
 
 `etaf-label` accepts `:text`, `:class`, `:color`, `:bgcolor`, `:font-weight`,

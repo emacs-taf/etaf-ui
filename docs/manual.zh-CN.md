@@ -194,7 +194,7 @@ View 或合法的 View 序列。
 ## 键盘操作
 
 目录组件自带键盘行为，应用组合它们即可，无需安装 keymap。规则来自 ETAF 的
-[键盘操作约定](https://forgejo.vhkd.top/emacs-taf/etaf/src/branch/main/docs/manual.zh-CN.md#键盘操作)：
+[键盘操作约定](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/zh-CN/keyboard.md)：
 
 - 标签页、分段和单选选择器、工作区栏、任务栏、窗口控制按钮、Table 和
   DataGrid 主体、列表、树、日历、面包屑、步骤条和格子网格各占一个 Tab 停靠点。
@@ -351,8 +351,7 @@ Escape、C-g、q、关闭按钮，以及鼠标点击标题栏、媒体和底栏�
 定位窗口共享所在画布的物理文本行网格。显式字体必须满足画布的行高
 限制；Ebox 在发布前拒绝解析后行高更大的字体，保留此前已提交的画面
 和输入。相同 CSS 字号的自定义字形仍可能选择具有不同指标的后备字体，
-所以仅检查字号不能证明实际物理行高。参见 Ebox 手册的
-[定位组合契约](https://forgejo.vhkd.top/emacs-taf/ebox/src/branch/main/docs/manual.zh-CN.md)。
+所以仅检查字号不能证明实际物理行高。参见 [定位组合契约](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/zh-CN/positioning-layers-and-overlays.md)。
 
 交通灯在 SVG 可用时使用受限于 frame 行高的图像；无 SVG 时使用继承
 字体的单格 ASCII `o`，悬停显示 `x`、`-`、`+`，保持同一组动作目标。
@@ -643,7 +642,7 @@ Behavior name 在安装前报错。
 抛出 `etaf-event-error`，禁用 cell 控件会阻止指针激活落到父行，输入 Behavior
 也不会安装。透传 `:role` 或 `:aria-checked` 等组件所有的 aria 状态时，冲突值会
 导致输入错误；调用方仍可覆盖 `:aria-label` 与 `:aria-description`。完整规则见
-[交互与迁移说明](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf/src/branch/main/docs/manual.zh-CN.md#interaction-migration)。
+[交互与迁移说明](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/zh-CN/hosts.md#语义属性)。
 
 `etaf-label` 支持 `:text`、`:class`、`:color`、`:bgcolor`、`:font-weight`、
 `:width`、`:border`、`:padding`、`:wrap-mode` 和 `:ref`。Box 负责布局，
