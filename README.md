@@ -34,7 +34,7 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 (etaf-mount "*etaf-preferences*" (etaf-view (demo-preferences)))
 ```
 
-[Complete usage and interface contracts](docs/manual.md).
+[Complete usage and interface contracts](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/en/ui-overview.md).
 
 For a complete modern composition, run `M-x etaf-ui-gallery-open` to inspect
 the maintained Atelier workspace. It combines the catalog's layout, feedback,

@@ -17,7 +17,7 @@
 ;; All unlisted symbols and implementation features are internal, including
 ;; names without a double hyphen. Do not require files below lisp/ from consumers.
 ;; This Commentary is the authoritative export list; implementations and precise
-;; docstrings remain beside their definitions. The manual contains workflows.
+;; docstrings remain beside their definitions. The ETAF Reference Manual contains workflows.
 ;;
 ;; Every Component is keyboard operable through ETAF's key layer.  Tabs,
 ;; segmented and radio selectors, desktop bars, window controls, tables,

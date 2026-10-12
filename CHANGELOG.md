@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Removed
+
+- The package manual `docs/manual.md` is replaced by the [UI chapters](https://gitea.gklazycat.heiyu.space/emacs-taf/etaf-manual/src/branch/main/book/en/ui-overview.md) of the ETAF Reference Manual, which the README and the package Commentary link.
+
 ### Fixed
 
 - A Button keeps its label on one line: it no longer shrinks below its
