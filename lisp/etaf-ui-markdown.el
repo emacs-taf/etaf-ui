@@ -414,6 +414,32 @@ instead of mutated."
                       (plist-get node :children)))))
     width))
 
+(defun etaf-ui-markdown--inline-segments (inlines)
+  "Return the display widths of the unbreakable segments of INLINES.
+A segment is a run of non-whitespace text; CJK runs count their full
+display width, so a short CJK word keeps its own floor."
+  (let ((widths nil))
+    (dolist (node inlines)
+      (dolist (segment (split-string (or (plist-get node :text) "")
+                                     "[ \t\n]+" t))
+        (push (string-width segment) widths))
+      (setq widths (append (etaf-ui-markdown--inline-segments
+                            (plist-get node :children))
+                           widths)))
+    widths))
+
+(defconst etaf-ui-markdown--cell-min-width 12
+  "Cap, in character cells, of a table cell's unbreakable floor.
+A longer run keeps wrapping, so a prose cell never forces a huge column.")
+
+(defun etaf-ui-markdown--table-cell-min-width (inlines)
+  "Return the min-width floor of a table cell holding INLINES.
+The floor keeps a short CJK word or code span together even when the
+renderer would allow a break between its characters.  It covers the cell's
+one-character padding on both sides and its hairline grid borders."
+  (list 'ch (+ 4 (min etaf-ui-markdown--cell-min-width
+                      (apply #'max 0 (etaf-ui-markdown--inline-segments inlines))))))
+
 (defun etaf-ui-markdown--table-tracks (rows columns)
   "Return the grid tracks of COLUMNS for table ROWS.
 Each column's fraction follows its widest cell, bounded so a short column
@@ -456,6 +482,8 @@ segment plus the cell padding, and cells wrap at word boundaries."
                            do (push
                                (etaf-node 'box
                                           (list :padding '((lh 0) (ch 1))
+                                                :min-width (etaf-ui-markdown--table-cell-min-width
+                                                            inlines)
                                                 :width 'stretch
                                                 :overflow 'hidden
                                                 :wrap-mode 'word

@@ -29,11 +29,10 @@
   and other document views share one rendering path.  A `:code-bg' palette
   entry colors inline code and default code blocks, falling back to
   `:panel' when absent, so a document can keep code readable on tinted
-  panels.  Table columns share
-  the width by content, never go below a column's min-content so a word or a
-  short CJK run stays whole, and wrap at word boundaries; the `:line-grid`
-  environment keeps every line at the standard height for documents that
-  scroll beside other content.
+  panels.  Table columns share the width by content, keep a short
+  unbreakable run such as a CJK word whole, and wrap longer cells at word
+  boundaries; the `:line-grid' environment keeps every line at the
+  standard height for documents that scroll beside other content.
 - `etaf-ui-svg-*` composes validated, XML-escaped SVG scenes and returns image
   descriptors for image sources and image Hosts such as `etaf-tile-grid`
   `:cell-image`, keeping ordinary box layout, focus and terminal text fallback.

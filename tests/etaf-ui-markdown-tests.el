@@ -278,5 +278,25 @@
                     buffer-name (1+ (string-match "span"
                                                   (etaf-ui-markdown-test--text buffer-name))))))))
 
+(ert-deftest etaf-ui-markdown-table-keeps-short-cjk-cells-whole ()
+  "A starved table column still fits a short CJK word on one line."
+  (let* ((document (etaf-ui-markdown-parse
+                    (concat "| Style | 初值 | 适用 | 继承 | 影响 |\n"
+                            "| --- | --- | --- | --- | --- |\n"
+                            "| 颜色字符串或 currentColor | nil | 所有节点 | 是 | 绘制 |\n")))
+         (env (etaf-ui-markdown-test--env :features (plist-get document :features)))
+         (views (etaf-ui-markdown-view-blocks (plist-get document :children) env))
+         (buffer-name (format " *etaf-ui-markdown-%s*" (cl-gensym))))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer-name (etaf-node 'column (list :width '(ch 40)) views))
+          (let ((published (etaf-ui-markdown-test--text buffer-name)))
+            (dolist (word '("初值" "适用" "继承" "影响"))
+              (should (string-match-p (regexp-quote word) published)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (provide 'etaf-ui-markdown-tests)
 ;;; etaf-ui-markdown-tests.el ends here

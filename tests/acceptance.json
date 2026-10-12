@@ -867,6 +867,11 @@
       "name": "etaf-ui-markdown-code-bg-colors-code-spans",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "An optional code-bg palette entry colors inline code and falls back to panel without it."
+    },
+    {
+      "name": "etaf-ui-markdown-table-keeps-short-cjk-cells-whole",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A starved table column still fits a short CJK word on one line instead of splitting it between characters."
     }
   ]
 }
