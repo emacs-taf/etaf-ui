@@ -137,12 +137,20 @@ sizes its row to its own content instead of wrapping."
                    (etaf-node 'etaf-button
                               (list :label "Stop" :variant 'ghost
                                     :on-press #'ignore)
+                              nil)
+                   (etaf-node 'etaf-button
+                              (list :label "Chosen" :variant 'secondary
+                                    :aria-selected t
+                                    :on-press #'ignore)
                               nil))))
           (with-current-buffer buffer-name
             (dolist (case '(("Run again" . "#255FC6") ("Stop" . "#EDF1F6")))
               (let* ((position (1+ (string-match (car case) (buffer-string))))
                      (face (get-text-property position 'mouse-face)))
-                (should (equal (cdr case) (plist-get face :background)))))))
+                (should (equal (cdr case) (plist-get face :background)))))
+            ;; A selected control keeps its selected surface, hover or not.
+            (let ((position (1+ (string-match "Chosen" (buffer-string)))))
+              (should-not (get-text-property position 'mouse-face)))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
       (when-let* ((buffer (get-buffer buffer-name)))

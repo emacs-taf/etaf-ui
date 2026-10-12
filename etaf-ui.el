@@ -27,7 +27,7 @@
 ;; key scopes closed by Escape.  `?' opens read-only key help listing the
 ;; keys in scope.
 ;;
-;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label help-echo hover-content hover-group pointer use variant)
+;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label aria-selected help-echo hover-content hover-group pointer use variant)
 ;; Render a standard pressable Button with a committed callback.
 ;;
 ;; DISABLED removes the callback and default focus tab index.  VARIANT is
@@ -35,7 +35,10 @@
 ;; `ghost' (inherits its surface, narrower padding); every variant is a
 ;; borderless single-row pill whose class carries the variant name, and a
 ;; Button never shrinks below its label or wraps it, so a narrow flex line
-;; moves the whole Button instead of splitting its text.
+;; moves the whole Button instead of splitting its text.  A hover fill comes
+;; from the variant's hover token while the pointer is over an enabled,
+;; unselected Button; `aria-selected' controls (tabs, segments) keep their
+;; selected presentation.
 ;; Presentation props remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
 ;; so a failed render keeps the previous callback and its captured values.
 ;; ID reaches the rendered Host so anchor-based surfaces can reference the
