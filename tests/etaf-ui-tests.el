@@ -122,29 +122,26 @@ sizes its row to its own content instead of wrapping."
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(etaf-define-component etaf-ui-test--hover-token-buttons ()
+  "Buttons inside a Theme that names each variant's hover color."
+  :setup (etaf-theme-provide '(:ui-button-primary-hover-bg "#123456"
+                               :ui-button-ghost-hover-bg "#654321"))
+  :render
+  (etaf-view
+   (column :width '(ch 30)
+     (etaf-button :label "Run again" :variant 'primary :on-press #'ignore)
+     (etaf-button :label "Stop" :variant 'ghost :on-press #'ignore)
+     (etaf-button :label "Chosen" :variant 'secondary :aria-selected t
+                  :on-press #'ignore))))
+
 (ert-deftest etaf-ui-button-hover-uses-the-variant-token ()
-  "A Button paints its variant's hover background from the token."
+  "A Button paints its variant's hover background from the provided token."
   (let ((buffer-name " *etaf-ui-button-hover-test*"))
     (unwind-protect
         (progn
-          (etaf-mount
-           buffer-name
-           (etaf-node 'column (list :width '(ch 30))
-             (list (etaf-node 'etaf-button
-                              (list :label "Run again" :variant 'primary
-                                    :on-press #'ignore)
-                              nil)
-                   (etaf-node 'etaf-button
-                              (list :label "Stop" :variant 'ghost
-                                    :on-press #'ignore)
-                              nil)
-                   (etaf-node 'etaf-button
-                              (list :label "Chosen" :variant 'secondary
-                                    :aria-selected t
-                                    :on-press #'ignore)
-                              nil))))
+          (etaf-mount buffer-name (etaf-view (etaf-ui-test--hover-token-buttons)))
           (with-current-buffer buffer-name
-            (dolist (case '(("Run again" . "#255FC6") ("Stop" . "#EDF1F6")))
+            (dolist (case '(("Run again" . "#123456") ("Stop" . "#654321")))
               (let* ((position (1+ (string-match (car case) (buffer-string))))
                      (face (get-text-property position 'mouse-face)))
                 (should (equal (cdr case) (plist-get face :background)))))

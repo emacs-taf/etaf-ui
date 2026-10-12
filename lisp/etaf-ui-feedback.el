@@ -220,9 +220,15 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
     (unless (and (integerp lines) (> lines 0))
       (signal 'wrong-type-argument (list 'natnump lines)))
     (let* ((columns (etaf-ui--avatar-columns size lines))
+           (keys (etaf-ui--feedback-keys variant))
+           ;; Only the avatar's own two colors are resolved: other palette
+           ;; entries may be deferred tokens (hover fills), which a palette
+           ;; resolution would reject as colors.
            (palette (and (eq shape 'circle)
-                         (etaf-theme-resolve-palette etaf-ui--style-palette
-                                                     (etaf-theme-current-mode))))
+                         (etaf-theme-resolve-palette
+                          (list (nth 0 keys) (plist-get etaf-ui--style-palette (nth 0 keys))
+                                (nth 1 keys) (plist-get etaf-ui--style-palette (nth 1 keys)))
+                          (etaf-theme-current-mode))))
            (image (and (eq shape 'circle)
                        (etaf-ui--avatar-image
                         (etaf-ui--reactive-value src) initials

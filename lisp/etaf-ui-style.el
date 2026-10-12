@@ -36,12 +36,15 @@
     ;; accent, secondary and selected states use its soft tint.
     :ui-button-primary-fg "#FFFFFF"
     :ui-button-primary-bg "#2F6FE4"
-    :ui-button-primary-hover-bg "#255FC6"
+    :ui-button-primary-hover-bg (etaf-theme-token :ui-button-primary-bg "#2F6FE4"
+                                                   etaf-ui--state-hover-deepen)
     :ui-button-secondary-fg "#1F4FB0"
     :ui-button-secondary-bg "#DCE7FA"
-    :ui-button-secondary-hover-bg "#C9DCF7"
+    :ui-button-secondary-hover-bg (etaf-theme-token :ui-button-secondary-bg "#DCE7FA"
+                                                     etaf-ui--state-hover-shift)
     :ui-button-ghost-fg "#252A2E"
-    :ui-button-ghost-hover-bg "#EDF1F6"
+    :ui-button-ghost-hover-bg (etaf-theme-token :ui-bg "#FFFDF8"
+                                                 etaf-ui--state-hover-shift)
     :ui-checkbox-enabled-fg "#252A2E"
     :ui-checkbox-disabled-fg "#6B7280"
     :ui-table-border "#687386"
@@ -60,7 +63,8 @@
     :ui-playing-card-empty-bg "#E7EDF1"
     :ui-playing-card-empty-fg "#788B99"
     :ui-playing-card-selected-bg "#F6D994"
-    :ui-playing-card-hover-bg "#FBE8B8"
+    :ui-playing-card-hover-bg (etaf-theme-token :ui-playing-card-bg "#F7F4EC"
+                                                   etaf-ui--state-hover-shift)
     ;; Desktop surface tokens.  Bars, windows, dividers and pickers read
     ;; these so a Desktop Theme restyles the whole shell through paint slots.
     :ui-accent "#2F6FE4"
@@ -97,6 +101,49 @@
 (defun etaf-ui--style-token (key)
   "Return the deferred ETAF Theme value for private catalog token KEY."
   (etaf-theme-token key (plist-get etaf-ui--style-palette key)))
+
+(defun etaf-ui--color-mix (from to amount)
+  "Return FROM mixed AMOUNT of the way toward TO.
+Both colors are #RRGGBB strings; a color in any other spelling is returned
+unchanged, which keeps a Theme that uses a named color usable."
+  (let ((start (etaf-ui--color-channels from))
+        (end (etaf-ui--color-channels to)))
+    (if (and start end)
+        (apply #'format "#%02X%02X%02X"
+               (cl-mapcar (lambda (a b)
+                            (max 0 (min 255 (round (+ a (* (- b a) amount))))))
+                          start end))
+      from)))
+
+(defun etaf-ui--color-channels (color)
+  "Return COLOR's (RED GREEN BLUE) channels as numbers, or nil."
+  (when (and (stringp color)
+             (string-match
+              "\\`#\\([[:xdigit:]]\\{2\\}\\)\\([[:xdigit:]]\\{2\\}\\)\\([[:xdigit:]]\\{2\\}\\)\\'"
+              color))
+    (list (string-to-number (match-string 1 color) 16)
+          (string-to-number (match-string 2 color) 16)
+          (string-to-number (match-string 3 color) 16))))
+
+(defun etaf-ui--state-hover-shift (color)
+  "Return COLOR shifted away from its own lightness for a hover fill.
+A surface lightens when it is dark and darkens when it is light, so the
+hover stays visible in both palettes while the label keeps its contrast;
+the catalog used to paint a fixed light tint that turned into light text on
+a light fill under a dark application."
+  (let ((channels (etaf-ui--color-channels color)))
+    (if (null channels)
+        color
+      (let ((luminance (+ (* 0.2126 (/ (nth 0 channels) 255.0))
+                          (* 0.7152 (/ (nth 1 channels) 255.0))
+                          (* 0.0722 (/ (nth 2 channels) 255.0)))))
+        (etaf-ui--color-mix color (if (< luminance 0.5) "#FFFFFF" "#000000") 0.06)))))
+
+(defun etaf-ui--state-hover-deepen (color)
+  "Return COLOR deepened for a filled control's hover fill.
+A filled control carries light text, so a stronger color keeps the label
+readable instead of washing it out."
+  (etaf-ui--color-mix color "#000000" 0.14))
 
 (defun etaf-ui--style-border (value)
   "Return canonical border VALUE from a semantic ETAF Theme value."

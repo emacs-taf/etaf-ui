@@ -8,6 +8,12 @@
 
 ### Fixed
 
+- Button, menu and toggle hover fills are derived from the application
+  Theme when it names no hover colour: the catalog used fixed light tints,
+  which turned into light text on a light fill under a dark application
+  (a ghost label dropped to 2.2:1 contrast).  A Theme that provides
+  `:ui-button-ghost-hover-bg`, `:ui-button-secondary-hover-bg`,
+  `:ui-button-primary-hover-bg` or `:ui-accent-soft-bg` still wins.
 - A linked inline code span that is also a code link keeps one
   `:text-decoration-line` instead of building a duplicate View property and
   failing to render.

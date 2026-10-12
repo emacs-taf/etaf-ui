@@ -392,7 +392,14 @@ ICONIC rows reserve an icon cell so labels align when ITEM has no :icon."
              :color (etaf-ui--style-token (if disabled :ui-muted-fg :ui-fg))
              :hover-style (unless disabled
                             (list :background-color
-                                  (etaf-ui--style-token :ui-accent-soft-bg)))
+                                  ;; The application's accent tint wins; a
+                                  ;; Theme without one hovers with its own
+                                  ;; shifted surface instead of a fixed
+                                  ;; light tint.
+                                  (etaf-theme-token
+                                   :ui-accent-soft-bg
+                                   (etaf-theme-token :ui-bg "#FFFDF8"
+                                                     'etaf-ui--state-hover-shift))))
              :pointer (unless disabled 'hand)
              :on-press (unless disabled press))
        (list (if-let* ((icon (plist-get item :icon)))
