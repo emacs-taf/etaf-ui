@@ -912,6 +912,73 @@
 ;; Error: etaf-ui-svg-error
 ;; Invalid input to the etaf-ui-svg scene helpers
 ;; Catch this condition with condition-case; invalid scenes produce no markup.
+;;
+;; The markdown document renderer turns the block tree produced by
+;; `etaf-ui-markdown-parse' into ordinary ETAF Views.  It is data-driven:
+;; every color comes from the caller's `:palette' alist and media or code
+;; blocks can be delegated to caller callbacks, so the same renderer serves a
+;; previewer, a manual reader or any other document view.  It owns no state
+;; and no buffer, so it renders headless in tests and inside a mounted
+;; Component alike.
+;;
+;; Function: etaf-ui-markdown-parse (text &optional flavor)
+;; Parse markdown TEXT into a document plist, or signal `etaf-ui-markdown-error'.
+;; FLAVOR is a dialect name from `etaf-ui-markdown-flavors' (`gfm' is the
+;; default), a feature plist overriding individual extension flags, or nil
+;; for `etaf-ui-markdown-flavor'.  Keys are `:meta' (front matter alist),
+;; `:title', `:children' (top-level blocks with heading ids), `:outline'
+;; (`(LEVEL TEXT ID)' in document order), `:footnotes' (definitions with
+;; `:label', `:number' and `:children') and `:features' (the resolved
+;; extension plist).  A block is a plist with `:type' one of `heading',
+;; `paragraph', `code-block', `blockquote', `list', `table',
+;; `thematic-break', `html-block' and `footnote-def'.
+;;
+;; Function: etaf-ui-markdown-view-block (block env)
+;; Return BLOCK rendered as one ETAF View, or nil when nothing renders.
+;; BLOCK is one top-level block of `etaf-ui-markdown-parse' and ENV is the
+;; rendering environment described below.  A block that expands to several
+;; Views is wrapped in one column, so callers own one node per block.
+;;
+;; Function: etaf-ui-markdown-view-blocks (blocks env &optional tight)
+;; Return the list of Views for BLOCKS in document order, or nil for empty input.
+;; Consecutive blocks are separated by one blank line unless TIGHT is non-nil.
+;; The list carries no container, so callers wrap it for scrolling, selection
+;; or per-block references; a renderer that also wants the document's
+;; footnote definitions appends the Views of `:footnotes' itself.
+;;
+;; The rendering environment is a plist.  `:palette' is required: an alist of
+;; semantic color keys (`:ink', `:muted', `:faint', `:heading', `:accent',
+;; `:accent-soft', `:panel', `:border', `:quote-bg', `:quote-bar',
+;; `:table-header', `:table-stripe', `:ok', `:ok-soft', `:warn',
+;; `:warn-soft', `:danger', `:danger-soft', `:important' and
+;; `:important-soft'); every color is read through it, so a palette change
+;; never leaks a half-updated set of colors, and an unknown key signals
+;; `etaf-ui-markdown-error'.  `:open-link' is called with a link URL;
+;; `:footnote-jump' with a footnote label; `:render-media (kind node env)'
+;; returns the View for media, where KIND is `image', `video', `inline-image'
+;; or `html-media' (without it media renders as its alt text or URL);
+;; `:render-code-block (block env)' may return a View for a code block and
+;; nil keeps the default fenced block; `:alert-labels' is an alist
+;; overriding the callout labels kind by kind; `:features' is the document's
+;; resolved extension plist, which gates the alert callouts.
+;;
+;; Variable: etaf-ui-markdown-flavor (default 'gfm)
+;; Default markdown dialect of `etaf-ui-markdown-parse'.
+;; A FLAVOR argument overrides it. `gfm' enables the GitHub extensions and
+;; front matter, `commonmark' parses the core specification only, and a
+;; feature plist toggles individual extensions.
+;;
+;; Variable: etaf-ui-markdown-flavors
+;; Named markdown dialects and the extension flags they enable.
+;; `commonmark' is the CommonMark core; `gfm' adds the GitHub extensions the
+;; renderer also treats as its default: tables, task lists, strikethrough,
+;; bare autolinks, footnotes and alert blocks, plus front matter, which is a
+;; document convention rather than a markdown extension.
+;;
+;; Error: etaf-ui-markdown-error
+;; Markdown document error
+;; Signaled for an unknown dialect, a missing palette and unknown palette
+;; keys; catch this condition with condition-case.
 
 ;;; Code:
 
@@ -944,6 +1011,8 @@
 (require 'etaf-ui-advanced)
 (require 'etaf-ui-window)
 (require 'etaf-ui-desktop)
+(require 'etaf-ui-markdown-parse)
+(require 'etaf-ui-markdown)
 
 (autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
 (autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)

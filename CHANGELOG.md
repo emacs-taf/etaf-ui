@@ -20,6 +20,12 @@
 
 ### Added
 
+- `etaf-ui-markdown-parse`, `etaf-ui-markdown-view-block` and
+  `etaf-ui-markdown-view-blocks` parse and render Markdown documents into
+  ordinary ETAF Views.  The renderer takes the document tree and a `:palette`
+  alist, and delegates links, footnotes, media and code blocks to caller
+  callbacks, so the previewer, the manual reader and other document views
+  share one rendering path.
 - `etaf-ui-svg-*` composes validated, XML-escaped SVG scenes and returns image
   descriptors for image sources and image Hosts such as `etaf-tile-grid`
   `:cell-image`, keeping ordinary box layout, focus and terminal text fallback.

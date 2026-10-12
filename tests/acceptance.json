@@ -802,6 +802,46 @@
       "name": "etaf-ui-svg-image-feeds-a-retained-image-host",
       "file": "tests/etaf-ui-svg-tests.el",
       "purpose": "A composed scene keeps fixed cell metrics, accessibility names, focus and activation."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-reports-document-structure",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "Parsing exposes the title, outline, block types, footnote definitions and resolved feature flags."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-dialect-gates-extensions",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The commonmark dialect leaves GitHub extension syntax as literal text while gfm parses it."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-rejects-unknown-flavor",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "An unknown dialect name signals the documented markdown error."
+    },
+    {
+      "name": "etaf-ui-markdown-render-requires-a-palette",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "Rendering a colored block without its palette or with an unknown key signals the markdown error."
+    },
+    {
+      "name": "etaf-ui-markdown-renders-blocks-and-inline-styles",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "Headings, inline emphasis and code, lists, fenced code, tables, quotes and callouts publish their content while HTML comments stay invisible."
+    },
+    {
+      "name": "etaf-ui-markdown-callbacks-replace-media-and-code",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The render-code-block and render-media callbacks own the rendered block and replace the default."
+    },
+    {
+      "name": "etaf-ui-markdown-media-falls-back-to-text",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "Without a media callback an image keeps its alt text instead of disappearing."
+    },
+    {
+      "name": "etaf-ui-markdown-alert-labels-override-defaults",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The alert-labels environment overrides the label of its kind only."
     }
   ]
 }
