@@ -96,7 +96,9 @@ its soft tint and `ghost' inherits its surface.  Outlines
 are omitted because a one-row control cannot pad above or below its text, so
 a stroke around it always touches the glyphs.  A disabled button keeps its
 variant's footprint so toggling availability never shifts its neighbours:
-filled variants dim to the disabled surface, a ghost only dims its text."
+filled variants dim to the disabled surface, a ghost only dims its text.
+A hover fill comes from the variant's hover token, so every Button reacts
+to the pointer the same way."
   (let* ((variant (or variant 'primary))
          (fg (cond (disabled :ui-disabled-fg)
                    ((eq variant 'secondary) :ui-button-secondary-fg)
@@ -106,9 +108,15 @@ filled variants dim to the disabled surface, a ghost only dims its text."
                    (disabled :ui-disabled-bg)
                    ((eq variant 'secondary) :ui-button-secondary-bg)
                    (t :ui-button-primary-bg)))
-         (theme (etaf-ui--style-tokens fg (or bg :ui-disabled-bg))))
+         (hover (cond (disabled nil)
+                      ((eq variant 'secondary) :ui-button-secondary-hover-bg)
+                      ((eq variant 'ghost) :ui-button-ghost-hover-bg)
+                      (t :ui-button-primary-hover-bg)))
+         (theme (etaf-ui--style-tokens fg (or bg :ui-disabled-bg)
+                                       (or hover :ui-disabled-bg))))
     (list :color (plist-get theme fg)
           :bgcolor (and bg (plist-get theme bg))
+          :hover-bg (and hover (plist-get theme hover))
           :border nil
           :padding (if (memq variant '(primary secondary))
                        '((lh 0) (ch 2))
@@ -147,6 +155,8 @@ captured values."
        :pointer (or pointer (and (not disabled) 'arrow))
        :color (or color (plist-get variant-values :color))
        :background-color (or bgcolor (plist-get variant-values :bgcolor))
+       :hover-style (when (plist-get variant-values :hover-bg)
+                      (list :background-color (plist-get variant-values :hover-bg)))
        :border (or border (plist-get variant-values :border))
        :padding (or padding (plist-get variant-values :padding))
        :font-size font-size

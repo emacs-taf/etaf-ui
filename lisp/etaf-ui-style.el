@@ -36,9 +36,12 @@
     ;; accent, secondary and selected states use its soft tint.
     :ui-button-primary-fg "#FFFFFF"
     :ui-button-primary-bg "#2F6FE4"
+    :ui-button-primary-hover-bg "#255FC6"
     :ui-button-secondary-fg "#1F4FB0"
     :ui-button-secondary-bg "#DCE7FA"
+    :ui-button-secondary-hover-bg "#C9DCF7"
     :ui-button-ghost-fg "#252A2E"
+    :ui-button-ghost-hover-bg "#EDF1F6"
     :ui-checkbox-enabled-fg "#252A2E"
     :ui-checkbox-disabled-fg "#6B7280"
     :ui-table-border "#687386"

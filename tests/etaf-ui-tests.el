@@ -122,6 +122,32 @@ sizes its row to its own content instead of wrapping."
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-button-hover-uses-the-variant-token ()
+  "A Button paints its variant's hover background from the token."
+  (let ((buffer-name " *etaf-ui-button-hover-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-node 'column (list :width '(ch 30))
+             (list (etaf-node 'etaf-button
+                              (list :label "Run again" :variant 'primary
+                                    :on-press #'ignore)
+                              nil)
+                   (etaf-node 'etaf-button
+                              (list :label "Stop" :variant 'ghost
+                                    :on-press #'ignore)
+                              nil))))
+          (with-current-buffer buffer-name
+            (dolist (case '(("Run again" . "#255FC6") ("Stop" . "#EDF1F6")))
+              (let* ((position (1+ (string-match (car case) (buffer-string))))
+                     (face (get-text-property position 'mouse-face)))
+                (should (equal (cdr case) (plist-get face :background)))))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-button-disabled-preserves-explicit-theme-surface ()
   "A disabled Button keeps explicit dark presentation props in its surface."
   (let ((buffer-name " *etaf-ui-themed-disabled-button-test*"))

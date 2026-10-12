@@ -384,6 +384,11 @@
       "purpose": "A Button keeps its full label on one line when a narrow flex line would otherwise shrink it below its content."
     },
     {
+      "name": "etaf-ui-button-hover-uses-the-variant-token",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "A Button paints its variant's hover background from the catalog token."
+    },
+    {
       "name": "etaf-ui-number-input-validates-and-emits-value",
       "file": "tests/etaf-ui-tests.el",
       "purpose": "Prompt-backed number input owns bounds and emits the accepted value."
@@ -872,6 +877,11 @@
       "name": "etaf-ui-markdown-code-bg-colors-code-spans",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "An optional code-bg palette entry colors inline code and falls back to panel without it."
+    },
+    {
+      "name": "etaf-ui-markdown-links-hover-with-the-accent-tint",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A rendered link carries the accent-soft hover face while code spans keep their code background."
     },
     {
       "name": "etaf-ui-markdown-table-keeps-short-cjk-cells-whole",

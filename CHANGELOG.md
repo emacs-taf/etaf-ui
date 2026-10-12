@@ -24,6 +24,11 @@
 
 ### Added
 
+- Buttons and rendered links react to the pointer: an enabled Button
+  paints its variant's hover token (`:ui-button-primary-hover-bg',
+  `:ui-button-secondary-hover-bg' or `:ui-button-ghost-hover-bg') while
+  hovered, and a markdown link carries the `:accent-soft' palette color
+  as its hover face.
 - `etaf-pane-resizer` accepts `:ref` and puts it on the rendered divider,
   so a caller can focus or address the resize handle.
 - `etaf-ui-markdown-parse`, `etaf-ui-markdown-view-block` and

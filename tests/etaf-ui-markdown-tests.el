@@ -298,5 +298,15 @@
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-markdown-links-hover-with-the-accent-tint ()
+  "A rendered link carries the accent-soft hover face."
+  (etaf-ui-markdown-test--with-mount
+      "A [site](https://example.com) and `code` here.\n" (etaf-ui-markdown-test--env)
+    (with-current-buffer buffer-name
+      (let ((position (1+ (string-match "site" (buffer-string)))))
+        (should (equal "#ddf4ff"
+                       (plist-get (get-text-property position 'mouse-face)
+                                  :background)))))))
+
 (provide 'etaf-ui-markdown-tests)
 ;;; etaf-ui-markdown-tests.el ends here

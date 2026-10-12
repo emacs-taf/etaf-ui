@@ -219,7 +219,11 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                (open (plist-get env :open-link))
                (props (if url
                           (append props
-                                  (list :role 'link :tab-index 0 :help-echo help)
+                                  (list :role 'link :tab-index 0 :help-echo help
+                                        :hover-style
+                                        (list :background-color
+                                              (etaf-ui-markdown--env-color
+                                               env :accent-soft)))
                                   (when code-link
                                     (list :text-decoration-line '(underline)))
                                   (list :on-press (when open
