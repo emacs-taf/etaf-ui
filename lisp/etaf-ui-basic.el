@@ -160,7 +160,7 @@ captured values."
      (or (etaf-current-slot 'default)
          (list (etaf-node 'text nil (list label))))))
   :styles
-  (("&" :width max-content)
+  (("&" :width max-content :flex-shrink 0)
    ("&.disabled" :font-weight normal)))
 
 (defun etaf-ui--checkbox-variant-values (disabled)

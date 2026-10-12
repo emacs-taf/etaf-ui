@@ -33,7 +33,9 @@
 ;; DISABLED removes the callback and default focus tab index.  VARIANT is
 ;; `primary' (accent fill, bold, default), `secondary' (soft accent tint) or
 ;; `ghost' (inherits its surface, narrower padding); every variant is a
-;; borderless single-row pill whose class carries the variant name.
+;; borderless single-row pill whose class carries the variant name, and a
+;; Button never shrinks below its label or wraps it, so a narrow flex line
+;; moves the whole Button instead of splitting its text.
 ;; Presentation props remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
 ;; so a failed render keeps the previous callback and its captured values.
 ;; ID reaches the rendered Host so anchor-based surfaces can reference the

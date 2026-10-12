@@ -99,6 +99,29 @@ sizes its row to its own content instead of wrapping."
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-button-keeps-its-label-on-one-line ()
+  "A Button does not shrink below its label in a narrow Flex line."
+  (let ((buffer-name " *etaf-ui-button-shrink-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-node 'box (list :width '(ch 15))
+             (list (etaf-node 'flex (list :flex-direction 'row)
+                     (list (etaf-node 'etaf-button
+                                      (list :label "Run again" :variant 'primary
+                                            :on-press #'ignore)
+                                      nil)
+                           (etaf-node 'etaf-button
+                                      (list :label "Stop" :variant 'ghost
+                                            :on-press #'ignore)
+                                      nil))))))
+          (should (string-match-p "Run again" (etaf-ui-test--text buffer-name))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-button-disabled-preserves-explicit-theme-surface ()
   "A disabled Button keeps explicit dark presentation props in its surface."
   (let ((buffer-name " *etaf-ui-themed-disabled-button-test*"))

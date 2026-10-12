@@ -379,6 +379,11 @@
       "purpose": "Install Button `:use' Behavior and dispatch its merged callback."
     },
     {
+      "name": "etaf-ui-button-keeps-its-label-on-one-line",
+      "file": "tests/etaf-ui-tests.el",
+      "purpose": "A Button keeps its full label on one line when a narrow flex line would otherwise shrink it below its content."
+    },
+    {
       "name": "etaf-ui-number-input-validates-and-emits-value",
       "file": "tests/etaf-ui-tests.el",
       "purpose": "Prompt-backed number input owns bounds and emits the accepted value."

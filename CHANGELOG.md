@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- A Button keeps its label on one line: it no longer shrinks below its
+  content in a narrow Flex line, so a toolbar wraps its buttons as whole
+  items instead of splitting their text.  Tabs inherit this because their
+  tabs are Buttons.
 - A caller-supplied `:keymap` that binds framework-reserved keys (`Escape`,
   `Tab`, `?`, the arrows, `M-g`, `C-g`) is rejected with an
   `etaf-component-call-error` naming them, instead of silently replacing the
