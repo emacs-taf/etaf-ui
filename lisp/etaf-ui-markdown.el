@@ -178,6 +178,18 @@ renderer keeps the document text: the media's alt text or URL."
                                          (plist-get node :url)
                                          "media"))))))
 
+(defun etaf-ui-markdown--code-link (run env)
+  "Return (URL . HELP) when code RUN links through ENV, or nil.
+ENV's `:code-link' is called with the code text; it may return a URL string
+or a (URL . HELP) cons.  Only code spans are asked."
+  (when-let* ((callback (plist-get env :code-link))
+              (text (plist-get run :text))
+              ((plist-get (plist-get run :props) :code)))
+    (let ((link (funcall callback text)))
+      (cond ((stringp link) (cons link link))
+            ((and (consp link) (stringp (car link))) link)
+            (t nil)))))
+
 (defun etaf-ui-markdown--runs-view (inlines env base &optional extra)
   "Return ETAF children for INLINES in ENV.
 BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
@@ -188,6 +200,7 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
           (push view nodes)
         (let* ((attributes (plist-get run :props))
                (text (plist-get run :text))
+               (code-link (etaf-ui-markdown--code-link run env))
                (props (let ((merged (copy-sequence extra))
                             (inline (etaf-ui-markdown--run-props attributes env)))
                         ;; Heading typography supplies defaults; an inline
@@ -195,11 +208,15 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                         (while inline
                           (setq merged (plist-put merged (pop inline) (pop inline))))
                         merged))
-               (url (plist-get attributes :link))
+               (url (or (plist-get attributes :link) (car code-link)))
+               (help (or (cdr code-link) url))
+               (open (plist-get env :open-link))
                (props (if url
                           (append props
-                                  (list :role 'link :tab-index 0 :help-echo url
-                                        :on-press (when-let* ((open (plist-get env :open-link)))
+                                  (list :role 'link :tab-index 0 :help-echo help)
+                                  (when code-link
+                                    (list :text-decoration-line '(underline)))
+                                  (list :on-press (when open
                                                     (lambda () (funcall open url)))))
                         props)))
           (push (etaf-node 'text props (list text)) nodes))))
@@ -414,8 +431,8 @@ being split mid-word."
 The table draws its own grid: an outer border, a row separator, a column
 separator, a tinted header row and zebra striping, so every column and
 alignment stays visible at a glance.  Columns share the width in proportion
-to their content and never go narrower than their min-content, so a word or
-a short CJK run stays whole, and cells wrap at word boundaries."
+to their content and never go narrower than their widest unbreakable text
+segment plus the cell padding, and cells wrap at word boundaries."
   (let* ((aligns (plist-get block :aligns))
          (columns (length aligns))
          (rows (append (list (plist-get block :header))

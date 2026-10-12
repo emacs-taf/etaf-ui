@@ -857,6 +857,11 @@
       "name": "etaf-ui-markdown-table-keeps-unbroken-columns",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A table column is never narrower than its widest unbreakable cell text, so words and short CJK runs stay whole."
+    },
+    {
+      "name": "etaf-ui-markdown-code-link-links-a-code-span",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The code-link callback turns a code span into an activatable link while the span keeps its code style."
     }
   ]
 }

@@ -220,5 +220,36 @@
         (should (string-match-p (regexp-quote identifier) published))
         (should (string-match-p "继承" published))))))
 
+(ert-deftest etaf-ui-markdown-code-link-links-a-code-span ()
+  "`:code-link' makes a code span a link without losing its code style."
+  (let ((opened nil)
+        (asked nil))
+    (etaf-ui-markdown-test--with-mount
+        "Plain `target` and `untouched` spans.\n"
+        (etaf-ui-markdown-test--env
+         :open-link (lambda (url) (push url opened))
+         :code-link (lambda (text)
+                      (push text asked)
+                      (when (equal text "target")
+                        (cons "app:target" "Go to target"))))
+      (let* ((published (etaf-ui-markdown-test--text buffer-name))
+             (position (string-match "target" published))
+             (untouched (string-match "untouched" published)))
+        (should (= 2 (length asked)))
+        (should (member "target" asked))
+        (should (member "untouched" asked))
+        (should position)
+        (with-current-buffer buffer-name
+          (should (equal "Go to target"
+                         (get-text-property (1+ position) 'help-echo)))
+          (should (get-text-property (1+ position) 'face))
+          (should-not (get-text-property (1+ untouched) 'help-echo))
+          ;; Activation needs a live text window; RET over the span runs the
+          ;; link callback exactly like a click.
+          (set-window-buffer (selected-window) (current-buffer))
+          (goto-char (1+ position))
+          (execute-kbd-macro (kbd "RET")))
+        (should (equal '("app:target") opened))))))
+
 (provide 'etaf-ui-markdown-tests)
 ;;; etaf-ui-markdown-tests.el ends here

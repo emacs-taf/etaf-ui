@@ -23,12 +23,14 @@
 - `etaf-ui-markdown-parse`, `etaf-ui-markdown-view-block` and
   `etaf-ui-markdown-view-blocks` parse and render Markdown documents into
   ordinary ETAF Views.  The renderer takes the document tree and a `:palette`
-  alist, and delegates links, footnotes, media and code blocks to caller
-  callbacks, so the previewer, the manual reader and other document views
-  share one rendering path.  Table columns share the width by content, never
-  go below a column's min-content so a word or a short CJK run stays whole,
-  and wrap at word boundaries; the `:line-grid` environment keeps every line
-  at the standard height for documents that scroll beside other content.
+  alist, and delegates links, footnotes, media, code blocks and code spans
+  to caller callbacks (a `:code-link` callback can turn a code span into a
+  link while it keeps its code style), so the previewer, the manual reader
+  and other document views share one rendering path.  Table columns share
+  the width by content, never go below a column's min-content so a word or a
+  short CJK run stays whole, and wrap at word boundaries; the `:line-grid`
+  environment keeps every line at the standard height for documents that
+  scroll beside other content.
 - `etaf-ui-svg-*` composes validated, XML-escaped SVG scenes and returns image
   descriptors for image sources and image Hosts such as `etaf-tile-grid`
   `:cell-image`, keeping ordinary box layout, focus and terminal text fallback.

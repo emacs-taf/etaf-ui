@@ -958,7 +958,11 @@
 ;; returns the View for media, where KIND is `image', `video', `inline-image'
 ;; or `html-media' (without it media renders as its alt text or URL);
 ;; `:render-code-block (block env)' may return a View for a code block and
-;; nil keeps the default fenced block; `:alert-labels' is an alist
+;; nil keeps the default fenced block; `:code-link (text)' is called with
+;; the text of every code span and may return a URL or a (URL . HELP) cons
+;; to make that span a focusable link, which keeps the code style, gains an
+;; underline and calls `:open-link' with URL on activation, its help echo
+;; being HELP or URL; `:alert-labels' is an alist
 ;; overriding the callout labels kind by kind; `:features' is the document's
 ;; resolved extension plist, which gates the alert callouts.
 ;; `:line-grid' non-nil keeps every rendered line at the standard line
