@@ -23,7 +23,20 @@
             (etaf-dispatch-event runtime 'card 'press)
             (should (= presses 1))
             (should (equal (plist-get (etaf-runtime-host-props-for runtime 'card) :aria-label) "Q of hearts"))
+            (let* ((bounds (etaf-host-ref-bounds runtime 'card))
+                   (face-hover (with-current-buffer buffer
+                                 (get-text-property (car bounds) 'mouse-face))))
+              (setf (etaf-value hidden) t)
+              (let* ((back-bounds (etaf-host-ref-bounds runtime 'card))
+                     (back-hover (with-current-buffer buffer
+                                   (get-text-property (car back-bounds) 'mouse-face))))
+                (should back-hover)
+                (should-not (equal face-hover back-hover)))
+              (setf (etaf-value hidden) nil))
             (setf (etaf-value selected) t)
+            (let ((bounds (etaf-host-ref-bounds runtime 'card)))
+              (with-current-buffer buffer
+                (should-not (get-text-property (car bounds) 'mouse-face))))
             (should (equal size (etaf-host-ref-size runtime 'card)))
             (etaf-runtime-refit runtime 500 30)
             (should (equal size (etaf-host-ref-size runtime 'card)))

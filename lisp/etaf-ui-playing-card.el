@@ -49,7 +49,10 @@
        :bgcolor background :color ink
        :help-echo (or label caption)
        :hover-style (unless (or selected disabled (null on-press))
-                      (list :background-color (etaf-ui--style-token :ui-playing-card-hover-bg)))
+                      (list :background-color
+                            (if (or face-down empty)
+                                (etaf-ui--state-hover-shift background)
+                              (etaf-ui--style-token :ui-playing-card-hover-bg))))
        (column :width 'stretch
          (text :for (index (number-sequence 0 (1- lines))) :key index (expr (nth index content))))))))
 

@@ -102,7 +102,10 @@
 ;; LABEL overrides the accessible name and help, so callers must not put
 ;; hidden information there. Caller owns selection, stacks, moves and rules.
 ;; Colors use :ui-playing-card-* theme tokens; default faces are warm ivory
-;; with contrasting red/black suits. Invalid rank/suit/dimensions signal
+;; with contrasting red/black suits. Hover preserves all card text; backs
+;; and empty piles derive a subtle tint from their own surface rather than
+;; the face-up hover fill. Selected cards suppress hover paint.
+;; Invalid rank/suit/dimensions signal
 ;; etaf-component-call-error. Use (etaf-view (etaf-playing-card :rank "A"
 ;; :suit 'hearts :on-press (lambda () ...))). No game backend is required.
 ;;
