@@ -36,9 +36,12 @@
 ;; borderless single-row pill whose class carries the variant name, and a
 ;; Button never shrinks below its label or wraps it, so a narrow flex line
 ;; moves the whole Button instead of splitting its text.  A hover fill comes
-;; from the variant's hover token while the pointer is over an enabled,
-;; unselected Button; `aria-selected' controls (tabs, segments) keep their
-;; selected presentation.
+;; from the variant's hover token, or from a caller-supplied surface when it
+;; has one, while the pointer is over an enabled, unselected Button;
+;; `aria-selected' controls (tabs, segments) keep their selected
+;; presentation.  Keyboard focus underlines the label and fills a Button
+;; that has no surface of its own, so Tab navigation stays visible without
+;; moving geometry.
 ;; Presentation props remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,
 ;; so a failed render keeps the previous callback and its captured values.
 ;; ID reaches the rendered Host so anchor-based surfaces can reference the

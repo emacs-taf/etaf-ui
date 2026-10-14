@@ -389,6 +389,16 @@
    "purpose": "A Button paints its variant's hover background from the catalog token."
   },
   {
+   "name": "etaf-ui-button-derives-hover-fill-from-a-custom-surface",
+   "file": "tests/etaf-ui-tests.el",
+   "purpose": "A Button with a custom surface derives a visibly different hover fill from that surface, while a surface-less Button still reads the variant token."
+  },
+  {
+   "name": "etaf-ui-button-focus-uses-a-visible-cue",
+   "file": "tests/etaf-ui-tests.el",
+   "purpose": "Keyboard focus underlines a Button label and fills a surface-less Button without changing geometry."
+  },
+  {
    "name": "etaf-ui-number-input-validates-and-emits-value",
    "file": "tests/etaf-ui-tests.el",
    "purpose": "Prompt-backed number input owns bounds and emits the accepted value."

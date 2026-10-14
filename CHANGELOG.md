@@ -8,6 +8,9 @@
 
 ### Fixed
 
+- A Button with a caller-supplied `:bgcolor` derives its hover fill from
+  that surface instead of repeating the variant token, so a chip whose
+  surface equals the token no longer loses its hover feedback.
 - Button, menu and toggle hover fills are derived from the application
   Theme when it names no hover colour: the catalog used fixed light tints,
   which turned into light text on a light fill under a dark application
@@ -42,6 +45,9 @@
 
 ### Added
 
+- A focused Button shows a visible cue without changing geometry: its label
+  is underlined, and a Button that carries no surface of its own takes the
+  ghost hover fill.
 - Buttons and rendered links react to the pointer: an enabled,
   unselected Button paints its variant's hover token
   (`:ui-button-primary-hover-bg', `:ui-button-secondary-hover-bg' or

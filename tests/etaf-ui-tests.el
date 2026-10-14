@@ -153,6 +153,75 @@ sizes its row to its own content instead of wrapping."
       (when-let* ((buffer (get-buffer buffer-name)))
         (kill-buffer buffer)))))
 
+(etaf-define-component etaf-ui-test--custom-surface-buttons ()
+  "A Button with a custom surface next to one that uses the hover token."
+  :setup (etaf-theme-provide '(:ui-button-ghost-hover-bg "#272727"
+                               :ui-bg "#0F0F0F"))
+  :render
+  (etaf-view
+   (flex :flex-direction 'row :column-gap '(ch 2)
+     (etaf-button :ref 'custom :label "Chip" :variant 'ghost
+                  :bgcolor "#272727" :on-press #'ignore)
+     (etaf-button :ref 'token :label "Ghost" :variant 'ghost :on-press #'ignore))))
+
+(ert-deftest etaf-ui-button-derives-hover-fill-from-a-custom-surface ()
+  "A custom Button surface derives a visibly different hover fill."
+  (let ((buffer-name " *etaf-ui-button-custom-hover-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount buffer-name (etaf-view (etaf-ui-test--custom-surface-buttons)))
+          (let* ((runtime (etaf-runtime-for-buffer buffer-name))
+                 (custom-props (etaf-runtime-host-props-for runtime 'custom))
+                 (token-props (etaf-runtime-host-props-for runtime 'token))
+                 (custom (plist-get custom-props :hover-style))
+                 (token (plist-get token-props :hover-style)))
+            ;; The surface keeps its resting color but no longer hovers with
+            ;; the same one: it derives a fill from that surface.
+            (should (equal (plist-get custom-props :background-color) "#272727"))
+            (should (stringp (plist-get custom :background-color)))
+            (should-not (equal (plist-get custom :background-color) "#272727"))
+            ;; A surface without an inline color still reads the variant token.
+            (should (equal (plist-get token :background-color) "#272727"))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
+(ert-deftest etaf-ui-button-focus-uses-a-visible-cue ()
+  "Keyboard focus underlines a label and fills a surface-less Button."
+  (let ((buffer-name " *etaf-ui-button-focus-test*"))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer-name
+           (etaf-view
+            (flex :flex-direction 'row :column-gap '(ch 2)
+              (etaf-button :ref 'ghost :label "Action"
+                           :variant 'ghost :on-press #'ignore)
+              (etaf-button :ref 'filled :label "Filled" :variant 'primary
+                           :bgcolor "#224466" :on-press #'ignore))))
+          (let* ((runtime (etaf-runtime-for-buffer buffer-name))
+                 (buffer (get-buffer buffer-name))
+                 (face-at (lambda (label)
+                            (with-current-buffer buffer
+                              (goto-char (point-min))
+                              (search-forward label)
+                              (format "%S" (get-text-property (1- (point)) 'face))))))
+            (etaf-focus runtime 'ghost)
+            (let ((face (funcall face-at "Action")))
+              (should (string-match-p ":underline" face))
+              (should (string-match-p ":background" face)))
+            ;; A control with its own inline surface keeps that surface under
+            ;; focus and still shows the underline.
+            (etaf-focus runtime 'filled)
+            (let ((face (funcall face-at "Filled")))
+              (should (string-match-p ":underline" face))
+              (should (string-match-p "224466" face)))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
+        (etaf-unmount runtime))
+      (when-let* ((buffer (get-buffer buffer-name)))
+        (kill-buffer buffer)))))
+
 (ert-deftest etaf-ui-button-disabled-preserves-explicit-theme-surface ()
   "A disabled Button keeps explicit dark presentation props in its surface."
   (let ((buffer-name " *etaf-ui-themed-disabled-button-test*"))

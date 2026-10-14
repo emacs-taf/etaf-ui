@@ -97,8 +97,8 @@ are omitted because a one-row control cannot pad above or below its text, so
 a stroke around it always touches the glyphs.  A disabled button keeps its
 variant's footprint so toggling availability never shifts its neighbours:
 filled variants dim to the disabled surface, a ghost only dims its text.
-A hover fill comes from the variant's hover token, so every Button reacts
-to the pointer the same way."
+A hover fill comes from the variant's hover token; a caller-provided surface
+derives its own fill instead of repeating that token."
   (let* ((variant (or variant 'primary))
          (fg (cond (disabled :ui-disabled-fg)
                    ((eq variant 'secondary) :ui-button-secondary-fg)
@@ -123,6 +123,20 @@ to the pointer the same way."
                      '((lh 0) (ch 1)))
           :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 
+(defun etaf-ui--button-hover-bg (variant surface fallback disabled selected)
+  "Return the hover fill for VARIANT over SURFACE, or FALLBACK.
+A caller-provided #RRGGBB SURFACE derives its own fill: a filled variant
+deepens it so light labels stay readable, a tonal or ghost variant shifts it
+away from its own lightness.  DISABLED or SELECTED controls do not hover; a
+surface in another color spelling falls back to the variant token."
+  (cond
+   ((or disabled selected) nil)
+   ((and (stringp surface) (etaf-ui--color-channels surface))
+    (if (eq (or variant 'primary) 'primary)
+        (etaf-ui--state-hover-deepen surface)
+      (etaf-ui--state-hover-shift surface)))
+   (t fallback)))
+
 (etaf-define-component etaf-button
     (&key label on-press disabled id ref class color bgcolor border padding
           font-size font-weight tab-index aria-label aria-selected help-echo
@@ -136,7 +150,11 @@ the visible Button, so a failed render keeps the previous callback and its
 captured values."
   :render
   (let* ((label (etaf-ui--text-value label))
-         (variant-values (etaf-ui--button-variant-values variant disabled)))
+         (variant-values (etaf-ui--button-variant-values variant disabled))
+         (surface (etaf-ui--reactive-value bgcolor))
+         (hover-bg (etaf-ui--button-hover-bg
+                    variant surface (plist-get variant-values :hover-bg)
+                    disabled (and aria-selected t))))
     (etaf-node
      'box
      (append
@@ -156,9 +174,7 @@ captured values."
        :pointer (or pointer (and (not disabled) 'arrow))
        :color (or color (plist-get variant-values :color))
        :background-color (or bgcolor (plist-get variant-values :bgcolor))
-       :hover-style (when (and (not disabled) (not aria-selected)
-                               (plist-get variant-values :hover-bg))
-                      (list :background-color (plist-get variant-values :hover-bg)))
+       :hover-style (when hover-bg (list :background-color hover-bg))
        :border (or border (plist-get variant-values :border))
        :padding (or padding (plist-get variant-values :padding))
        :font-size font-size
@@ -173,7 +189,15 @@ captured values."
          (list (etaf-node 'text nil (list label))))))
   :styles
   (("&" :width max-content :flex-shrink 0)
-   ("&.disabled" :font-weight normal)))
+   ("&.disabled" :font-weight normal)
+   ;; Keyboard focus must stay visible without moving geometry.  A control
+   ;; without its own inline surface takes the ghost hover fill; one with an
+   ;; inline surface keeps that surface and shows the underline instead.
+   ("&:focus"
+    :background-color (etaf-theme-token :ui-button-ghost-hover-bg
+                                        (etaf-theme-token :ui-bg "#FFFDF8"
+                                                          etaf-ui--state-hover-shift))
+    :text-decoration-line underline)))
 
 (defun etaf-ui--checkbox-variant-values (disabled)
   "Return semantic Theme presentation for a DISABLED Checkbox.
