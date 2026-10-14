@@ -175,8 +175,11 @@ captured values."
        :color (or color (plist-get variant-values :color))
        :background-color (or bgcolor (plist-get variant-values :bgcolor))
        :hover-style (when hover-bg (list :background-color hover-bg))
-       :border (or border (plist-get variant-values :border))
-       :padding (or padding (plist-get variant-values :padding))
+       :border (or border (etaf-theme-token :ui-button-border
+                                            (plist-get variant-values :border)))
+       :border-radius (etaf-theme-token :ui-button-radius '(px 0))
+       :padding (or padding (etaf-theme-token :ui-button-padding
+                                              (plist-get variant-values :padding)))
        :font-size font-size
        :font-weight (or font-weight (plist-get variant-values :font-weight))
        :use use

@@ -14,6 +14,16 @@
  "support": [],
  "cases": [
   {
+   "name": "etaf-ui-control-theme-defaults-and-explicit-overrides",
+   "file": "tests/etaf-ui-control-theme-tests.el",
+   "purpose": "Shared control Theme tokens retain dark panel fallbacks, leave plain inputs unchanged, respect explicit Button props and preserve activation."
+  },
+  {
+   "name": "etaf-ui-control-theme-keeps-editing-and-focus-geometry",
+   "file": "tests/etaf-ui-control-theme-tests.el",
+   "purpose": "Palette changes preserve native editing and reserved focus geometry; unmount ends the input session."
+  },
+  {
    "name": "etaf-ui-tile-grid-media-preserves-geometry-and-input",
    "file": "tests/etaf-ui-tile-grid-tests.el",
    "purpose": "Image cells and text fallback retain fixed metrics, focus, names and activation coordinates."

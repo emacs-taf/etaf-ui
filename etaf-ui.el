@@ -33,8 +33,11 @@
 ;; DISABLED removes the callback and default focus tab index.  VARIANT is
 ;; `primary' (accent fill, bold, default), `secondary' (soft accent tint) or
 ;; `ghost' (inherits its surface, narrower padding); every variant is a
-;; borderless single-row pill whose class carries the variant name, and a
-;; Button never shrinks below its label or wraps it, so a narrow flex line
+;; borderless single-row pill by default. Optional Theme tokens
+;; `:ui-button-padding', `:ui-button-radius' and `:ui-button-border' set the
+;; shared control geometry, falling back to the variant padding, `(px 0)'
+;; radius and no border. Explicit presentation props take precedence.
+;; The class carries the variant name, and a Button never shrinks below its label or wraps it, so a narrow flex line
 ;; moves the whole Button instead of splitting its text.  A hover fill comes
 ;; from the variant's hover token, or from a caller-supplied surface when it
 ;; has one, while the pointer is over an enabled, unselected Button;
@@ -237,7 +240,12 @@
 ;; its content. VARIANT `outlined' (default) frames the text in a panel with a
 ;; hairline border that takes the accent colour while focused, without moving
 ;; any cell; `plain' draws only the text, for composers inside a styled footer.
-;; Editing shows a bar caret and no other focus decoration.
+;; Optional Theme tokens `:ui-input-padding' (default `((lh 0) (ch 1))'),
+;; `:ui-input-radius' (default `(px 0)'), `:ui-input-bg' (falls back to the
+;; Theme's `:ui-panel-bg') and `:ui-input-border' (idle one-pixel border color,
+;; falls back to `:ui-panel-border') style outlined fields. Focus keeps using
+;; `:ui-accent'; plain fields ignore these tokens. Editing shows a bar caret
+;; and no other focus decoration.
 ;; Activation starts a native editing session on the field's value inside the
 ;; application layout: every keystroke reflows only the field, which grows
 ;; with wrapped or added lines while padding and frame stay intact. Native

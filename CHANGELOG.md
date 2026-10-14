@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Themes can set shared Button padding, radius and border, and outlined
+  TextInput padding, radius, background and idle border color. Missing tokens
+  preserve existing defaults and panel palette fallbacks; plain inputs remain
+  unframed. Theme changes preserve active native editing.
+
 ### Removed
 
 - The package manual `docs/manual.md` is replaced by the [UI chapters](https://etaf.top/ui-overview/) of the ETAF Reference Manual, which the README and the package Commentary link.

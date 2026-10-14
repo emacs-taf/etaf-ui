@@ -393,13 +393,19 @@ buffer."
              ;; jumps to another line as the value grows.
              :flex-grow (if (eq width 'stretch) 1 0) :min-width '(ch 0)
              :flex-basis (when (eq width 'stretch) '(ch 12))
-             :padding (if outlined '((lh 0) (ch 1)) '((lh 0) (ch 0)))
-             :background-color (when outlined (etaf-ui--style-token :ui-panel-bg))
+             :padding (if outlined
+                          (etaf-theme-token :ui-input-padding '((lh 0) (ch 1)))
+                        '((lh 0) (ch 0)))
+             :border-radius (when outlined (etaf-theme-token :ui-input-radius '(px 0)))
+             :background-color (when outlined
+                                 (etaf-theme-token :ui-input-bg
+                                                   (etaf-ui--style-token :ui-panel-bg)))
              ;; The frame is always present so focus only changes its colour.
              :border (when outlined
                        (etaf-ui--style-border
-                        (etaf-ui--style-token
-                         (if focused :ui-accent :ui-panel-border))))
+                        (if focused (etaf-ui--style-token :ui-accent)
+                          (etaf-theme-token :ui-input-border
+                                            (etaf-ui--style-token :ui-panel-border)))))
              :color (when outlined (etaf-ui--style-token :ui-panel-fg))
              :on-press (unless disabled
                          (if read-only
