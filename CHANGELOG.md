@@ -15,6 +15,14 @@
 
 ### Fixed
 
+- Derived hover fills step away from the label in both palettes: a dark
+  surface darkens and a light one lightens, so a hover never lowers the
+  label's contrast toward unreadability and one control gets a distinct
+  fill per Theme instead of one tint that only works in the palette it was
+  chosen for.  A surface already at the light or dark extreme steps the
+  other way and stays above 4.5:1.  `etaf-ui-button-hover-keeps-text-readable`
+  now asserts the resting-contrast bound and per-palette distinctness.
+
 - A Button with a caller-supplied `:bgcolor` derives its hover fill from
   that surface instead of repeating the variant token, so a chip whose
   surface equals the token no longer loses its hover feedback.

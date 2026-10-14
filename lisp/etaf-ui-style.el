@@ -125,25 +125,40 @@ unchanged, which keeps a Theme that uses a named color usable."
           (string-to-number (match-string 2 color) 16)
           (string-to-number (match-string 3 color) 16))))
 
+(defun etaf-ui--color-luminance (color)
+  "Return the relative luminance of #RRGGBB COLOR, or nil."
+  (when-let* ((channels (etaf-ui--color-channels color)))
+    (+ (* 0.2126 (/ (nth 0 channels) 255.0))
+       (* 0.7152 (/ (nth 1 channels) 255.0))
+       (* 0.0722 (/ (nth 2 channels) 255.0)))))
+
+(defun etaf-ui--state-hover-step (color amount)
+  "Return COLOR stepped AMOUNT away from mid grey for a hover fill.
+A dark surface gets a darker fill and a light one a lighter fill, so the
+fill moves away from the label a themed application paints on it instead
+of toward it: the label keeps at least its resting contrast, and one
+control adapts to both palettes instead of repeating one fixed tint.  A
+surface already at that extreme steps the other way so the hover stays
+visible."
+  (if-let* ((luminance (etaf-ui--color-luminance color)))
+      (let* ((dark-p (< luminance 0.5))
+             (away (if dark-p "#000000" "#FFFFFF"))
+             (fill (etaf-ui--color-mix color away amount)))
+        (if (equal fill color)
+            (etaf-ui--color-mix color (if dark-p "#FFFFFF" "#000000") amount)
+          fill))
+    color))
+
 (defun etaf-ui--state-hover-shift (color)
-  "Return COLOR shifted away from its own lightness for a hover fill.
-A surface lightens when it is dark and darkens when it is light, so the
-hover stays visible in both palettes while the label keeps its contrast;
-the catalog used to paint a fixed light tint that turned into light text on
-a light fill under a dark application."
-  (let ((channels (etaf-ui--color-channels color)))
-    (if (null channels)
-        color
-      (let ((luminance (+ (* 0.2126 (/ (nth 0 channels) 255.0))
-                          (* 0.7152 (/ (nth 1 channels) 255.0))
-                          (* 0.0722 (/ (nth 2 channels) 255.0)))))
-        (etaf-ui--color-mix color (if (< luminance 0.5) "#FFFFFF" "#000000") 0.06)))))
+  "Return COLOR shifted for a tonal or ghost control's hover fill."
+  (etaf-ui--state-hover-step color 0.06))
 
 (defun etaf-ui--state-hover-deepen (color)
-  "Return COLOR deepened for a filled control's hover fill.
-A filled control carries light text, so a stronger color keeps the label
-readable instead of washing it out."
-  (etaf-ui--color-mix color "#000000" 0.14))
+  "Return COLOR shifted for a filled control's hover fill.
+The filled-control path shares the distance rule with tonal and ghost
+controls, so a filled label keeps its contrast in a light or a dark
+palette; the historical name is kept for its callers."
+  (etaf-ui--state-hover-step color 0.12))
 
 (defun etaf-ui--style-border (value)
   "Return canonical border VALUE from a semantic ETAF Theme value."

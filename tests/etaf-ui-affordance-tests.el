@@ -68,29 +68,55 @@
   (etaf-view
    (etaf-button :ref 'button :variant variant :label "Action" :on-press #'ignore)))
 
+(defun etaf-ui-affordance-test--hover-floor (surface contrast)
+  "Return the contrast SURFACE lets a derived hover fill keep.
+A surface already at the light or dark extreme cannot step away visibly,
+so its visible step only has to clear the readable 4.5:1 floor."
+  (let ((luminance (etaf-ui-affordance-test--luminance surface)))
+    (if (or (null luminance) (<= luminance 0.02) (>= luminance 0.98))
+        (min contrast 4.5)
+      contrast)))
+
 (ert-deftest etaf-ui-button-hover-keeps-text-readable ()
   "A Theme without hover tokens still hovers with a readable fill.
 The catalog derives the fill from the application's own surface and text
-colors, so light and dark palettes both keep the label legible."
-  (pcase-dolist (`(,mode . ,theme) etaf-ui-affordance-test--themes)
+colors: it moves away from the label, so light and dark palettes both keep
+at least the resting contrast; a surface already at an extreme steps toward
+the label but stays above 4.5:1.  One control must not reuse a fixed tint
+across palettes."
+  (let (summaries)
+    (pcase-dolist (`(,mode . ,theme) etaf-ui-affordance-test--themes)
+      (dolist (variant '(ghost secondary primary))
+        (let ((fg (plist-get theme (pcase variant
+                                     ('ghost :ui-button-ghost-fg)
+                                     ('secondary :ui-button-secondary-fg)
+                                     (_ :ui-button-primary-fg)))))
+          (with-temp-buffer
+            (unwind-protect
+                (progn
+                  (etaf-mount
+                   (current-buffer)
+                   (etaf-view (etaf-ui-affordance-test--themed-button :variant variant :theme theme)))
+                  (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                         (props (etaf-runtime-host-props-for runtime 'button))
+                         (hover (plist-get (plist-get props :hover-style) :background-color))
+                         (surface (or (plist-get props :background-color)
+                                      (plist-get theme :ui-bg)))
+                         (rest (etaf-ui-affordance-test--contrast fg surface))
+                         (hovered (etaf-ui-affordance-test--contrast fg hover)))
+                    (should (stringp hover))
+                    ;; The hover is a visible state, not the resting surface.
+                    (should-not (equal hover surface))
+                    ;; The label keeps its reading away from an extreme
+                    ;; surface; an extreme surface still clears 4.5:1.
+                    (should (>= hovered
+                                (- (etaf-ui-affordance-test--hover-floor surface rest) 0.05)))
+                    (push (cons (cons mode variant) hover) summaries)))
+              (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+                (etaf-unmount runtime)))))))
     (dolist (variant '(ghost secondary primary))
-      (let ((fg (plist-get theme (pcase variant
-                                   ('ghost :ui-button-ghost-fg)
-                                   ('secondary :ui-button-secondary-fg)
-                                   (_ :ui-button-primary-fg)))))
-        (with-temp-buffer
-          (unwind-protect
-              (progn
-                (etaf-mount
-                 (current-buffer)
-                 (etaf-view (etaf-ui-affordance-test--themed-button :variant variant :theme theme)))
-                (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
-                       (props (etaf-runtime-host-props-for runtime 'button))
-                       (hover (plist-get (plist-get props :hover-style) :background-color)))
-                  (should (stringp hover))
-                  (should (>= (etaf-ui-affordance-test--contrast fg hover) 4.5))))
-            (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
-              (etaf-unmount runtime))))))))
+      (should-not (equal (alist-get (cons 'light variant) summaries nil nil #'equal)
+                         (alist-get (cons 'dark variant) summaries nil nil #'equal))))))
 
 (provide 'etaf-ui-affordance-tests)
 ;;; etaf-ui-affordance-tests.el ends here

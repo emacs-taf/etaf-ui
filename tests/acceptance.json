@@ -516,7 +516,7 @@
   {
    "name": "etaf-ui-button-hover-keeps-text-readable",
    "file": "tests/etaf-ui-affordance-tests.el",
-   "purpose": "A Theme without hover tokens still hovers with a fill that keeps the label readable in both palettes."
+   "purpose": "A Theme without hover tokens derives a distinct fill per palette that keeps at least the label's resting contrast, or 4.5:1 on an extreme surface."
   },
   {
    "name": "etaf-ui-grid-and-table-share-row-presentation",
