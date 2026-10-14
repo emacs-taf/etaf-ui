@@ -36,9 +36,13 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 
 [Complete usage and interface contracts](https://etaf.top/ui-overview/).
 
-For a complete modern composition, run `M-x etaf-ui-gallery-open` to inspect
-the maintained Atelier workspace. It combines the catalog's layout, feedback,
-navigation, input, data and floating Components in one caller-owned flow.
+Run `M-x etaf-ui-gallery-open` to browse all 62 components in eight categories.
+The Gallery includes live previews, Chinese/English search, scoped light/dark
+Themes, reset and a runnable, copyable example for every component. It uses
+local data only. Wide windows show a sidebar and two-column overview; compact
+windows use a category picker and a scrolling single column. Allow at least
+72 character widths and 24 rows; smaller windows deliberately clip the layout.
+See [Gallery workflows and lifecycle](https://etaf.top/ui-gallery-and-acceptance/).
 
 For in-buffer floating UI, compose `etaf-popover`, `etaf-dropdown-menu` and
 `etaf-dialog` with ordinary controls and slots. Run `M-x etaf-ui-surfaces-open`
@@ -61,17 +65,14 @@ ten samples and separate phase, CPU and allocation passes. Budgets remain
 a separate checkout. The workspace's `docs/manual.md` documents baseline
 comparison, source freshness and evidence boundaries.
 
-Gallery Review has separate first-click and repeated-toggle workloads.
-`gallery.review.callback` and `gallery.review.mouse` mount a fresh page for each
-sample; `gallery.review.steady.callback` and `gallery.review.steady.mouse` retain
-one page within each set and alternate checked/unchecked values. Use both when
-checking updates: a fast first click does not establish steady interaction cost.
-
-`gallery.tabs.steady.callback` and `gallery.tabs.steady.mouse` cycle through
-Library, Preferences and Workspace on one mount and verify each page's content.
-Owned Gallery fixtures resolve their viewport after display and before timing;
-batch fixtures use 120 character widths and 40 lines. Gallery workload version 2
-includes this setup and is not comparable with version 1's implicit viewport.
+Gallery selection has separate fresh-page and repeated-toggle workloads:
+`gallery.selection.callback` and `gallery.selection.mouse` create a page per
+sample; their `.steady.` counterparts retain one page and alternate checked
+values. `gallery.categories.steady.callback` and `.mouse` cycle through input,
+data and overview pages. Menu, tooltip, toast and mixed sequences cover overlays.
+Owned fixtures resolve their viewport before timing; batch uses 160 character
+widths and 50 rows. These versioned catalog-browser workloads are not comparable
+with the former Atelier workspace workloads.
 
 ## Development
 

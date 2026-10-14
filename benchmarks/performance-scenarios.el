@@ -42,10 +42,11 @@
           :lines (plist-get report :lines)
           :revision (etaf-runtime-revision runtime))))
 
-(defun etaf-ui-benchmark--gallery (label expected route mode &optional steps existing-buffer)
+(defun etaf-ui-benchmark--gallery (label expected route mode &optional steps existing-buffer category)
   "Prepare Gallery LABEL through ROUTE in MODE and verify EXPECTED text.
 STEPS cycles through public activations and visible expectations on one mount.
-EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
+EXISTING-BUFFER borrows a mounted page without resetting or disposing it.
+CATEGORY is an optional sidebar label to open before sampling."
   (let ((buffer (or existing-buffer (generate-new-buffer " *TAF Gallery*")))
         (invocations 0) viewport-ready runtime target position observing step expected-text expected-visible)
     (unless existing-buffer (etaf-ui-gallery-open buffer))
@@ -61,8 +62,14 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
          (etaf-runtime-refit
           runtime
           (if (eq mode 'gui) (window-body-width (selected-window) t)
-            (* 120 (frame-char-width)))
-          (if (eq mode 'gui) (window-body-height (selected-window)) 40))
+            (* 160 (frame-char-width)))
+          (if (eq mode 'gui) (window-body-height (selected-window)) 50))
+         (when category
+           (let ((ref (car (cl-find-if
+                            (lambda (entry) (equal category (plist-get (cdr entry) :aria-label)))
+                            (etaf-runtime-host-props-entries runtime)))))
+             (unless ref (error "Gallery category is unavailable: %s" category))
+             (etaf-dispatch-event runtime ref 'press)))
          (setq viewport-ready t))
        t)
      :prepare
@@ -90,6 +97,7 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
                                               (plist-get (cdr entry) :aria-label)))
                        (etaf-runtime-host-props-entries runtime)))
                  (error "Gallery target is absent: %s" (plist-get step :label))))
+       (when target (etaf-scroll-into-view runtime target))
        (when (eq route 'mouse)
          (unless (eq mode 'gui) (error "Mouse requires GUI mode"))
          (let ((point (etaf-host-ref-position runtime target)))
@@ -139,15 +147,15 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
                   (when (etaf-runtime-for-buffer buffer) (etaf-unmount runtime))
                   (kill-buffer buffer))))))
 
-(dolist (case '(("review" "Review interactions" "100%" 50 local)
-                ("activity" "Activity" "Studio activity" 100 overlay)
-                ("menu" "More" "Open inspector" 100 overlay)
-                ("help" "Quick help" "Tab to explore" 100 overlay)))
+(dolist (case '(("selection" "自动保存" "自动保存已关闭" 50 local nil)
+                ("toast" "显示通知" "保存完成" 100 overlay "菜单与浮层")
+                ("menu" "操作菜单" "复制内容" 100 overlay nil)
+                ("tooltip" "显示提示" "Tab 切换控件，Enter" 100 overlay "菜单与浮层")))
   (dolist (route '(callback keyboard mouse))
-    (let ((label (nth 1 case)) (expected (nth 2 case)) (method route))
+    (let ((label (nth 1 case)) (expected (nth 2 case)) (method route) (category (nth 5 case)))
       (taf-benchmark-register
        (format "gallery.%s.%s" (car case) route)
-       :version 2 :modes (if (eq route 'callback) '(batch gui) '(gui))
+       :version 3 :modes (if (eq route 'callback) '(batch gui) '(gui))
        :required-providers '(ebox)
        ;; Mouse activation includes the native press/release tracking boundary;
        ;; keep its explicit category budget at 100 ms while callback/keyboard
@@ -155,73 +163,73 @@ EXISTING-BUFFER borrows a mounted page without resetting or disposing it."
        :budget-ms (if (eq route 'mouse) 100 (nth 3 case)) :impact (nth 4 case)
        :description (format "%s via %s%s" label route
                             (if (eq route 'keyboard) " (focus then RET)" ""))
-       :setup (lambda (mode) (etaf-ui-benchmark--gallery label expected method mode))))))
+       :setup (lambda (mode) (etaf-ui-benchmark--gallery label expected method mode nil nil category))))))
 
 (dolist (route '(callback keyboard mouse))
   (let ((method route))
     (taf-benchmark-register
-     (format "gallery.review.steady.%s" route)
-     :version 2 :modes (if (eq route 'callback) '(batch gui) '(gui))
+     (format "gallery.selection.steady.%s" route)
+     :version 3 :modes (if (eq route 'callback) '(batch gui) '(gui))
      :isolation 'series :required-providers '(ebox)
      :budget-ms 50 :impact 'local
-     :description (format "Repeated Review toggles on one mounted Gallery via %s" route)
+     :description (format "Repeated Checkbox toggles on one mounted Gallery via %s" route)
      :setup (lambda (mode)
               (etaf-ui-benchmark--gallery
-               "Review interactions" "100%" method mode
-               '((:label "Review interactions" :alternate ("67%" "100%"))))))))
+               "自动保存" "自动保存已关闭" method mode
+               '((:label "自动保存" :alternate ("自动保存已开启" "自动保存已关闭"))))))))
 
-(dolist (case '(("actions" "Actions" "Refresh workspace")
-                ("more" "More" "Open inspector")))
+(dolist (case '(("dropdown" "操作菜单" "复制内容" nil)
+                ("context" "更多操作" "检查属性" "菜单与浮层")))
   (dolist (route '(callback mouse))
-    (let ((name (car case)) (label (cadr case)) (marker (nth 2 case)) (method route))
+    (let ((name (car case)) (label (cadr case)) (marker (nth 2 case)) (method route) (category (nth 3 case)))
       (taf-benchmark-register
        (format "gallery.%s.steady.%s" name route)
-       :version 2 :modes (if (eq route 'callback) '(batch gui) '(gui))
+       :version 3 :modes (if (eq route 'callback) '(batch gui) '(gui))
        :isolation 'series :required-providers '(ebox)
        :budget-ms 100 :impact 'overlay
        :description (format "Repeated %s open/close on one mounted Gallery via %s" label route)
        :setup (lambda (mode)
                 (etaf-ui-benchmark--gallery
                  label marker method mode
-                 (list (list :label label :text marker :toggle t))))))))
+                 (list (list :label label :text marker :toggle t)) nil category))))))
 
-(defconst etaf-ui-benchmark--toolbar-steps
-  '((:label "Actions" :text "Refresh workspace" :toggle t)
-    (:label "Actions" :text "Refresh workspace" :toggle t)
-    (:label "Review interactions" :alternate ("67%" "100%"))
-    (:label "Review interactions" :alternate ("67%" "100%"))
-    (:label "More" :text "Open inspector" :toggle t)
-    (:label "More" :text "Open inspector" :toggle t)
-    (:label "Review interactions" :alternate ("67%" "100%"))
-    (:label "Review interactions" :alternate ("67%" "100%")))
+(defconst etaf-ui-benchmark--mixed-steps
+  '((:label "操作菜单" :text "复制内容" :toggle t)
+    (:label "操作菜单" :text "复制内容" :toggle t)
+    (:label "自动保存" :alternate ("自动保存已开启" "自动保存已关闭"))
+    (:label "自动保存" :alternate ("自动保存已开启" "自动保存已关闭"))
+    (:label "展开抽屉" :text "组件详情" :visible t)
+    (:label "关闭抽屉" :text "组件详情" :visible nil)
+    (:label "自动保存" :alternate ("自动保存已开启" "自动保存已关闭"))
+    (:label "自动保存" :alternate ("自动保存已开启" "自动保存已关闭")))
   "Public overlay and content operations exercised on one retained page.")
 
 (dolist (route '(callback mouse))
   (let ((method route))
     (taf-benchmark-register
-     (format "gallery.tabs.steady.%s" route)
-     :version 1 :modes (if (eq route 'callback) '(batch gui) '(gui))
+     (format "gallery.categories.steady.%s" route)
+     :version 2 :modes (if (eq route 'callback) '(batch gui) '(gui))
      :isolation 'series :required-providers '(ebox)
      :budget-ms 100 :impact 'subtree
-     :description (format "Library, Preferences and Workspace replacement via %s" route)
+     :description (format "Input, data and overview subtree replacement via %s" route)
      :setup (lambda (mode)
               (etaf-ui-benchmark--gallery
                nil nil method mode
-               '((:label "Component library" :text "Signals & status" :visible t)
-                 (:label "Preferences" :text "Studio preferences" :visible t)
-                 (:label "Workspace" :text "Release checklist" :visible t)))))))
+               '((:label "输入与选择" :text "etaf-text-input" :visible t)
+                 (:label "数据与集合" :text "etaf-table" :visible t)
+                 (:label "组件总览" :text "本地示例，放心操作" :visible t)))))))
 
 (dolist (existing '(nil t))
   (let ((borrow existing))
     (taf-benchmark-register
-     (if borrow "gallery.current.toolbar.mouse" "gallery.toolbar.sequence.mouse")
-     :version (if borrow 1 2) :modes '(gui) :isolation 'series :required-providers '(ebox)
+     (if borrow "gallery.current.mixed.mouse" "gallery.mixed.sequence.mouse")
+     :version (if borrow 2 3) :modes '(gui) :isolation 'series :required-providers '(ebox)
      :budget-ms 100 :impact 'mixed
-     :description (if borrow "Actions, Review and More on the existing selected Gallery"
-                    "Actions, Review and More alternated on one mounted Gallery")
+     :description (if borrow "Dropdown, Checkbox and Drawer on the selected Gallery overview"
+                    "Dropdown, Checkbox and Drawer alternated on one mounted Gallery")
      :setup (lambda (mode)
               (etaf-ui-benchmark--gallery
-               nil nil 'mouse mode etaf-ui-benchmark--toolbar-steps
+               nil nil 'mouse mode etaf-ui-benchmark--mixed-steps
                (and borrow (window-buffer (selected-window))))))))
 
 (taf-benchmark-register

@@ -16,64 +16,6 @@
     (etaf-focus runtime target)
     (etaf-activate runtime)))
 
-(defun etaf-ui-modern-test-find-text (text)
-  "Scroll the mounted example until TEXT is painted."
-  (let ((attempts 0))
-    (while (and (< attempts 12)
-                (not (string-match-p (regexp-quote text) (buffer-substring-no-properties
-                                                         (point-min) (point-max)))))
-      (cl-incf attempts)
-      (goto-char (point-min))
-      (call-interactively (key-binding (kbd "C-v"))))
-    (should (string-match-p (regexp-quote text) (buffer-substring-no-properties
-                                              (point-min) (point-max))))))
-
-(ert-deftest etaf-ui-gallery-mounts-composed-catalog-and-opens-tooltip ()
-  "The Gallery mounts all catalog categories and toggles a controlled tooltip."
-  (let ((buffer (etaf-ui-gallery-open)))
-    (unwind-protect
-        (with-current-buffer buffer
-          (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
-            (should (string-match-p "A workspace for things worth making" (buffer-string)))
-            (should (string-match-p "Creative brief" (buffer-string)))
-            (should (etaf-host-ref-position runtime 'gallery-help))
-            (etaf-focus runtime 'gallery-help)
-            (etaf-activate runtime)
-            (should (string-match-p "Tab to explore" (buffer-string)))
-            (should (etaf-host-ref-position runtime 'gallery-profile))
-            (let ((find-control
-                   (lambda (label)
-                     (cl-find-if
-                      (lambda (entry)
-                        (equal label (plist-get (cdr entry) :aria-label)))
-                      (etaf-runtime-host-props-entries runtime)))))
-              (etaf-focus runtime (car (funcall find-control "More")))
-              (etaf-activate runtime)
-              (etaf-focus runtime (car (funcall find-control "Open inspector")))
-              (etaf-activate runtime)
-              (should (string-match-p "Workspace inspector" (buffer-string)))
-              (should (string-match-p "Live composition" (buffer-string)))
-              (etaf-focus runtime (car (funcall find-control "Close inspector")))
-              (etaf-activate runtime))
-            (let ((library (cl-find-if
-                            (lambda (entry)
-                              (equal "Component library"
-                                     (plist-get (cdr entry) :aria-label)))
-                            (etaf-runtime-host-props-entries runtime))))
-              (etaf-focus runtime (car library))
-              (etaf-activate runtime)
-              (etaf-ui-modern-test-find-text "Selection controls")
-              (etaf-ui-modern-test-find-text "Preview zoom")
-              (etaf-ui-modern-test-find-text "Navigation & context")
-              (etaf-ui-modern-test-activate runtime "Build")
-              (etaf-ui-modern-test-find-text "Composition patterns")
-              (etaf-ui-modern-test-find-text "Collection browser"))))
-      (when (buffer-live-p buffer)
-        (with-current-buffer buffer
-          (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
-            (etaf-unmount runtime)))
-        (kill-buffer buffer)))))
-
 (ert-deftest etaf-ui-feedback-and-navigation-render-public-contracts ()
   "Feedback and navigation Components render and dispatch through public refs."
   (with-temp-buffer

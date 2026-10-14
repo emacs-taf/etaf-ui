@@ -614,9 +614,39 @@
    "purpose": "The runnable example hands menu focus to a dialog and back to its trigger."
   },
   {
-   "name": "etaf-ui-gallery-mounts-composed-catalog-and-opens-tooltip",
-   "file": "tests/etaf-ui-modern-tests.el",
-   "purpose": "The integrated Gallery mounts catalog categories and toggles a controlled tooltip."
+   "name": "etaf-ui-gallery-browses-every-component-family",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "All eight categories expose every named component specimen."
+  },
+  {
+   "name": "etaf-ui-gallery-preserves-state-across-browsing-and-theme",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Specimen state survives browsing and scoped Theme changes; reset restores defaults."
+  },
+  {
+   "name": "etaf-ui-gallery-copies-runnable-examples",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Every copied example evaluates and mounts independently through public APIs."
+  },
+  {
+   "name": "etaf-ui-gallery-isolates-mounts-and-unrelated-buffers",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Independent Galleries do not share state or overwrite unrelated buffer contents."
+  },
+  {
+   "name": "etaf-ui-gallery-searches-symbols-chinese-and-clears-empty-results",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Native live search matches symbols and Chinese across categories and recovers from no matches."
+  },
+  {
+   "name": "etaf-ui-gallery-dialog-submits-chinese-and-cancels",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "A modal submits Chinese text, cancels without changing saved values, and restores opener focus."
+  },
+  {
+   "name": "etaf-ui-gallery-paginates-and-reopens-after-unmount",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Local paging and reset publish the expected records; reopening releases old state and preserves other applications."
   },
   {
    "name": "etaf-ui-feedback-and-navigation-render-public-contracts",

@@ -42,6 +42,12 @@
 
 ### Changed
 
+- `M-x etaf-ui-gallery-open` now opens a searchable component browser instead
+  of the Atelier workspace: eight categories expose all 62 components with
+  live specimens, scoped light/dark Themes, reset and complete copyable
+  examples. Independent mounts keep their own state and preserve unrelated
+  buffers. Category browsing adapts to wide and compact windows.
+
 - A modal surface's default backdrop keeps the application painted and dims
   it through Ebox's `:backdrop-filter`, so covered text and images stay
   visible while covered controls keep their blocked pointers and focus

@@ -766,9 +766,14 @@
 
 ;; Function: etaf-ui-gallery-open (&optional buffer-or-name)
 ;;;###autoload (autoload 'etaf-ui-gallery-open "etaf-ui" nil t)
-;; Mount the integrated catalog Gallery and return its buffer. It exercises
-;; layout, feedback, navigation, input, data and floating Components.  An
-;; explicit name allows independent mounts; interactive calls display it.
+;; Mount the complete component browser and return its buffer (default
+;; *ETAF UI Gallery*). An explicit buffer/name allows independent mounts;
+;; interactive calls display it. Browse categories or search names/purposes,
+;; operate live specimens, switch a scoped light/dark Theme, and copy complete
+;; runnable examples. Specimen state survives browsing and Theme changes;
+;; reset or reopening restores defaults. Unmount or kill the buffer to release
+;; its local controllers. Unrelated nonempty buffers or mounted applications
+;; raise user-error instead of being replaced.
 ;;
 ;; Function: etaf-ui-window-resize-open (&optional buffer-or-name)
 ;;;###autoload (autoload 'etaf-ui-window-resize-open "etaf-ui" nil t)

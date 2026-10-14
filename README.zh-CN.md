@@ -35,8 +35,11 @@
 
 [完整用法与接口契约](https://etaf.top/zh-cn/ui-overview/)。
 
-运行 `M-x etaf-ui-gallery-open` 查看维护中的 Atelier 现代化工作台。它把布局、
-反馈、导航、输入、数据和浮层组件组合到同一个由调用方持有状态的流程中。
+运行 `M-x etaf-ui-gallery-open` 浏览 8 类共 62 个组件。
+Gallery 提供真实交互预览、中英文搜索、局部深浅主题、重置，以及每个组件的完整可复制示例，
+只使用本地数据。宽窗口显示侧栏与双列总览，紧凑窗口改用分类选择器和可滚动的单列。
+最小可用视口为 72 字符宽、24 行；更小的窗口保留布局并裁切。
+[浏览流程与生命周期](https://etaf.top/zh-cn/ui-gallery-and-acceptance/)。
 
 浮层界面可用 `etaf-popover`、`etaf-dropdown-menu` 和 `etaf-dialog` 组合普通控件
 与 slot。运行 `M-x etaf-ui-surfaces-open` 打开[菜单与偏好设置示例](examples/etaf-ui-surfaces.el)。
@@ -49,10 +52,11 @@ CPU、分配诊断另行采集。复选框预算仍为 50 ms、浮层 100 ms，5
 单独 checkout 可用 `PERF_TOOL=/path/to/workspace/scripts/performance.py` 指向同一工具。
 基线比较、代码新鲜度与证据边界见工作区的 `docs/manual.zh-CN.md`。
 
-Review 分为首次点击和连续切换两类场景。`gallery.review.callback`、
-`gallery.review.mouse` 每次重新挂载；带 `.steady.` 的对应场景在每组中保留同一页面，
-交替勾选和取消。两类都需要检查，首次响应快并不能保证持续交互的耗时。
-定位和遮挡由 Ebox 负责，区域内键盘导航复用 Ebox 的共享焦点。
+选择场景分首次点击与连续切换：`gallery.selection.callback` 和
+`gallery.selection.mouse` 每个样本重新挂载；带 `.steady.` 的对应场景保留页面，交替勾选和取消。
+`gallery.categories.steady.callback` 和 `.mouse` 循环切换输入、数据与总览页面；
+菜单、提示、通知与混合序列覆盖浮层。自建场景在计时前确定视口；批处理使用 160 字符宽、50 行。
+这些版本化的目录浏览场景不能与旧 Atelier 工作台的性能结果直接比较。
 
 ## 开发
 
