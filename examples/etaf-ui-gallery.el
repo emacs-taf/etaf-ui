@@ -436,6 +436,9 @@ Compile the live View and retain the identical source for runnable examples."
          (slot :name 'footer
            (etaf-button :label "创建项目" :on-press (lambda () (setf (etaf-value saved) (concat "已创建：" (etaf-value draft))
                                                                     (etaf-value open) nil)))))))
+   (etaf-ui-gallery--sample etaf-key-help surface "快捷键帮助" "可搜索的只读帮助；etaf-help 自动使用此组件，无需应用持有弹窗状态。" ()
+     (column :help "查看帮助不会执行列表里的操作。"
+       (etaf-button :label "查看快捷键" :variant 'secondary :on-press #'etaf-help)))
    (etaf-ui-gallery--sample etaf-tooltip surface "工具提示" "明确打开短提示；Escape 关闭并恢复焦点。"
      ((open (etaf-ref nil)))
      (column

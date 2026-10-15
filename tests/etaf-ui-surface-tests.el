@@ -101,6 +101,54 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-modal-backdrop-click-dismisses-without-click-through ()
+  "Dialog and drawer backdrops dismiss by pointer only and restore the opener."
+  (dolist (component '(etaf-dialog etaf-drawer))
+    (with-temp-buffer
+      (let ((open (etaf-ref nil)) (checked (etaf-ref nil)) (closed 0) (pressed 0))
+        (unwind-protect
+            (progn
+              (etaf-mount
+               (current-buffer)
+               (etaf-view
+                (column :width '(ch 80) :height '(lh 30)
+                  (etaf-button :ref 'entry :label "Open"
+                               :on-press (lambda () (setf (etaf-value open) t)))
+                  (etaf-button :ref 'background :label "Background"
+                               :on-press (lambda () (cl-incf pressed)))
+                  (expr
+                   (etaf-node component
+                              (list :open open :title "Preferences"
+                                    :on-close (lambda ()
+                                                (cl-incf closed)
+                                                (setf (etaf-value open) nil)))
+                              (list (etaf-view (etaf-checkbox :ref 'enabled :bind checked
+                                                              :label "Enabled"))))))))
+              (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+                (etaf-focus runtime 'entry)
+                (etaf-activate runtime)
+                (let* ((backdrop
+                        (car (cl-find-if
+                              (lambda (entry) (plist-get (cdr entry) :backdrop-filter))
+                              (etaf-runtime-host-props-entries runtime))))
+                       (click (list 'mouse-1 (list (selected-window) 1 '(0 . 0) 0))))
+                  (should backdrop)
+                  (let ((last-input-event ?\s))
+                    (etaf-dispatch-event runtime backdrop 'press))
+                  (should (= closed 0))
+                  (let ((last-input-event click))
+                    (etaf-dispatch-event runtime 'enabled 'press))
+                  (should (etaf-value checked))
+                  (should (etaf-value open))
+                  (let ((last-input-event click))
+                    (etaf-dispatch-event runtime backdrop 'press))
+                  (should (= closed 1))
+                  (should (= pressed 0))
+                  (should-not (etaf-value open))
+                  (should (eq (etaf-focused-host-ref runtime) 'entry)))))
+          (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+            (etaf-unmount runtime)))))))
+
 (ert-deftest etaf-ui-dropdown-opens-navigates-selects-and-restores-focus ()
   "A dropdown renders its items, skips disabled ones and invokes selection once."
   (with-temp-buffer
@@ -362,7 +410,8 @@ props, so the catalog resolves it before the mouse face reaches Ebox."
              (current-buffer)
              (etaf-view
               (column :width '(ch 80) :height '(lh 30)
-                (etaf-dialog :open outer :title "Outer" :on-close #'ignore
+                (etaf-dialog :open outer :title "Outer"
+                             :on-close (lambda () (setf (etaf-value outer) nil))
                   (etaf-button :ref 'nested-entry :label "Open inner"
                                :on-press (lambda () (setf (etaf-value inner) t)))
                   (etaf-dialog :open inner :title "Inner" :width '(ch 32)
@@ -375,6 +424,15 @@ props, so the catalog resolves it before the mouse face reaches Ebox."
               (should-not (etaf-host-ref-position runtime 'nested-entry))
               (etaf-ui-surface-test--key "<escape>")
               (should-not (etaf-value inner))
+              (should (eq 'nested-entry (etaf-focused-host-ref runtime)))
+              (etaf-activate runtime)
+              (let* ((map (get-text-property (point-min) 'keymap))
+                     (command (and (keymapp map) (lookup-key map [mouse-1])))
+                     (last-input-event (list 'mouse-1 (list (selected-window) 1 '(0 . 0) 0))))
+                (should (commandp command))
+                (call-interactively command))
+              (should-not (etaf-value inner))
+              (should (etaf-value outer))
               (should (eq 'nested-entry (etaf-focused-host-ref runtime)))))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))

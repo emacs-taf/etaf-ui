@@ -36,7 +36,7 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 
 [Complete usage and interface contracts](https://etaf.top/ui-overview/).
 
-Run `M-x etaf-ui-gallery-open` to browse all 62 components in eight categories.
+Run `M-x etaf-ui-gallery-open` to browse all 63 components in eight categories.
 The Gallery includes live previews, Chinese/English search, scoped light/dark
 Themes, reset and a runnable, copyable example for every component. It uses
 local data only. Wide windows show a sidebar and two-column overview; compact

@@ -300,14 +300,23 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
                         (cl-every (lambda (key) (and (stringp key)
                                                     (not (string-empty-p key)))) keys))
                    "a nonempty list of strings" 'etaf-kbd)
-  :view
-  (row :class "etaf-kbd" :item-gap '(ch 1) :width 'max-content
-    (expr (mapcar (lambda (key)
-                    (etaf-view
-                     (box :padding '((lh 0) (ch 1)) :border
-                          (etaf-ui--style-border (etaf-theme-token :ui-border "#687386"))
-                       (text (expr key)))))
-                  keys))))
+  :render
+  (let* ((theme (etaf-ui--reactive-value (etaf-inject 'theme)))
+         (bg (or (plist-get theme :ui-panel-bg)
+                 (plist-get etaf-ui--style-palette :ui-panel-bg)))
+         (fg (or (plist-get theme :ui-panel-fg)
+                 (plist-get etaf-ui--style-palette :ui-panel-fg)))
+         (fill (etaf-ui--color-mix bg fg 0.06))
+         (edge (etaf-ui--color-mix bg fg 0.18)))
+    (etaf-view
+     (row :class "etaf-kbd" :item-gap '(ch 1) :width 'max-content
+       (expr (mapcar (lambda (key)
+                       (etaf-view
+                        (box :padding '((lh 0) (ch 1)) :border-radius '(px 4)
+                             :background-color fill :color fg
+                             :border (etaf-ui--style-border edge)
+                          (text (expr key)))))
+                     keys))))))
 
 (provide 'etaf-ui-feedback)
 ;;; etaf-ui-feedback.el ends here

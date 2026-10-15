@@ -14,6 +14,36 @@
  "support": [],
  "cases": [
   {
+   "name": "etaf-ui-key-help-opens-in-place-and-restores-its-opener",
+   "file": "tests/etaf-ui-key-help-tests.el",
+   "purpose": "Read-only help stays in the original buffer/window, does not execute business commands and restores focus on Escape."
+  },
+  {
+   "name": "etaf-ui-key-help-guards-local-commands-and-repeated-open",
+   "file": "tests/etaf-ui-key-help-tests.el",
+   "purpose": "Help blocks background letters and local command sequences, keeps native C-g and does not stack repeated openings."
+  },
+  {
+   "name": "etaf-ui-key-help-keeps-its-snapshot-through-background-updates",
+   "file": "tests/etaf-ui-key-help-tests.el",
+   "purpose": "Background application updates preserve the captured help scope and appear after dismissal."
+  },
+  {
+   "name": "etaf-ui-key-help-search-keeps-question-mark-as-text",
+   "file": "tests/etaf-ui-key-help-tests.el",
+   "purpose": "Search treats question marks as text, filters commands and uses layered Escape without dismissing two levels at once."
+  },
+  {
+   "name": "etaf-ui-key-help-backdrop-click-ends-search-and-restores-focus",
+   "file": "tests/etaf-ui-key-help-tests.el",
+   "purpose": "An outside pointer press closes help during native search, ends editing and restores focus without activating background commands."
+  },
+  {
+   "name": "etaf-ui-modal-backdrop-click-dismisses-without-click-through",
+   "file": "tests/etaf-ui-surface-tests.el",
+   "purpose": "Dialog and drawer backdrops dismiss only on pointer presses, keep inner actions open and restore the caller without click-through."
+  },
+  {
    "name": "etaf-ui-control-theme-defaults-and-explicit-overrides",
    "file": "tests/etaf-ui-control-theme-tests.el",
    "purpose": "Shared control Theme tokens retain dark panel fallbacks, leave plain inputs unchanged, respect explicit Button props and preserve activation."

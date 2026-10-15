@@ -150,7 +150,8 @@ CATEGORY is an optional sidebar label to open before sampling."
 (dolist (case '(("selection" "自动保存" "自动保存已关闭" 50 local nil)
                 ("toast" "显示通知" "保存完成" 100 overlay "菜单与浮层")
                 ("menu" "操作菜单" "复制内容" 100 overlay nil)
-                ("tooltip" "显示提示" "Tab 切换控件，Enter" 100 overlay "菜单与浮层")))
+                ("tooltip" "显示提示" "Tab 切换控件，Enter" 100 overlay "菜单与浮层")
+                ("key-help" "查看快捷键" "快捷键 · 只读" 100 overlay "菜单与浮层")))
   (dolist (route '(callback keyboard mouse))
     (let ((label (nth 1 case)) (expected (nth 2 case)) (method route) (category (nth 5 case)))
       (taf-benchmark-register
@@ -192,6 +193,19 @@ CATEGORY is an optional sidebar label to open before sampling."
                 (etaf-ui-benchmark--gallery
                  label marker method mode
                  (list (list :label label :text marker :toggle t)) nil category))))))
+
+(taf-benchmark-register
+ "gallery.key-help.steady.keyboard"
+ :version 1 :modes '(gui) :isolation 'series :required-providers '(ebox)
+ :budget-ms 100 :impact 'overlay
+ :description "Open help, type a literal query, leave editing and close on one Gallery"
+ :setup (lambda (mode)
+          (etaf-ui-benchmark--gallery
+           nil nil 'keyboard mode
+           '((:keys "?" :text "快捷键 · 只读" :visible t)
+             (:keys "/ ?" :text "查看快捷键" :visible t)
+             (:keys "<escape>" :text "关闭帮助" :visible t)
+             (:keys "<escape>" :text "快捷键 · 只读" :visible nil)))))
 
 (defconst etaf-ui-benchmark--mixed-steps
   '((:label "操作菜单" :text "复制内容" :toggle t)

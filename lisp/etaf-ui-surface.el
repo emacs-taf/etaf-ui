@@ -74,7 +74,7 @@ hairline, a BODY column padded by one row and two columns, and a right-aligned
 FOOTER row.  CLOSE, when a function, adds a pointer-only ghost x to the header
 so keyboard focus still lands on the first body control.  COMPACT
 removes the body's vertical air; SPACIOUS separates body items by one row."
-  (let ((theme (etaf-ui--style-tokens :ui-panel-border :ui-muted-fg)))
+  (let ((theme (etaf-ui--style-tokens :ui-panel-border :ui-panel-fg :ui-muted-fg)))
     (append
      (when title
        (list
@@ -88,7 +88,8 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
                                (plist-get theme :ui-panel-border)))
          (append
           (list (etaf-node 'etaf-label
-                           (list :text title :variant 'strong) nil))
+                           (list :text title :variant 'strong
+                                 :color (plist-get theme :ui-panel-fg)) nil))
           (when close
             (list (etaf-node 'etaf-button
                              (list :label "x" :variant 'ghost
@@ -119,7 +120,7 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
 
 (etaf-define-component etaf-ui--open-surface
     (&key anchor (placement 'bottom-start) side (width '(ch 32)) height
-          title on-close modal center compact (backdrop t))
+          title on-close modal center compact (backdrop t) keys on-direction)
   "Render one open floating surface and own its keyboard attachment."
   :bindings
   ((panel (etaf-local-ref 'panel))
@@ -217,7 +218,7 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
            (list :ref panel :class "etaf-floating-panel"
                  :role (if modal 'dialog 'group) :tab-index -1
                  :aria-label title :keymap nil :on-dismiss on-close
-                 :focus-scope 'modal
+                 :keys keys :on-direction on-direction :focus-scope 'modal
                  :position 'absolute :layer 'root :z-index 1001
                  :anchor anchor :placement placement
                  :left (cond (anchor '(px 0))
@@ -261,7 +262,10 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
                                      :backdrop-filter
                                      (list 'brightness
                                            etaf-ui--modal-backdrop-brightness)
-                                     :role 'presentation :keymap nil)
+                                     :role 'presentation :keymap nil :tab-index -1
+                                     :on-press (lambda ()
+                                                 (when (etaf-event-pointer-p)
+                                                   (funcall on-close))))
                                nil)
                     content))
       ;; A Desktop may request an unpainted modal while retaining its
@@ -291,14 +295,17 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
 
 (etaf-define-component etaf-dialog
     (&key open (title "Dialog") (width '(ch 48)) height compact
-          (close-label "Close") on-close (backdrop t))
+          (close-label "Close") on-close (backdrop t) keys on-direction)
   "Show a controlled modal panel with default content and a footer slot.
-When BACKDROP is nil, retain the underlying surface's paint while keeping the
-panel as a root-layer projection; the caller owns any outside-click policy.
+A pointer press on the backdrop requests ON-CLOSE without activating the
+background; presses inside the panel do not close it.  When BACKDROP is nil,
+retain the underlying surface's paint while keeping the panel as a root-layer
+projection; the caller owns any outside-click policy.
 HEIGHT optionally fixes the panel to text rows, bounded by the visible window;
 COMPACT removes the body's vertical air.  CLOSE-LABEL nil omits the default
 footer button so the footer slot owns every action; Escape and the header x
-still request ON-CLOSE."
+still request ON-CLOSE.  KEYS and ON-DIRECTION declare the panel's scoped
+keyboard commands and direction handler, not the backdrop's."
   :validate
   (progn
     (etaf-check-prop :on-close on-close (functionp on-close) "a function")
@@ -320,7 +327,7 @@ still request ON-CLOSE."
     (etaf-node 'etaf-ui--open-surface
                (list :modal t :center t :backdrop backdrop :title title
                      :width width :height height :compact compact
-                     :on-close on-close)
+                     :on-close on-close :keys keys :on-direction on-direction)
                (etaf-current-slot 'default)
                (list (cons 'footer
                            (append (etaf-current-slot 'footer)

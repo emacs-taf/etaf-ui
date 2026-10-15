@@ -40,7 +40,7 @@
                      ("导航与结构" etaf-panel etaf-card etaf-tabs etaf-accordion etaf-breadcrumb etaf-steps etaf-splitter etaf-pane-resizer)
                      ("数据与集合" etaf-table etaf-data-grid etaf-pagination etaf-list etaf-tree etaf-calendar etaf-timeline)
                      ("状态与反馈" etaf-badge etaf-tag etaf-progress etaf-alert etaf-statistic etaf-empty etaf-skeleton etaf-reactions)
-                     ("菜单与浮层" etaf-menu etaf-dropdown-menu etaf-context-menu etaf-popover etaf-dialog etaf-tooltip etaf-toast etaf-drawer etaf-command-palette)
+                     ("菜单与浮层" etaf-menu etaf-dropdown-menu etaf-context-menu etaf-popover etaf-dialog etaf-key-help etaf-tooltip etaf-toast etaf-drawer etaf-command-palette)
                      ("窗口与工作区" etaf-resizable-panel etaf-window-controls etaf-window-chrome etaf-window etaf-taskbar etaf-workspace-bar etaf-launcher etaf-switcher)
                      ("媒体与网格" etaf-media-viewer etaf-tile-grid etaf-text-grid etaf-playing-card)))
       (ert-info ((car group))

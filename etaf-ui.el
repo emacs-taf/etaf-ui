@@ -559,7 +559,7 @@
 ;; The application root must reserve a canvas height for floating content.
 ;; Ebox owns clipping, flipping, occlusion and layout. No child frame is created.
 ;;
-;; Component: etaf-dialog (&key open title width height compact close-label on-close backdrop)
+;; Component: etaf-dialog (&key open title width height compact close-label on-close backdrop keys on-direction)
 ;; Show a controlled modal panel using the same floating surface as Popover.
 ;; TITLE defaults to Dialog and WIDTH to (ch 48).  HEIGHT optionally fixes the
 ;; panel to `(lh N)' rows, bounded by the visible window.  COMPACT removes
@@ -573,12 +573,29 @@
 ;; HEIGHT needs the body rows plus five for header, body air and footer.
 ;; The backdrop covers the root canvas and dims it, so covered text and
 ;; images stay visible while covered controls and their focus targets are
-;; blocked. It does not close on a backdrop click; a shell root may call
-;; `etaf-ui-dismiss-outside-press' from its press callbacks to close surfaces
-;; on outside presses. Keyboard navigation, dismissal and focus return follow
-;; Popover. Set BACKDROP nil to paint no backdrop at all, for an
-;; application-owned projection that keeps the underlying surface fully
-;; visible. Dialogs own no form data.
+;; blocked. A pointer press on the backdrop requests ON-CLOSE without
+;; activating covered controls; a press inside the panel does not dismiss it.
+;; Keyboard navigation, dismissal and focus return follow Popover. Set
+;; BACKDROP nil to paint no backdrop at all, for an application-owned
+;; projection that keeps the underlying surface fully visible. A shell may
+;; call etaf-ui-dismiss-outside-press for that unpainted outside-click policy.
+;; KEYS and ON-DIRECTION declare the panel's scoped :keys and
+;; direction handler; they never bind the backdrop or background controls.
+;; Dialogs own no form data.
+;;
+;; Component: etaf-key-help (&key data on-close)
+;; Show DATA from etaf-help-data as a read-only searchable keyboard dialog.
+;; ON-CLOSE is a zero-argument dismissal callback.  Descriptions are grouped
+;; by source; wide windows use two columns, compact windows one scrolling
+;; column.  `/` activates a native search field; descriptions never execute
+;; commands.  Escape exits an edit first, then closes the dialog and restores
+;; its opener.  Clicking the backdrop also closes help without activating the
+;; background.  The minimum useful viewport is 48 columns by 18 rows; smaller
+;; viewports clip deliberately without shrinking the font.  Loading etaf-ui
+;; supplies this presentation for etaf-help automatically unless the caller
+;; has already set etaf-help-view-function.  Applications need no help state
+;; or extra mount.  Compose directly as (etaf-key-help :data snapshot
+;; :on-close close) when owning a separate controlled dialog lifecycle.
 ;;
 ;; Component: etaf-media-viewer (&key open kind src source-size title subtitle caption duration on-close on-previous on-next autoplay)
 ;; Show one image, video or audio file in a controlled modal viewer over the
@@ -685,6 +702,8 @@
 ;;
 ;; Component: etaf-kbd (&key keys)
 ;; Render a keyboard shortcut as accessible keycaps from a nonempty string list.
+;; Compact rounded caps keep the normal line height; their subtle fill and
+;; edge derive from the inherited panel background and foreground Theme tokens.
 ;;
 ;; Component: etaf-steps (&key items current on-change)
 ;; Render ordered step buttons. ITEMS contain :key and :label; CURRENT and the
@@ -1041,6 +1060,7 @@
 (require 'etaf-ui-feedback)
 (require 'etaf-ui-navigation)
 (require 'etaf-ui-surface)
+(require 'etaf-ui-key-help)
 (require 'etaf-ui-reactions)
 (require 'etaf-ui-media)
 (require 'etaf-ui-table)

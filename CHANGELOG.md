@@ -4,6 +4,13 @@
 
 ### Added
 
+- `etaf-key-help` presents effective shortcuts in a searchable, read-only
+  dialog inside the application: wide windows use two columns, compact
+  windows one scrolling column. It follows the opening Theme and restores
+  focus on close. Loading etaf-ui supplies this renderer for `etaf-help`
+  without requiring application-owned help state.
+- `etaf-dialog` accepts `:keys` and `:on-direction` for scoped panel input.
+
 - Themes can set shared Button padding, radius and border, and outlined
   TextInput padding, radius, background and idle border color. Missing tokens
   preserve existing defaults and panel palette fallbacks; plain inputs remain
@@ -50,8 +57,14 @@
 
 ### Changed
 
+- Modal dialogs and drawers dismiss on a backdrop click without activating
+  background controls; clicks inside their panel leave them open. Escape
+  still exits native editing before closing the modal.
+- Keyboard keycaps use compact rounded borders and subtle fills derived from
+  the inherited panel palette in both light and dark Themes.
+
 - `M-x etaf-ui-gallery-open` now opens a searchable component browser instead
-  of the Atelier workspace: eight categories expose all 62 components with
+  of the Atelier workspace: eight categories expose all 63 components with
   live specimens, scoped light/dark Themes, reset and complete copyable
   examples. Independent mounts keep their own state and preserve unrelated
   buffers. Category browsing adapts to wide and compact windows.
