@@ -46,7 +46,8 @@
   "Prepare Gallery LABEL through ROUTE in MODE and verify EXPECTED text.
 STEPS cycles through public activations and visible expectations on one mount.
 EXISTING-BUFFER borrows a mounted page without resetting or disposing it.
-CATEGORY is an optional sidebar label to open before sampling."
+CATEGORY is an optional category label to open before sampling, through
+the sidebar or the compact category picker."
   (let ((buffer (or existing-buffer (generate-new-buffer " *TAF Gallery*")))
         (invocations 0) viewport-ready runtime target position observing step expected-text expected-visible)
     (unless existing-buffer (etaf-ui-gallery-open buffer))
@@ -65,11 +66,16 @@ CATEGORY is an optional sidebar label to open before sampling."
             (* 160 (frame-char-width)))
           (if (eq mode 'gui) (window-body-height (selected-window)) 50))
          (when category
-           (let ((ref (car (cl-find-if
-                            (lambda (entry) (equal category (plist-get (cdr entry) :aria-label)))
-                            (etaf-runtime-host-props-entries runtime)))))
-             (unless ref (error "Gallery category is unavailable: %s" category))
-             (etaf-dispatch-event runtime ref 'press)))
+           (cl-flet ((named (name)
+                       (car (cl-find-if
+                             (lambda (entry) (equal name (plist-get (cdr entry) :aria-label)))
+                             (etaf-runtime-host-props-entries runtime)))))
+             (unless (named category)
+               (when-let* ((picker (named "组件分类")))
+                 (etaf-dispatch-event runtime picker 'press)))
+             (let ((ref (named category)))
+               (unless ref (error "Gallery category is unavailable: %s" category))
+               (etaf-dispatch-event runtime ref 'press))))
          (setq viewport-ready t))
        t)
      :prepare

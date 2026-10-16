@@ -50,6 +50,19 @@
           (dolist (component (cdr group))
             (should (member (concat "查看用法：" (symbol-name component)) labels))))))))
 
+(ert-deftest etaf-ui-gallery-compact-picker-opens-component-families ()
+  "The compact category picker reaches the same live specimens as the sidebar."
+  (etaf-ui-gallery-test--with (buffer runtime)
+    (etaf-runtime-refit runtime (* 80 (frame-char-width)) 30)
+    (dolist (choice '(("菜单与浮层" . "查看用法：etaf-key-help")
+                      ("基础与操作" . "查看用法：etaf-button")))
+      (etaf-ui-gallery-test--activate runtime "组件分类")
+      (etaf-ui-gallery-test--activate runtime (car choice))
+      (let* ((labels (mapcar (lambda (entry) (plist-get (cdr entry) :aria-label))
+                            (etaf-runtime-host-props-entries runtime)))
+             (present (not (null (member (cdr choice) labels)))))
+        (should present)))))
+
 (ert-deftest etaf-ui-gallery-preserves-state-across-browsing-and-theme ()
   "State survives category changes and scoped Theme switches; reset restores it."
   (etaf-ui-gallery-test--with (buffer runtime)

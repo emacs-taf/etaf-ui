@@ -649,6 +649,11 @@
    "purpose": "All eight categories expose every named component specimen."
   },
   {
+   "name": "etaf-ui-gallery-compact-picker-opens-component-families",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "The compact category picker opens overlay and basic component specimens without a sidebar."
+  },
+  {
    "name": "etaf-ui-gallery-preserves-state-across-browsing-and-theme",
    "file": "tests/etaf-ui-gallery-tests.el",
    "purpose": "Specimen state survives browsing and scoped Theme changes; reset restores defaults."
