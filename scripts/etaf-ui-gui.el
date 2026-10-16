@@ -379,6 +379,8 @@ INITIALIZE records the inherited reference row and tail position."
                     etaf-ui-gui-buffer
                     (etaf-view
                      (column :width '(vw 100) :height '(vh 100)
+                             :background-color (etaf-theme-token :ui-bg "#FFFDF8")
+                             :color (etaf-theme-token :ui-fg "#21252B")
                        (etaf-label :ref 'font-reference :text "Standard row")
                        (etaf-checkbox :bind checked :label "Checkbox")
                        (etaf-switch :bind enabled :label "Switch")
@@ -415,15 +417,15 @@ INITIALIZE records the inherited reference row and tail position."
                    (etaf-ui-gui-font-row-check "radio")))
            (cons "font-select-open"
                  (lambda () (etaf-ui-gui-activate "Select")
-                   (etaf-ui-gui-text "* First choice")
+                   (etaf-ui-gui-selected "First choice")
                    (etaf-ui-gui-font-row-check "select-open")))
            (cons "font-select-choice"
                  (lambda () (etaf-ui-gui-activate "Second choice")
-                   (etaf-ui-gui-text "Second choice v")
+                   (etaf-ui-gui-text "Second choice")
                    (etaf-ui-gui-font-row-check "select-choice")))
            (cons "font-tab"
                  (lambda () (etaf-ui-gui-activate "Second tab")
-                   (etaf-ui-gui-text "* Second tab")
+                   (etaf-ui-gui-selected "Second tab")
                    (etaf-ui-gui-font-row-check "tab")))
            (cons "font-dialog-open"
                  (lambda () (etaf-ui-gui-activate "Open dialog")
