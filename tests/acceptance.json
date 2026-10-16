@@ -654,6 +654,11 @@
    "purpose": "Every Gallery sidebar category highlights without shifting labels or changing typeface in light and dark Themes."
   },
   {
+   "name": "etaf-ui-gallery-overview-keeps-preview-content-whole",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Multi-row overview avatars finish before the card caption at wide and compact widths instead of being cropped."
+  },
+  {
    "name": "etaf-ui-gallery-compact-picker-opens-component-families",
    "file": "tests/etaf-ui-gallery-tests.el",
    "purpose": "The compact category picker opens overlay and basic component specimens without a sidebar."

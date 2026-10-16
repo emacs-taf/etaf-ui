@@ -85,6 +85,24 @@
                 (should (stringp (plist-get props :background-color)))
                 (should-not (plist-get props :hover-style))))))))))
 
+(ert-deftest etaf-ui-gallery-overview-keeps-preview-content-whole ()
+  "Overview cards let multi-row previews grow instead of cropping their cells."
+  (etaf-ui-gallery-test--with (buffer runtime)
+    (dolist (columns '(200 160 100 80))
+      (etaf-runtime-refit runtime (* columns (frame-char-width)) 80)
+      (dolist (label '("林" "陈"))
+        (let* ((entry (cl-find-if
+                       (lambda (entry) (equal label (plist-get (cdr entry) :aria-label)))
+                       (etaf-runtime-host-props-entries runtime)))
+               (bounds (etaf-host-ref-bounds runtime (car entry)))
+               (bottom-row (and bounds (line-number-at-pos (1- (cdr bounds)))))
+               (caption-row (save-excursion
+                              (goto-char (point-min))
+                              (search-forward "Button · Label · Icon · Avatar · Kbd")
+                              (line-number-at-pos))))
+          (ert-info ((format "%s in %s columns" label columns))
+            (should (< bottom-row caption-row))))))))
+
 (ert-deftest etaf-ui-gallery-compact-picker-opens-component-families ()
   "The compact category picker reaches the same live specimens as the sidebar."
   (etaf-ui-gallery-test--with (buffer runtime)

@@ -719,7 +719,7 @@ Compile the live View and retain the identical source for runnable examples."
              (etaf-label :text (nth 1 group) :variant 'strong)
              (etaf-button :label (format "查看 %d 项 →" (length (etaf-ui-gallery--items key))) :variant 'ghost
                           :aria-label (concat "浏览" (nth 1 group)) :on-press (lambda () (funcall on-select key))))
-           (box :padding '((lh 0) (ch 2)) :height '(lh 4) :box-sizing 'border-box :overflow 'hidden
+           (box :padding '((lh 0) (ch 2)) :min-height '(lh 4) :box-sizing 'border-box
              (etaf-ui-gallery--preview :key (format "%s-%s" key generation) :group key))
            (etaf-label :text (nth 2 group) :variant 'muted :padding '((lh 0) (ch 2))
                        :height '(lh 2) :box-sizing 'border-box :wrap-mode 'word)))))

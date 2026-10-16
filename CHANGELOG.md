@@ -22,6 +22,8 @@
 
 ### Fixed
 
+- Gallery overview previews grow with their content instead of clipping
+  multi-row avatars against the card caption.
 - Gallery sidebar items, segmented choices, tabs and steps now highlight
   selection without changing label positions, control widths or font weights.
   A selected ghost Button uses the secondary Theme colors without switching
