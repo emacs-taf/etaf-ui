@@ -42,7 +42,10 @@
 ;; from the variant's hover token, or from a caller-supplied surface when it
 ;; has one, while the pointer is over an enabled, unselected Button;
 ;; `aria-selected' controls (tabs, segments) keep their selected
-;; presentation.  Keyboard focus underlines the label and fills a Button
+;; presentation. A selected `ghost' uses the secondary Theme colors while
+;; preserving its padding, font weight and size; callers keep one variant
+;; across selection changes rather than switching geometry-bearing variants.
+;; Keyboard focus underlines the label and fills a Button
 ;; that has no surface of its own, so Tab navigation stays visible without
 ;; moving geometry.
 ;; Presentation props remain caller-overridable.  Runtime publishes ON-PRESS with the visible Button,

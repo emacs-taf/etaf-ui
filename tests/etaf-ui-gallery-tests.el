@@ -50,6 +50,41 @@
           (dolist (component (cdr group))
             (should (member (concat "查看用法：" (symbol-name component)) labels))))))))
 
+(ert-deftest etaf-ui-gallery-sidebar-selection-keeps-labels-stationary ()
+  "Sidebar highlights preserve each label's position, size and typeface."
+  (etaf-ui-gallery-test--with (buffer runtime)
+    (let ((labels '("组件总览" "基础与操作" "输入与选择" "导航与结构"
+                    "数据与集合" "状态与反馈" "菜单与浮层" "窗口与工作区" "媒体与网格")))
+      (cl-labels
+          ((layout ()
+             (mapcar
+              (lambda (label)
+                (let* ((entry (cl-find-if
+                               (lambda (entry) (equal label (plist-get (cdr entry) :aria-label)))
+                               (etaf-runtime-host-props-entries runtime)))
+                       (bounds (etaf-host-ref-bounds runtime (car entry)))
+                       (size (etaf-host-ref-size runtime (car entry))))
+                  (save-excursion
+                    (goto-char (car bounds))
+                    (search-forward label (cdr bounds))
+                    (list (- (current-column) (string-width label)) size
+                          (plist-get (cdr entry) :font-weight)))))
+              labels)))
+        (let ((before (layout)))
+          (dolist (palette '("深色" "浅色"))
+            (etaf-ui-gallery-test--activate runtime palette)
+            (dolist (label labels)
+              (etaf-ui-gallery-test--activate runtime label)
+              (let* ((after (layout))
+                     (entry (cl-find-if
+                             (lambda (entry) (equal label (plist-get (cdr entry) :aria-label)))
+                             (etaf-runtime-host-props-entries runtime)))
+                     (props (cdr entry)))
+                (should (equal before after))
+                (should (plist-get props :aria-selected))
+                (should (stringp (plist-get props :background-color)))
+                (should-not (plist-get props :hover-style))))))))))
+
 (ert-deftest etaf-ui-gallery-compact-picker-opens-component-families ()
   "The compact category picker reaches the same live specimens as the sidebar."
   (etaf-ui-gallery-test--with (buffer runtime)

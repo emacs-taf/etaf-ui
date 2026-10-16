@@ -71,14 +71,12 @@ ACTIVE may be a value or ref; ON-CHANGE receives the selected key."
                                          (text (expr (if (numberp count)
                                                          (number-to-string count)
                                                        count)))))))))
-                    ;; The active tab is shown by its variant and tokens, never
-                    ;; by a prefix glyph: a marker changes the label's width and
-                    ;; makes the whole strip shift on every switch.  Both
-                    ;; variants share one padding for the same reason.
+                    ;; Selection changes paint only; the label's padding and
+                    ;; typeface stay identical across the whole strip.
                     (etaf-node 'etaf-button
                                (append
                                 (list :label label
-                                      :variant (if selected 'secondary 'ghost)
+                                      :variant 'ghost
                                       :padding '((lh 0) (ch 1))
                                       :aria-selected selected
                                       :aria-label (if count
@@ -197,8 +195,8 @@ ON-SELECT, when supplied, receives the zero-based item index."
                         (active (equal key current)))
                    (list (etaf-view
                           (etaf-button :label label :aria-label caption
-                                       :aria-current active
-                                       :variant (if active 'secondary 'ghost)
+                                       :aria-current active :aria-selected active
+                                       :variant 'ghost
                                        :on-press (and on-change
                                                       (lambda () (funcall on-change key)))))
                          (when (< index (length items))

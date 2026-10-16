@@ -649,6 +649,11 @@
    "purpose": "All eight categories expose every named component specimen."
   },
   {
+   "name": "etaf-ui-gallery-sidebar-selection-keeps-labels-stationary",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Every Gallery sidebar category highlights without shifting labels or changing typeface in light and dark Themes."
+  },
+  {
    "name": "etaf-ui-gallery-compact-picker-opens-component-families",
    "file": "tests/etaf-ui-gallery-tests.el",
    "purpose": "The compact category picker opens overlay and basic component specimens without a sidebar."
@@ -687,6 +692,11 @@
    "name": "etaf-ui-feedback-and-navigation-render-public-contracts",
    "file": "tests/etaf-ui-modern-tests.el",
    "purpose": "Feedback and navigation Components render and dispatch through public refs."
+  },
+  {
+   "name": "etaf-ui-selection-keeps-label-positions-sizes-and-typeface",
+   "file": "tests/etaf-ui-modern-tests.el",
+   "purpose": "Tabs, segmented controls and steps keep label positions, control sizes and font weights unchanged across selection."
   },
   {
    "name": "etaf-ui-tabs-keep-every-label-in-place-when-switching",

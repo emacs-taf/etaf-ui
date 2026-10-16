@@ -805,7 +805,7 @@ Compile the live View and retain the identical source for runnable examples."
                      :background-color (etaf-theme-token :gallery-sidebar)
                      :border-right-width '(px 1) :border-right-style 'solid :border-right-color (etaf-theme-token :ui-border)
                (etaf-label :text "浏览组件" :variant 'muted)
-               (etaf-button :label "组件总览" :variant (if (null (etaf-value category)) 'secondary 'ghost)
+               (etaf-button :label "组件总览" :variant 'ghost
                             :aria-selected (null (etaf-value category)) :on-press (lambda () (funcall select nil)))
                (expr
                 (mapcar
@@ -813,7 +813,7 @@ Compile the live View and retain the identical source for runnable examples."
                    (let ((key (car group)))
                      (etaf-view
                       (etaf-button :key key :label (nth 1 group)
-                                   :variant (if (eq key (etaf-value category)) 'secondary 'ghost)
+                                   :variant 'ghost
                                    :aria-selected (eq key (etaf-value category))
                                    :color (etaf-theme-token (if (eq key (etaf-value category)) :ui-button-secondary-fg :ui-fg))
                                    :on-press (lambda () (funcall select key))))))

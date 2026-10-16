@@ -88,8 +88,9 @@ ref directly; it owns no state or subscription of its own."
    (plist-get (etaf-ui--label-presentation variant) :font-weight)
    (text (expr (etaf-ui--text-value text)))))
 
-(defun etaf-ui--button-variant-values (variant disabled)
-  "Return themed presentation defaults for Button VARIANT and DISABLED.
+(defun etaf-ui--button-variant-values (variant disabled &optional selected)
+  "Return themed defaults for Button VARIANT, DISABLED and SELECTED.
+A selected ghost gains the secondary tint without changing its geometry.
 
 Buttons are filled single-row pills: `primary' paints the accent, `secondary'
 its soft tint and `ghost' inherits its surface.  Outlines
@@ -100,13 +101,14 @@ filled variants dim to the disabled surface, a ghost only dims its text.
 A hover fill comes from the variant's hover token; a caller-provided surface
 derives its own fill instead of repeating that token."
   (let* ((variant (or variant 'primary))
+         (selected-ghost (and selected (eq variant 'ghost)))
          (fg (cond (disabled :ui-disabled-fg)
-                   ((eq variant 'secondary) :ui-button-secondary-fg)
+                   ((or (eq variant 'secondary) selected-ghost) :ui-button-secondary-fg)
                    ((eq variant 'ghost) :ui-button-ghost-fg)
                    (t :ui-button-primary-fg)))
-         (bg (cond ((eq variant 'ghost) nil)
+         (bg (cond ((and (eq variant 'ghost) (not selected-ghost)) nil)
                    (disabled :ui-disabled-bg)
-                   ((eq variant 'secondary) :ui-button-secondary-bg)
+                   ((or (eq variant 'secondary) selected-ghost) :ui-button-secondary-bg)
                    (t :ui-button-primary-bg)))
          (hover (cond (disabled nil)
                       ((eq variant 'secondary) :ui-button-secondary-hover-bg)
@@ -150,7 +152,7 @@ the visible Button, so a failed render keeps the previous callback and its
 captured values."
   :render
   (let* ((label (etaf-ui--text-value label))
-         (variant-values (etaf-ui--button-variant-values variant disabled))
+         (variant-values (etaf-ui--button-variant-values variant disabled aria-selected))
          (surface (etaf-ui--reactive-value bgcolor))
          (hover-bg (etaf-ui--button-hover-bg
                     variant surface (plist-get variant-values :hover-bg)

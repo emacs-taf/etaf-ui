@@ -22,6 +22,11 @@
 
 ### Fixed
 
+- Gallery sidebar items, segmented choices, tabs and steps now highlight
+  selection without changing label positions, control widths or font weights.
+  A selected ghost Button uses the secondary Theme colors without switching
+  variants or stacking a hover fill.
+
 - Derived hover fills step away from the label in both palettes: a dark
   surface darkens and a light one lightens, so a hover never lowers the
   label's contrast toward unreadability and one control gets a distinct

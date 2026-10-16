@@ -114,6 +114,46 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(defun etaf-ui-modern-test-label-layout (runtime labels)
+  "Return LABELS' painted positions, sizes and font weights in RUNTIME."
+  (mapcar
+   (lambda (label)
+     (let* ((entry (cl-find-if
+                    (lambda (entry) (equal label (plist-get (cdr entry) :aria-label)))
+                    (etaf-runtime-host-props-entries runtime)))
+            (size (etaf-host-ref-size runtime (car entry))))
+       (save-excursion
+         (goto-char (point-min))
+         (search-forward label)
+         (list (- (current-column) (string-width label)) size
+               (plist-get (cdr entry) :font-weight)))))
+   labels))
+
+(ert-deftest etaf-ui-selection-keeps-label-positions-sizes-and-typeface ()
+  "Tabs, segments and steps change selection paint, never label geometry."
+  (dolist (component '(etaf-tabs etaf-segmented etaf-steps))
+    (with-temp-buffer
+      (let* ((value (etaf-ref 'one))
+             (change (lambda (next) (etaf-set-value value next)))
+             (items '((:key one :label "One") (:key two :label "Two")
+                      (:key three :label "Three")))
+             (props (pcase component
+                      ('etaf-tabs (list :items items :active value :on-change change))
+                      ('etaf-steps (list :items items :current value :on-change change))
+                      (_ (list :options '((one . "One") (two . "Two") (three . "Three"))
+                               :bind value))))
+             (runtime (progn
+                        (etaf-mount (current-buffer) (etaf-node component props nil))
+                        (etaf-runtime-for-buffer (current-buffer)))))
+        (unwind-protect
+            (let ((before (etaf-ui-modern-test-label-layout runtime '("One" "Two" "Three"))))
+              (dolist (label '("Three" "Two" "One"))
+                (etaf-ui-modern-test-activate runtime label)
+                (let ((after (etaf-ui-modern-test-label-layout runtime '("One" "Two" "Three"))))
+                  (ert-info ((format "%s selecting %s" component label))
+                    (should (equal before after))))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-selection-components-render-public-contracts ()
   "Selection Components render controlled values through the public DSL."
   (with-temp-buffer
