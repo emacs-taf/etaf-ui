@@ -589,7 +589,10 @@ Compile the live View and retain the identical source for runnable examples."
          (row :item-gap '(ch 2)
            (etaf-label :text (plist-get entry :title) :variant 'strong)
            (etaf-label :text (symbol-name name) :variant 'muted))
-         (etaf-button :label (if (etaf-value code) "收起用法 ▴" "查看用法 ▾") :variant 'ghost
+         (etaf-button :label (concat (if (etaf-value code) "收起用法" "查看用法") " "
+                                    (car (etaf-ui-icon-lines
+                                          (if (etaf-value code) 'chevron-up 'chevron-down)
+                                          :set 'svg :size 0.75))) :variant 'ghost
                       :aria-label (concat "查看用法：" (symbol-name name))
                       :on-press (lambda () (setf (etaf-value code) (not (etaf-value code))))))
        (column :padding '((lh 1) (ch 2)) :item-gap '(lh 1)

@@ -439,7 +439,8 @@ Items may carry an :icon shown before the label.  PLACEMENT follows
            (etaf-ui-icon icon :id anchor :help-echo label
                          :on-press (and enabled toggle))
          (etaf-node 'etaf-button
-                    (list :id anchor :label (concat label " v") :aria-label label
+                    (list :id anchor :label (etaf-ui--disclosure-label label 'chevron-down)
+                          :aria-label label
                           :disabled (not enabled) :variant 'secondary
                           :on-press toggle)
                     nil))

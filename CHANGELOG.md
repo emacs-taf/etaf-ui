@@ -22,6 +22,9 @@
 
 ### Fixed
 
+- Menu and selector triggers, accordion headings and tree branches show
+  disclosure arrows instead of alphabetic `v` markers. Accordion control
+  names stay equal to their labels when sections open or close.
 - Gallery overview previews grow with their content instead of clipping
   multi-row avatars against the card caption.
 - Gallery sidebar items, segmented choices, tabs and steps now highlight

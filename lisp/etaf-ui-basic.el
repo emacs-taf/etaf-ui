@@ -12,6 +12,20 @@
 (require 'cl-lib)
 (require 'etaf-ui-style)
 
+(declare-function etaf-ui-icon-lines "etaf-ui" (name &rest options))
+
+(defun etaf-ui--disclosure-label (label direction &optional leading)
+  "Return LABEL with a standard-row DIRECTION icon, optionally LEADING."
+  (let* ((icon (car (etaf-ui-icon-lines direction :set 'svg :size 0.75)))
+         ;; Keep an arrow in copied text and terminals too.  The icon registry's
+         ;; ASCII fallback is for standalone icons, not a control's caption.
+         (arrow (copy-sequence (pcase direction
+                                 ('chevron-right "›")
+                                 ('chevron-up "⌃")
+                                 (_ "⌄")))))
+    (add-text-properties 0 (length arrow) (text-properties-at 0 icon) arrow)
+    (if leading (concat arrow " " label) (concat label " " arrow))))
+
 (defvar etaf-ui--unsupplied (make-symbol "unsupplied")
   "Distinguish omitted controlled props from explicitly supplied nil.")
 

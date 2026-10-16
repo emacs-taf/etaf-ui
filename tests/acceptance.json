@@ -699,6 +699,11 @@
    "purpose": "Feedback and navigation Components render and dispatch through public refs."
   },
   {
+   "name": "etaf-ui-disclosures-use-arrows-and-stable-control-names",
+   "file": "tests/etaf-ui-modern-tests.el",
+   "purpose": "Menus, selectors, accordion and tree disclosures show arrow cues and preserve control names across expansion."
+  },
+  {
    "name": "etaf-ui-selection-keeps-label-positions-sizes-and-typeface",
    "file": "tests/etaf-ui-modern-tests.el",
    "purpose": "Tabs, segmented controls and steps keep label positions, control sizes and font weights unchanged across selection."

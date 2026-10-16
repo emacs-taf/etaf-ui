@@ -1,4 +1,5 @@
-;;; etaf-ui-modern-tests.el --- Public modern catalog behavior -*- lexical-binding: t; -*-
+;;; -*- lexical-binding: t; -*-
+;;; etaf-ui-modern-tests.el --- Public modern catalog behavior
 
 ;;; Code:
 (require 'ert)
@@ -49,7 +50,7 @@
               (etaf-ui-modern-test-activate runtime "Two")
               (should (eq selected 'two))
               (should (eq (etaf-value active) 'two))
-              (etaf-ui-modern-test-activate runtime "> Details")
+              (etaf-ui-modern-test-activate runtime "Details")
               (should (equal (etaf-value open) '(details)))
               (should (string-match-p "More" (buffer-string)))
               (etaf-ui-modern-test-activate runtime "Home")
@@ -152,6 +153,42 @@
                 (let ((after (etaf-ui-modern-test-label-layout runtime '("One" "Two" "Three"))))
                   (ert-info ((format "%s selecting %s" component label))
                     (should (equal before after))))))
+          (etaf-unmount runtime))))))
+
+(ert-deftest etaf-ui-disclosures-use-arrows-and-stable-control-names ()
+  "Disclosure arrows are visual cues, never letters in accessible control names."
+  (with-temp-buffer
+    (let ((open (etaf-ref nil)) (expanded (etaf-ref nil)))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 30)
+                (etaf-menu :label "Operations" :items '((:key copy :label "Copy"))
+                           :on-select #'ignore)
+                (etaf-select :label "Choice" :placeholder "Choose" :options '((a . "Alpha"))
+                             :presentation 'dropdown :on-change #'ignore)
+                (etaf-dropdown-menu :label "Actions" :items '((:key copy :label "Copy"))
+                                    :on-select #'ignore)
+                (etaf-accordion :items '((:key details :label "Details" :content "Body"))
+                                :open open :on-toggle (lambda (keys) (etaf-set-value open keys)))
+                (etaf-tree :items '((:key branch :label "Branch"
+                                    :children ((:key leaf :label "Leaf"))))
+                           :expanded expanded
+                           :on-toggle (lambda (keys) (etaf-set-value expanded keys))))))
+            (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                   (text (buffer-substring-no-properties (point-min) (point-max))))
+              (dolist (caption '("Operations ⌄" "Choose ⌄" "Actions ⌄" "› Details" "› Branch"))
+                (should (string-match-p (regexp-quote caption) text)))
+              (etaf-ui-modern-test-activate runtime "Details")
+              (etaf-ui-modern-test-activate runtime "Branch")
+              (setq text (buffer-substring-no-properties (point-min) (point-max)))
+              (should (string-match-p "⌄ Details" text))
+              (should (string-match-p "⌄ Branch" text))
+              (should (string-match-p "Body" text))
+              (should (string-match-p "Leaf" text))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
 (ert-deftest etaf-ui-selection-components-render-public-contracts ()

@@ -101,8 +101,12 @@ next expanded key list."
                   (branch (plist-get entry :branch))
                   (open (member key expanded))
                   (prefix (make-string (* 2 (plist-get entry :depth)) ?\s))
-                  (caption (concat prefix (if branch (if open "v " "> ") "  ")
-                                   (plist-get entry :label)))
+                  (caption (concat prefix
+                                   (if branch
+                                       (etaf-ui--disclosure-label
+                                        (plist-get entry :label)
+                                        (if open 'chevron-down 'chevron-right) t)
+                                     (concat "  " (plist-get entry :label)))))
                   (toggle (lambda ()
                             (when on-toggle
                               (funcall on-toggle

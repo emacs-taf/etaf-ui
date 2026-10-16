@@ -123,8 +123,11 @@ section; ON-TOGGLE receives the next list of keys."
                                      'etaf-accordion)
                     (list
                      (etaf-node 'etaf-button
-                                (list :label (concat (if expanded "v " "> ")
-                                                     (plist-get item :label))
+                                (list :label (etaf-ui--disclosure-label
+                                              (plist-get item :label)
+                                              (if expanded 'chevron-down 'chevron-right) t)
+                                      :aria-label (plist-get item :label)
+                                      :aria-expanded (if expanded t 'false)
                                       :variant 'ghost
                                       :on-press
                                       (lambda ()

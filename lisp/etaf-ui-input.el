@@ -60,7 +60,8 @@ Each item has a unique scalar :key, nonempty string :label and optional
                      "a function or nil" 'etaf-menu)
     (etaf-node
      'etaf-button
-     (list :label (concat label " v") :aria-label label :variant 'ghost
+     (list :label (etaf-ui--disclosure-label label 'chevron-down)
+           :aria-label label :variant 'ghost
            :disabled (or disabled (null choices) (null on-select))
            :on-press
            (unless (or disabled (null choices) (null on-select))
@@ -186,7 +187,7 @@ forms.  Selection never opens the minibuffer."
           (etaf-node
            'etaf-button
            (list :id anchor :ref ref
-                 :label (concat (or caption placeholder) " v")
+                 :label (etaf-ui--disclosure-label (or caption placeholder) 'chevron-down)
                  :aria-label label :variant 'secondary
                  :class "etaf-select-anchor"
                  :disabled inactive

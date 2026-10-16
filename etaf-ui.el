@@ -289,7 +289,8 @@
 ;;
 ;; Component: etaf-menu (&key label items on-select disabled)
 ;; Render a Button opening native completion for an action. LABEL defaults to
-;; "Actions". ITEMS are plists with unique non-nil scalar :key values, unique
+;; "Actions". A trailing arrow indicates a menu, not a keyboard binding.
+;; ITEMS are plists with unique non-nil scalar :key values, unique
 ;; nonempty string :label values and optional :disabled. Native choices include
 ;; only enabled items. ON-SELECT receives the chosen key once, after the input
 ;; boundary validates the entry and restores focus. Empty input or C-c C-k
@@ -312,7 +313,8 @@
 ;; Choose a controlled value from OPTIONS without leaving the UI.
 ;; PRESENTATION is `chips', `dropdown' or `auto' (default): chips render each
 ;; option as an inline pill with the current one filled; a dropdown renders one
-;; anchor pill "CAPTION v", which REF names, and lists the options as ghost
+;; anchor pill with its caption and a disclosure arrow, which REF names,
+;; and lists the options as ghost
 ;; buttons in a Popover of WIDTH (default (ch 28)) that closes on selection or
 ;; Escape.  `auto' shows chips for up to four options.  HIDE-LABEL omits the
 ;; muted caption for grid forms.
@@ -747,6 +749,7 @@
 ;; Component: etaf-accordion (&key items open on-toggle multiple)
 ;; Render controlled disclosure sections. Items contain :key, :label and
 ;; string or zero-argument function :content. OPEN is a list of expanded keys.
+;; A directional icon shows expansion; the accessible name remains :label.
 ;;
 ;; Component: etaf-breadcrumb (&key items on-select)
 ;; Render a navigation trail of strings; ON-SELECT receives a zero-based index.

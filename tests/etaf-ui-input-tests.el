@@ -90,7 +90,7 @@
              runtime (etaf-ui-input-test--control runtime "已完成") 'press)
             (should (etaf-value value))
             (should-not (etaf-ui-input-test--control runtime "已完成"))
-            (should (string-match-p "已完成 v"
+            (should (string-match-p "已完成 ⌄"
                                     (with-current-buffer buffer
                                       (buffer-substring-no-properties
                                        (point-min) (point-max)))))
