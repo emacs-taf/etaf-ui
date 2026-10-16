@@ -684,6 +684,11 @@
    "purpose": "Native live search matches symbols and Chinese across categories and recovers from no matches."
   },
   {
+   "name": "etaf-ui-gallery-splitter-uses-its-live-pane-width",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Divider gestures move by their pixel delta across resized Gallery viewports rather than a fixed example width."
+  },
+  {
    "name": "etaf-ui-gallery-reference-explains-value-and-callback-contracts",
    "file": "tests/etaf-ui-gallery-tests.el",
    "purpose": "Scrolled reference text exposes defaults, controlled-value exclusions, callback payloads and units; reset collapses it."

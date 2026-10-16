@@ -803,6 +803,10 @@
 ;; Render a controlled horizontal or vertical split with named `first' and
 ;; `second' slots.  RATIO remains caller-owned; ON-CHANGE receives divider
 ;; gestures and USE can install an ETAF Behavior for keyboard/pointer updates.
+;; For a ratio-based policy, capture the initial ratio and allocated pixel
+;; extent at gesture start; divide cumulative pixel delta by that extent,
+;; clamp the result and restore the initial ratio on cancel. Do not use an
+;; assumed viewport width. etaf-host-ref-size measures a referenced layout.
 ;; OVERLAY renders only the divider over caller-owned panes.  OVERLAY-RECT is an
 ;; optional exact positioned rectangle using :left/:width in `(px N)' and
 ;; :top/:height in `(lh N)'; it keeps nested or constrained dividers aligned

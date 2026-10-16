@@ -27,6 +27,9 @@
 
 ### Fixed
 
+- The Gallery Splitter example converts gesture pixels using its live pane
+  width rather than an assumed 600 pixels, so pointer and keyboard movement
+  remain proportional after resizing. Copied examples use the same correction.
 - Calendar weekday headings, leading blanks and dates use equal-width cells.
   Changing the selected date no longer shifts the remaining days in its week.
 - Select choices, expanded tree branches, taskbar items and workspace items

@@ -206,6 +206,34 @@
       (etaf-ui-gallery-test--type runtime "搜索组件名称或用途" "etaf-dialog")
       (should (string-match-p "打开对话框" (etaf-ui-gallery-test--text buffer))))))
 
+(ert-deftest etaf-ui-gallery-splitter-uses-its-live-pane-width ()
+  "A divider gesture moves the example by the same pixels after resizing."
+  (save-window-excursion
+    (etaf-ui-gallery-test--with (buffer runtime)
+      (switch-to-buffer buffer)
+      (etaf-ui-gallery-test--type runtime "搜索组件名称或用途" "etaf-splitter")
+      (cl-labels ((divider ()
+                   (car (cl-find-if
+                         (lambda (entry) (equal "Resize columns" (plist-get (cdr entry) :aria-label)))
+                         (etaf-runtime-host-props-entries runtime))))
+                  (x ()
+                    (save-excursion
+                      (goto-char (etaf-host-ref-position runtime (divider)))
+                      (etaf-string-pixel-width
+                       (buffer-substring (line-beginning-position) (point))))))
+        (dolist (columns '(80 160 220))
+          (etaf-runtime-refit runtime (* columns (frame-char-width)) 40)
+          (etaf-ui-gallery-test--activate runtime "重置示例")
+          (let* ((target (divider))
+                 (before (x))
+                 (width (car (etaf-host-ref-size runtime 'etaf-splitter)))
+                 (delta (* 5 (frame-char-width))))
+            (etaf-drag-step runtime target 5 0)
+            (let ((moved (- (x) before)))
+              (ert-info ((format "%s columns: expected %s px, moved %s" columns delta moved))
+                ;; Splitter positions panes at whole percentage points.
+                (should (<= (abs (- moved delta)) (1+ (/ width 100.0))))))))))))
+
 (ert-deftest etaf-ui-gallery-reference-explains-value-and-callback-contracts ()
   "Scrolled reference text distinguishes defaults, units and callback payloads."
   (save-window-excursion

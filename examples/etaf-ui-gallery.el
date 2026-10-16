@@ -290,14 +290,21 @@ Compile the live View and retain the identical source for runnable examples."
      (etaf-steps :items '((:key design :label "设计") (:key build :label "实现") (:key verify :label "验证"))
                  :current step :on-change (lambda (next) (setf (etaf-value step) next))))
    (etaf-ui-gallery--sample etaf-splitter layout "分栏" "拖动分隔线，或聚焦后用左右键调整比例。"
-     ((ratio (etaf-ref 0.4)) (origin (list 0.4)))
-     (etaf-splitter :ratio ratio :height '(lh 4)
+     ((ratio (etaf-ref 0.4)) (origin (list 0.4 1)))
+     (etaf-splitter :ratio ratio :height '(lh 4) :ref 'example-split
+       :min-ratio 0.15 :max-ratio 0.85
        :on-change (lambda (gesture)
                     (pcase (plist-get gesture :phase)
-                      ('start (setcar origin (etaf-value ratio)))
+                      ('start
+                       (setcar origin (etaf-value ratio))
+                       (setcar (cdr origin)
+                               (max 1 (car (etaf-host-ref-size
+                                            (etaf-runtime-for-buffer (current-buffer)) 'example-split)))))
                       ((or 'move 'end)
                        (setf (etaf-value ratio)
-                             (max 0.15 (min 0.85 (+ (car origin) (/ (float (car (plist-get gesture :delta))) 600))))))
+                             (max 0.15 (min 0.85 (+ (car origin)
+                                                  (/ (float (car (plist-get gesture :delta)))
+                                                     (cadr origin)))))))
                       ('cancel (setf (etaf-value ratio) (car origin)))))
        (slot :name 'first (etaf-label :text "左侧内容" :padding '((lh 0) (ch 1))))
        (slot :name 'second (etaf-label :text "右侧内容" :padding '((lh 0) (ch 1))))))

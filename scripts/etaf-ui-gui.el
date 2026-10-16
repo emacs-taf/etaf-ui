@@ -269,6 +269,23 @@ session ends with its submit or its cancel key."
                  (etaf-ui-gui-key "<right>")
                  (etaf-ui-gui-text "70")))
          (cons "range-keyboard" (lambda () (etaf-ui-gallery-gui-search "etaf-range") (etaf-focus (etaf-ui-gui-runtime) (etaf-ui-gui-control "音量示例")) (etaf-ui-gui-key "<right>") (etaf-ui-gui-text "当前 61%")))
+         (cons "splitter-keyboard"
+               (lambda ()
+                 (etaf-ui-gallery-gui-search "etaf-splitter")
+                 (let* ((runtime (etaf-ui-gui-runtime))
+                        (width (car (etaf-host-ref-size runtime 'example-split)))
+                        (x (lambda ()
+                             (save-excursion
+                               (goto-char (etaf-host-ref-position runtime (etaf-ui-gui-control "Resize columns")))
+                               (etaf-string-pixel-width
+                                (buffer-substring (line-beginning-position) (point))))))
+                        (before (funcall x)))
+                   (etaf-focus runtime (etaf-ui-gui-control "Resize columns"))
+                   (dotimes (_ 5) (etaf-ui-gui-key "<right>"))
+                   (etaf-ui-gui-expect
+                    (<= (abs (- (- (funcall x) before) (* 5 (frame-char-width))))
+                        (1+ (/ width 100.0)))
+                    "Splitter keyboard delta did not follow the live pane width"))))
          (cons "steps-select" (lambda () (etaf-ui-gallery-gui-search "etaf-steps") (etaf-ui-gui-activate "实现") (etaf-ui-gui-text "实现")))
          (cons "tag-dismiss" (lambda () (etaf-ui-gallery-gui-search "etaf-tag") (etaf-ui-gui-activate "Remove 草稿") (etaf-ui-gui-visible "Remove 草稿" nil) (etaf-ui-gui-visible "恢复标签" t)))
          (cons "list-select" (lambda () (etaf-ui-gallery-gui-search "etaf-list") (etaf-ui-gui-activate "组合界面") (etaf-ui-gui-text "当前选择：compose")))
