@@ -131,8 +131,9 @@
    labels))
 
 (ert-deftest etaf-ui-selection-keeps-label-positions-sizes-and-typeface ()
-  "Tabs, segments and steps change selection paint, never label geometry."
-  (dolist (component '(etaf-tabs etaf-segmented etaf-steps))
+  "Choice controls change selection paint, never label geometry."
+  (dolist (component '(etaf-tabs etaf-segmented etaf-steps etaf-select
+                      etaf-taskbar etaf-workspace-bar))
     (with-temp-buffer
       (let* ((value (etaf-ref 'one))
              (change (lambda (next) (etaf-set-value value next)))
@@ -141,6 +142,8 @@
              (props (pcase component
                       ('etaf-tabs (list :items items :active value :on-change change))
                       ('etaf-steps (list :items items :current value :on-change change))
+                      ('etaf-taskbar (list :items items :active value :on-select change))
+                      ('etaf-workspace-bar (list :workspaces items :active value :on-select change))
                       (_ (list :options '((one . "One") (two . "Two") (three . "Three"))
                                :bind value))))
              (runtime (progn
@@ -182,7 +185,10 @@
               (dolist (caption '("Operations ⌄" "Choose ⌄" "Actions ⌄" "› Details" "› Branch"))
                 (should (string-match-p (regexp-quote caption) text)))
               (etaf-ui-modern-test-activate runtime "Details")
-              (etaf-ui-modern-test-activate runtime "Branch")
+              (let ((before (etaf-ui-modern-test-label-layout runtime '("Branch"))))
+                (etaf-ui-modern-test-activate runtime "Branch")
+                (let ((after (etaf-ui-modern-test-label-layout runtime '("Branch"))))
+                  (should (equal before after))))
               (setq text (buffer-substring-no-properties (point-min) (point-max)))
               (should (string-match-p "⌄ Details" text))
               (should (string-match-p "⌄ Branch" text))

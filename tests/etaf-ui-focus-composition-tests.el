@@ -116,7 +116,7 @@ SCALAR-CONTROLS resolves the controlled inputs before passing Component props."
            (group (if (eq key 'notes) 'focus-notes-lights 'focus-files-lights))
            (props (etaf-runtime-host-props-for runtime ref)))
       (should (eq active (and (member "active" (split-string (plist-get props :class))) t)))
-      (should (eq (if active 'bold 'normal) (plist-get props :font-weight)))
+      (should (eq 'normal (plist-get props :font-weight)))
       ;; Selection paints the fallback Desktop Theme tokens: the accent on
       ;; a soft accent tint for the active item, shell colors otherwise.
       (should (equal (if active "#2F6FE4" "#4A5664") (plist-get props :color)))

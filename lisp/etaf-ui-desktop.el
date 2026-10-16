@@ -65,7 +65,7 @@ stable dependency set whichever tone currently wins."
 
 (etaf-define-component etaf-ui--desktop-bar-item
     (&key item-key label ref active disabled callback state class active-class
-          minimized-class bold-active)
+          minimized-class)
   "Project controlled selection onto one stateless navigation Host.
 
 Tone colors are Theme tokens read inside Host property bindings, so both a
@@ -89,11 +89,7 @@ selection change and a Theme change stay retained paint updates."
        (pcase (etaf-ui--desktop-bar-item-tone item-key active state)
          ('active (etaf-ui--style-token :ui-accent-soft-bg))
          (_ (etaf-ui--style-token :ui-shell-bg)))
-       :font-weight (if (and bold-active
-                             (eq (etaf-ui--desktop-bar-item-tone
-                                  item-key active state)
-                                 'active))
-                        'bold 'normal)
+       :font-weight 'normal
        (text (expr label))))
 
 (defun etaf-ui--desktop-bar-item-node (item active on-select taskbar)
@@ -115,8 +111,7 @@ TASKBAR selects window-state presentation."
                            (lambda () (funcall on-select key)))
             :class class :active-class (concat class " active")
             :minimized-class (concat class " minimized")
-            :state (and taskbar (plist-get item :state))
-            :bold-active t)
+            :state (and taskbar (plist-get item :state)))
       (unless taskbar (list :flex-shrink 0 :min-width 'max-content)))
      nil)))
 

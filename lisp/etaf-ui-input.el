@@ -177,7 +177,7 @@ forms.  Selection never opens the minibuffer."
                        :aria-label (cdr option)
                        :class (etaf-ui--class-value
                                "etaf-select-chip" (if selected "selected" "unselected") nil)
-                       :variant (if selected 'secondary 'ghost)
+                       :variant 'ghost :aria-selected selected
                        :disabled inactive
                        :on-press (unless inactive
                                    (lambda () (funcall choose option))))
@@ -210,8 +210,7 @@ forms.  Selection never opens the minibuffer."
                        :aria-label (cdr option)
                        :class (etaf-ui--class-value
                                "etaf-select-option" (if selected "selected" "unselected") nil)
-                       :variant 'ghost :width 'stretch
-                       :font-weight (if selected 'bold 'normal)
+                       :variant 'ghost :width 'stretch :aria-selected selected
                        :on-press (lambda () (funcall choose option)))
                  nil)))
             choices))))

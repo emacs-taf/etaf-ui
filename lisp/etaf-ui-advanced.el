@@ -113,7 +113,7 @@ next expanded key list."
                                        (if open (delete key (copy-sequence expanded))
                                          (cons key (copy-sequence expanded))))))))
              (etaf-view
-              (etaf-button :label caption :variant (if open 'secondary 'ghost)
+              (etaf-button :label caption :variant 'ghost :aria-selected (and open t)
                            :aria-label (plist-get entry :label)
                            :aria-expanded (and branch (if open t 'false))
                            ;; Right opens and left closes a branch in place.

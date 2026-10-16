@@ -22,6 +22,9 @@
 
 ### Fixed
 
+- Select choices, expanded tree branches, taskbar items and workspace items
+  retain their padding and typeface when their state changes. Selection uses
+  Theme paint only, and selected dropdown options suppress hover fill.
 - Menu and selector triggers, accordion headings and tree branches show
   disclosure arrows instead of alphabetic `v` markers. Accordion control
   names stay equal to their labels when sections open or close.

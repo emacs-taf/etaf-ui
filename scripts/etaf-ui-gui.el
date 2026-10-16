@@ -162,6 +162,14 @@ session ends with its submit or its cancel key."
     (etaf-scroll-into-view runtime ref))
   (etaf-ui-gui-visible label t))
 
+(defun etaf-ui-gui-selected (label)
+  "Require the visible control LABEL to expose its selected state."
+  (let* ((runtime (etaf-ui-gui-runtime))
+         (ref (etaf-ui-gui-control label))
+         (selected (and ref (plist-get (etaf-runtime-host-props-for runtime ref)
+                                       :aria-selected))))
+    (etaf-ui-gui-expect selected "Control is not selected: %s" label)))
+
 (defun etaf-ui-gallery-gui-search (query)
   "Replace the Gallery's live query with QUERY through native input."
   (etaf-ui-gui-activate "搜索组件名称或用途")
@@ -233,6 +241,11 @@ session ends with its submit or its cancel key."
                    (etaf-ui-gui-focused "查看快捷键"))))
          (cons "checkbox-toggle" (lambda () (etaf-ui-gallery-gui-search "etaf-checkbox") (etaf-ui-gui-activate "接收通知") (etaf-ui-gui-text "接收通知 = t")))
          (cons "radio-select" (lambda () (etaf-ui-gallery-gui-search "etaf-radio") (etaf-ui-gui-activate "宽松")))
+         (cons "select-chips" (lambda () (etaf-ui-gallery-gui-search "etaf-select") (etaf-ui-gui-activate "开发") (etaf-ui-gui-selected "开发")))
+         (cons "select-dropdown" (lambda () (etaf-ui-gui-activate "语言") (etaf-ui-gui-activate "English") (etaf-ui-gui-text "English")))
+         (cons "segmented-select" (lambda () (etaf-ui-gallery-gui-search "etaf-segmented") (etaf-ui-gui-activate "周") (etaf-ui-gui-selected "周")))
+         (cons "taskbar-select" (lambda () (etaf-ui-gallery-gui-search "etaf-taskbar") (etaf-ui-gui-activate "预览") (etaf-ui-gui-selected "预览")))
+         (cons "workspace-select" (lambda () (etaf-ui-gallery-gui-search "etaf-workspace-bar") (etaf-ui-gui-activate "工作区 2") (etaf-ui-gui-selected "工作区 2")))
          (cons "switch-toggle" (lambda () (etaf-ui-gallery-gui-search "etaf-switch") (etaf-ui-gui-activate "实时预览") (etaf-ui-gui-text "预览已关闭")))
          (cons "range-keyboard" (lambda () (etaf-ui-gallery-gui-search "etaf-range") (etaf-focus (etaf-ui-gui-runtime) (etaf-ui-gui-control "音量示例")) (etaf-ui-gui-key "<right>") (etaf-ui-gui-text "当前 61%")))
          (cons "steps-select" (lambda () (etaf-ui-gallery-gui-search "etaf-steps") (etaf-ui-gui-activate "实现") (etaf-ui-gui-text "实现")))

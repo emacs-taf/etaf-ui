@@ -706,7 +706,7 @@
   {
    "name": "etaf-ui-selection-keeps-label-positions-sizes-and-typeface",
    "file": "tests/etaf-ui-modern-tests.el",
-   "purpose": "Tabs, segmented controls and steps keep label positions, control sizes and font weights unchanged across selection."
+   "purpose": "Tabs, segments, steps, Select chips, taskbars and workspace bars keep label positions, control sizes and font weights unchanged across selection."
   },
   {
    "name": "etaf-ui-tabs-keep-every-label-in-place-when-switching",
