@@ -565,6 +565,50 @@ Compile the live View and retain the identical source for runnable examples."
                   (indent-tabs-mode nil))
               (pp-to-string form)))))
 
+(defun etaf-ui-gallery--read-documentation ()
+  "Read Component records from the installed public entry before mounting.
+The Gallery consumes Commentary, not the component registry or a second API
+inventory.  Each Parameters paragraph lists keyword groups and their prose."
+  (with-temp-buffer
+    (insert-file-contents
+     (or (locate-library "etaf-ui.el")
+         (user-error "Gallery needs the installed etaf-ui.el source documentation")))
+    (goto-char (point-min))
+    (search-forward ";;; Commentary:")
+    (let ((begin (point)))
+      (search-forward ";;; Code:")
+      (narrow-to-region begin (match-beginning 0)))
+    (goto-char (point-min))
+    (let (documents)
+      (while (re-search-forward "^;; Component: \\(\\S-+\\) \\(.*\\)$" nil t)
+        (let ((name (intern (match-string 1)))
+              (signature (concat (match-string 1) " " (match-string 2)))
+              (keywords (cdr (read (match-string 2))))
+              lines parameters prose)
+          (forward-line 1)
+          (while (and (not (looking-at ";; \\(Component\\|Function\\|Macro\\|Variable\\|Hook\\|Error\\):"))
+                      (looking-at ";;\\(?: \\(.*\\)\\)?$"))
+            (push (or (match-string 1) "") lines)
+            (forward-line 1))
+          (dolist (paragraph (split-string (string-join (nreverse lines) "\n") "\n\n+" t))
+            (if (string-prefix-p "Parameters:\n" paragraph)
+                (dolist (line (split-string (substring paragraph (length "Parameters:\n")) "\n" t))
+                  (if (string-match "\\`\\(:[^—]+\\) — \\(.*\\)\\'" line)
+                      (push (cons (string-trim (match-string 1 line)) (match-string 2 line)) parameters)
+                    (unless parameters (error "Malformed parameter documentation for %s" name))
+                    (setcdr (car parameters) (concat (cdar parameters) " " (string-trim line)))))
+              (push (string-join (split-string paragraph "\n" t) " ") prose)))
+          (let ((documented (mapconcat #'car parameters ", ")))
+            (dolist (keyword keywords)
+              (unless (string-match-p (concat ":" (regexp-quote (symbol-name keyword)) "\\_>") documented)
+                (error "Missing parameter documentation for %s :%s" name keyword))))
+          (push (cons name (list :signature signature :parameters (nreverse parameters)
+                                 :prose (nreverse prose))) documents)))
+      (dolist (entry etaf-ui-gallery--samples)
+        (unless (assq (plist-get entry :name) documents)
+          (error "Missing public Component documentation for %s" (plist-get entry :name))))
+      documents)))
+
 (defun etaf-ui-gallery--create-states ()
   "Create the mount's specimen states outside rendering."
   (mapcar (lambda (entry)
@@ -578,7 +622,30 @@ Compile the live View and retain the identical source for runnable examples."
     (when-let* ((controller (plist-get (cdr entry) :controller)))
       (etaf-data-stop controller))))
 
-(etaf-define-component etaf-ui-gallery--specimen (&key entry state)
+(etaf-define-component etaf-ui-gallery--reference (&key documentation)
+  :render
+  (etaf-view
+   (column :width 'stretch :item-gap '(lh 1)
+     (etaf-label :text "调用签名" :variant 'strong)
+     (etaf-label :text (plist-get documentation :signature) :wrap-mode 'word :width 'stretch)
+     (etaf-label :text "参数与默认值" :variant 'strong)
+     (etaf-label :text "以下为组件参数；其他布局、样式和可访问性属性遵循 ETAF 的公共 Host 透传契约，不会自动传给所有内部控件。"
+                 :variant 'muted :wrap-mode 'word :width 'stretch)
+     (expr
+      (mapcar
+       (lambda (parameter)
+         (etaf-view
+          (column :width 'stretch
+            (etaf-label :text (car parameter) :variant 'strong :wrap-mode 'word :width 'stretch)
+            (etaf-label :text (cdr parameter) :wrap-mode 'word :width 'stretch))))
+       (plist-get documentation :parameters)))
+     (etaf-label :text "行为与限制" :variant 'strong)
+     (expr
+      (mapcar (lambda (paragraph)
+                (etaf-view (etaf-label :text paragraph :wrap-mode 'word :width 'stretch)))
+              (plist-get documentation :prose))))))
+
+(etaf-define-component etaf-ui-gallery--specimen (&key entry state documentation)
   :render
   (let* ((name (plist-get entry :name)) (code (plist-get state :code)))
     (etaf-view
@@ -601,12 +668,18 @@ Compile the live View and retain the identical source for runnable examples."
        (expr
         (when (etaf-value code)
           (etaf-view
-           (column :padding '((lh 1) (ch 2)) :background-color (etaf-theme-token :gallery-code)
+           (column :padding '((lh 1) (ch 2)) :item-gap '(lh 1) :width 'stretch
+                   :ref (intern (format "gallery-reference-%s" name))
+                   :background-color (etaf-theme-token :gallery-code)
                    :border-top-width '(px 1) :border-top-style 'solid :border-top-color (etaf-theme-token :ui-border)
-             (etaf-button :label "复制示例" :variant 'ghost
-                          :aria-label (concat "复制示例：" (symbol-name name))
-                          :on-press (lambda () (kill-new (etaf-ui-gallery--source entry)) (message "已复制完整示例，可保存为 .el 文件运行。")))
-             (etaf-label :text (etaf-ui-gallery--source entry) :wrap-mode 'word)))))))))
+             (flex :justify-content 'space-between :align-items 'center :flex-wrap 'wrap
+               (etaf-label :text "组件参考" :variant 'strong)
+               (etaf-button :label "复制示例" :variant 'ghost
+                            :aria-label (concat "复制示例：" (symbol-name name))
+                            :on-press (lambda () (kill-new (etaf-ui-gallery--source entry)) (message "已复制完整示例，可保存为 .el 文件运行。"))))
+             (etaf-ui-gallery--reference :documentation documentation)
+             (etaf-label :text "完整示例" :variant 'strong)
+             (etaf-label :text (etaf-ui-gallery--source entry) :wrap-mode 'word :width 'stretch)))))))))
 
 (etaf-define-component etaf-ui-gallery--preview (&key group)
   :bindings ((count (etaf-ref 0)) (checked (etaf-ref t)) (query (etaf-ref ""))
@@ -728,7 +801,7 @@ Compile the live View and retain the identical source for runnable examples."
                        :height '(lh 2) :box-sizing 'border-box :wrap-mode 'word)))))
     etaf-ui-gallery--groups)))
 
-(etaf-define-component etaf-ui-gallery--results (&key category query states generation on-select)
+(etaf-define-component etaf-ui-gallery--results (&key category query states generation on-select documents)
   :render
   (let* ((viewport (etaf-viewport))
          (cw (plist-get (etaf-display-metrics) :char-width))
@@ -759,10 +832,11 @@ Compile the live View and retain the identical source for runnable examples."
                  (mapcar (lambda (entry)
                            (etaf-node 'etaf-ui-gallery--specimen
                                       (list :key (plist-get entry :name) :entry entry
+                                            :documentation (cdr (assq (plist-get entry :name) documents))
                                             :state (cdr (assq (plist-get entry :name) (etaf-value states)))) nil))
                          entries))))))
 
-(etaf-define-component etaf-ui-gallery--app (&key states)
+(etaf-define-component etaf-ui-gallery--app (&key states documents)
   :bindings ((category (etaf-ref nil)) (query (etaf-ref "")) (mode (etaf-ref 'light))
              (generation (etaf-ref 0))
              (theme (etaf-computed (lambda () (etaf-theme-resolve-palette etaf-ui-gallery--palette (etaf-value mode))))))
@@ -831,7 +905,7 @@ Compile the live View and retain the identical source for runnable examples."
              (etaf-button :label "重置示例" :variant 'ghost :on-press reset))
            (column :ref 'gallery-scroll :height (list 'lh (- body-height 3)) :width 'stretch :box-sizing 'border-box
                    :overflow 'scroll :padding '((lh 0) (ch 2))
-             (etaf-ui-gallery--results :category category :query query :states states :generation generation :on-select select))))
+             (etaf-ui-gallery--results :category category :query query :states states :generation generation :on-select select :documents documents))))
        (box :height '(lh 2) :box-sizing 'border-box :padding '((lh 0) (ch 2)) :background-color (etaf-theme-token :ui-bg)
             :border-top-width '(px 1) :border-top-style 'solid :border-top-color (etaf-theme-token :ui-border)
          (etaf-label :text (if wide "Tab 切换控件    方向键 调整选项    Enter 操作    Esc 返回    ? 帮助"
@@ -844,12 +918,15 @@ Compile the live View and retain the identical source for runnable examples."
   "Open the complete component Gallery in BUFFER-OR-NAME and return it.
 The default is *ETAF UI Gallery*.  Interactive calls display it.  Browse by
 category or search, operate live specimens, switch the scoped light/dark
-Theme and copy runnable examples.  Reopening resets this mount only.
+Theme, read parameter/callback reference and copy runnable examples.
+Reference data is read from the installed public etaf-ui.el Commentary before
+mounting.  Reopening resets this mount only.
 An unrelated nonempty buffer is never replaced.  Kill or unmount to dispose."
   (interactive)
   (let* ((buffer (get-buffer-create (or buffer-or-name "*ETAF UI Gallery*")))
          (runtime (etaf-runtime-for-buffer buffer))
-         (ours (buffer-local-value 'etaf-ui-gallery--runtime buffer)))
+         (ours (buffer-local-value 'etaf-ui-gallery--runtime buffer))
+         (documents (etaf-ui-gallery--read-documentation)))
     (when (or (and runtime (not (eq runtime ours)))
               (and (> (buffer-size buffer) 0) (not ours)))
       (user-error "Refusing to replace unrelated buffer contents"))
@@ -861,7 +938,7 @@ An unrelated nonempty buffer is never replaced.  Kill or unmount to dispose."
     (let ((states (etaf-ref (etaf-ui-gallery--create-states))))
       (condition-case error
           (progn
-            (etaf-mount buffer (etaf-view (etaf-ui-gallery--app :states states)))
+            (etaf-mount buffer (etaf-view (etaf-ui-gallery--app :states states :documents documents)))
             (with-current-buffer buffer
               (setq etaf-ui-gallery--runtime (etaf-runtime-for-buffer buffer))))
         (error (etaf-ui-gallery--dispose-states (etaf-value states))

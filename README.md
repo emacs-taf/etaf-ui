@@ -38,8 +38,11 @@ Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 
 Run `M-x etaf-ui-gallery-open` to browse all 63 components in eight categories.
 The Gallery includes live previews, Chinese/English search, scoped light/dark
-Themes, reset and a runnable, copyable example for every component. It uses
-local data only. Wide windows show a sidebar and two-column overview; compact
+Themes and reset. Each usage panel includes the public signature, parameter
+meanings, required/default values, units, callback arguments and constraints,
+followed by the same runnable, copyable example as the live specimen. Reference
+text is read from the installed `etaf-ui.el` Commentary before mounting; no
+separate API catalog or manual package is needed. It uses local data only. Wide windows show a sidebar and two-column overview; compact
 windows use a category picker and a scrolling single column. Allow at least
 72 character widths and 24 rows; smaller windows deliberately clip the layout.
 See [Gallery workflows and lifecycle](https://etaf.top/ui-gallery-and-acceptance/).

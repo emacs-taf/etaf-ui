@@ -28,6 +28,22 @@
 ;; keys in scope.
 ;;
 ;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label aria-selected help-echo hover-content hover-group pointer use variant)
+;; Parameters:
+;; :label — Display value/ref/computed; default nil (empty). Supply a useful name.
+;; :on-press — Optional function (); default nil. Called on activation.
+;; :disabled — Optional flag; default nil. Suppress activation and Tab focus.
+;; :variant — Optional primary/secondary/ghost; nil selects primary.
+;; :aria-label — Optional accessible string; nil uses the rendered label.
+;; :aria-selected — Optional flag; default nil. Selected paint suppresses hover.
+;; :color, :bgcolor — Optional Host colors/reactive sources; nil uses the Theme.
+;; :border, :padding — Optional Host lengths/border; nil uses Theme/variant defaults.
+;; :font-size, :font-weight — Optional Host typography; nil inherits size and uses variant weight.
+;; :tab-index — Optional integer; nil uses 0 unless disabled; negative skips Tab.
+;; :id, :ref, :class — Optional Host identity, reference and extra classes; default nil.
+;; :help-echo, :hover-content, :hover-group — Optional Host help/hover capabilities; default nil.
+;; :pointer — Optional Host pointer; nil uses arrow when enabled.
+;; :use — Optional ETAF Behavior composition; default nil.
+;;
 ;; Render a standard pressable Button with a committed callback.
 ;;
 ;; DISABLED removes the callback and default focus tab index.  VARIANT is
@@ -61,6 +77,13 @@
 ;; names the single focus/activation target; nested controls are inappropriate.
 ;;
 ;; Component: etaf-checkbox (&key checked label on-change disabled bind)
+;; Parameters:
+;; :checked — Boolean/ref/computed; default nil (unchecked), unless :bind supplies it.
+;; :label — Optional display value/ref/computed; default nil (empty caption).
+;; :on-change — Optional function (next-boolean); default nil. Store the requested state.
+;; :disabled — Optional flag; default nil. Suppress activation and bound writes.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :checked and :on-change, even nil.
+;;
 ;; Render a controlled Checkbox whose next value is sent to ON-CHANGE.
 ;; Alternatively, pass an existing writable ref as :bind; its current value
 ;; supplies CHECKED and the next boolean is written to the same ref.  Non-nil
@@ -76,6 +99,16 @@
 ;; Use inside (etaf-view (etaf-checkbox ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-tile-grid (&key rows columns cell-width cell-height cell-background cell-color cell-text cell-label cell-image cell-ref on-cell-press on-cell-focus)
+;; Parameters:
+;; :rows, :columns — Required positive integers. Grid dimensions in cells.
+;; :cell-width, :cell-height — Positive integers; defaults 2 character columns and 1 text line per cell.
+;; :cell-background, :cell-color — Optional pure functions (row column) returning color/Theme token/nil; default nil (inherit).
+;; :cell-text — Optional pure function (row column) returning one line fitting :cell-width; default nil (space).
+;; :cell-label — Optional pure function (row column) returning an accessible string; default nil ("Cell r,c").
+;; :cell-image — Optional pure function (row column) returning local image path/descriptor/nil; default nil (use text).
+;; :cell-ref — Optional pure function (row column) returning distinct supported Host references; default nil (instance-local identities).
+;; :on-cell-press, :on-cell-focus — Optional functions (row column), both zero-based; default nil. Activation or focus notification, not data accessors.
+;;
 ;; Render ROWS by COLUMNS fixed cells with stable coordinate identities.
 ;; Dimensions, CELL-WIDTH (character columns, default 2) and CELL-HEIGHT
 ;; (text lines, default 1) are positive integers.
@@ -100,6 +133,15 @@
 ;; Use (etaf-view (etaf-tile-grid :rows 8 :columns 12 ...)).
 ;;
 ;; Component: etaf-playing-card (&key rank suit face-down empty selected disabled on-press label ref columns lines)
+;; Parameters:
+;; :rank — Optional one-line string of at most 3 display columns; default nil. No tabs/newlines.
+;; :suit — spades/hearts/clubs/diamonds/nil; default nil.
+;; :face-down, :empty, :selected, :disabled — Optional flags; default nil. Hide face, show pile, mark selection, or disable activation.
+;; :on-press — Optional function (); default nil (noninteractive).
+;; :label — Optional accessible string; nil derives a safe card/pile name. Never put hidden card information in it.
+;; :ref — Optional Host reference; default nil. Addresses the whole card.
+;; :columns, :lines — Integer width >= 7 and height >= 1; defaults 9 character columns and 5 text lines. Never stretch with the viewport.
+;;
 ;; Present a controlled playing card or empty pile as one activation target.
 ;; RANK is a one-line string up to three columns; SUIT is spades, hearts,
 ;; clubs, diamonds or nil. FACE-DOWN conceals the rank/suit, including the
@@ -119,6 +161,12 @@
 ;; :suit 'hearts :on-press (lambda () ...))). No game backend is required.
 ;;
 ;; Component: etaf-text-grid (&key rows columns row-text row-ref label)
+;; Parameters:
+;; :rows, :columns — Required positive integers. Text line count and character-column capacity per line.
+;; :row-text — Required pure function (zero-based-row) returning a single-line string fitting :columns; short strings are padded.
+;; :row-ref — Optional pure function (zero-based-row) returning distinct Text Host references; default nil (instance-local).
+;; :label — String; default "Text grid". Accessible name of this read-only surface.
+;;
 ;; Display ROWS fixed text lines, each COLUMNS character columns wide.
 ;; Dimensions are positive integers. ROW-TEXT is a required callback receiving
 ;; the zero-based row; return a single-line string whose display width fits
@@ -133,6 +181,17 @@
 ;; Use (etaf-view (etaf-text-grid :rows 24 :columns 80 :row-text read-row)).
 ;;
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
+;; Parameters:
+;; :controller — Required caller-owned ETAF Data Controller; create it before rendering and stop it at its owner's disposal.
+;; :columns — Table column plist list; default nil (no columns). Unique non-nil symbol/integer/string :key, optional :label, :width and pure :cell (row) returning View content.
+;; :row-key — Function (row) required for nonempty data; returns a unique stable non-nil key.
+;; :on-row-press — Optional function (row); default nil (no row activation).
+;; :row-ref — Optional pure function (row) returning a distinct Host reference; default nil (instance-local).
+;; :row-selected-p — Optional pure function (row); default nil. Its selection flag is ORed with the Controller's selection, not an override.
+;; :loading-label — Optional display value; nil uses "Loading..." or "Refreshing..." according to status.
+;; :error-label — Optional display value; nil uses "Unable to load data." or "Loading cancelled." according to status.
+;; :empty-label — Optional display value; nil uses "No data.". Idle still displays "Not loaded.".
+;;
 ;; Render DATA CONTROLLER state through the public Component DSL.
 ;;
 ;; DataGrid shows idle, loading, refreshing, cancelled, error and empty states.
@@ -149,6 +208,10 @@
 ;; Use inside (etaf-view (etaf-data-grid ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-label (&key text variant)
+;; Parameters:
+;; :text — Optional value/ref/computed; default nil (empty); strings keep text properties.
+;; :variant — Optional default/muted/danger/success/strong/heading; nil uses default.
+;;
 ;; Render TEXT in a semantic Label with ordinary Box layout. TEXT accepts a
 ;; value, ref or computed; nil is empty, strings retain their text properties,
 ;; and other values use their printed representation. VARIANT selects the
@@ -161,24 +224,32 @@
 ;; Use inside (etaf-view (etaf-label ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-number-input (&key value label on-change disabled min max bind hide-label ref)
-;; Render a controlled stepper NumberInput: a muted LABEL, a − stepper, the
-;; value pill and a + stepper.  Steppers change the value by one and disable
-;; at MIN/MAX; pressing the value pill, which REF names, reads a number in the
-;; minibuffer.  HIDE-LABEL omits the caption for grid forms.
+;; Parameters:
+;; :value — Integer/nil or ref/computed; default nil (empty), unless :bind supplies it.
+;; :label — Optional string/nil; nil uses "Value" as caption and accessible name.
+;; :on-change — Optional function (integer-or-nil); default nil. Accepts complete in-range input; empty submission reports nil.
+;; :disabled, :hide-label — Optional flags; default nil. Disable editing/steppers or omit the caption respectively.
+;; :min, :max — Optional numeric bounds; default nil (unbounded); min <= max.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;; :ref — Optional Host reference for the in-place text field; nil uses an instance-local reference.
+;;
+;; Render a controlled integer input with a muted caption, an in-place text
+;; field and minus/plus steppers. Steppers change the value by one and disable
+;; at MIN/MAX. Incomplete or out-of-range text stays a draft; invalid submission
+;; signals user-error without writing. Empty submission reports nil.
+;; Unlike Slider's step-aligned native prompt, NumberInput supports an empty
+;; value and in-place integer editing; Range provides pointer scrubbing and a
+;; separate commit callback. HIDE-LABEL omits the caption for grid forms.
 ;; Alternatively, :bind accepts an existing writable ref and replaces VALUE
 ;; plus ON-CHANGE. It uses the same conflict, ownership and publication rules
 ;; as Checkbox. The current value must be an integer or nil, label a string or
 ;; nil, and min/max numbers or nil with min <= max. Invalid inputs signal
 ;; etaf-component-call-error identifying the Component and property. Input
 ;; configuration is checked before initialization or updated props publish;
-;; live values are checked when rendered. Prompt results are checked against
-;; the integer and min/max constraints before writing the ref;
-;; canceling the native prompt leaves the value unchanged. Custom business
+;; live values are checked when rendered. Accepted edits are checked against
+;; the integer and min/max constraints before writing the ref. Custom business
 ;; validation or transformation uses the explicit VALUE/ON-CHANGE interface.
 ;; Use inside (etaf-view (etaf-number-input ...)); keyword arguments are component props.
-;; The shared native input boundary restores focus to the retained entry.
-;; Target removal, unmount or a disabled/inaccessible entry cancels the result
-;; before ON-CHANGE or an additive ON-PRESS observer runs.
 ;;
 ;; Function: etaf-ui-editor-mode (&optional arg)
 ;;;###autoload (autoload 'etaf-ui-editor-mode "etaf-ui" nil t)
@@ -235,6 +306,22 @@
 ;; to the active field's Runtime, so the query works from any buffer.
 ;;
 ;; Component: etaf-text-input (&key value bind on-change label placeholder rows width variant disabled read-only submit-on-return on-submit on-cancel on-focus completion-functions keymap hide-label ref)
+;; Parameters:
+;; :value — String/nil or ref/computed; default nil (empty), unless :bind supplies it.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;; :on-change — Optional function (text); default nil. Receives the whole string after each edit.
+;; :label, :placeholder — Strings; defaults "Text" and "". Caption/name and empty-value hint.
+;; :rows — Positive integer; default 1. Minimum text lines, not a fixed height.
+;; :width — Host length; default stretch. For example (ch 24), not a bare column count.
+;; :variant — outlined/plain; default outlined. Framed field or text-only content.
+;; :disabled, :read-only, :hide-label — Optional flags; default nil. Disable activation, keep focus without editing, or omit the caption.
+;; :submit-on-return — Optional flag; omitted means t for one row, nil otherwise; explicit nil inserts newlines.
+;; :on-submit, :on-cancel — Optional functions (text); default nil. Submitted or abandoned session text; cancel restores the activation value.
+;; :on-focus — Optional function (); default nil. Runs once when editing starts.
+;; :completion-functions — Optional list of CAPF functions (); default nil. Used by native completion.
+;; :keymap — Optional Emacs keymap; default nil. Field-local keys must not bind framework-reserved events.
+;; :ref — Optional Host reference; nil uses an instance-local field reference.
+;;
 ;; Edit text directly in the application's layout. VALUE/ON-CHANGE or a
 ;; writable BIND supplies the controlled string; ROWS (default 1) sets the
 ;; minimum visible lines, so one Component covers single-line inputs and text
@@ -275,6 +362,18 @@
 ;; it programmatically.
 ;;
 ;; Component: etaf-search-field (&key value bind on-change placeholder width icon on-focus on-submit on-cancel on-clear keymap ref)
+;; Parameters:
+;; :value — String/nil or ref/computed; default nil (empty), unless :bind supplies it.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;; :on-change — Function (text) for explicit controlled use; default nil. Required to persist edits and handle the clear action without :bind.
+;; :placeholder — String; default "Search". Empty-value hint and input name.
+;; :width — Host length; default stretch; e.g. (ch 32).
+;; :icon — Optional flag; default nil. Show a magnifier.
+;; :on-focus, :on-clear — Optional functions (); default nil. Editing began or the query was cleared.
+;; :on-submit, :on-cancel — Optional functions (text); default nil. Follow TextInput session semantics.
+;; :keymap — Optional field-local keymap; default nil. Framework-reserved events are rejected.
+;; :ref — Optional Host reference; nil uses an instance-local input reference.
+;;
 ;; Render a rounded pill search field editing a controlled query through
 ;; `etaf-text-input', so ON-CHANGE sees every keystroke. VALUE/ON-CHANGE or a
 ;; writable BIND supplies the query. The pill is three rows tall and its painted
@@ -288,6 +387,12 @@
 ;; Use (etaf-view (etaf-search-field :bind query :icon t)).
 ;;
 ;; Component: etaf-menu (&key label items on-select disabled)
+;; Parameters:
+;; :label — String; default "Actions". Trigger caption and prompt name.
+;; :items — List of plists; default nil (disabled). Unique non-nil scalar :key and unique nonempty string :label; optional :disabled flag.
+;; :on-select — Optional function (key); default nil (disabled). Called once after accepted native completion.
+;; :disabled — Optional flag; default nil. Disable the trigger regardless of enabled items.
+;;
 ;; Render a Button opening native completion for an action. LABEL defaults to
 ;; "Actions". A trailing arrow indicates a menu, not a keyboard binding.
 ;; ITEMS are plists with unique non-nil scalar :key values, unique
@@ -310,6 +415,17 @@
 ;; `etaf-view-error'. Compose in a Menu's ON-SELECT or a Button's ON-PRESS.
 ;;
 ;; Component: etaf-select (&key value options label placeholder on-change disabled bind presentation hide-label width ref)
+;; Parameters:
+;; :value — Scalar/ref/computed; default nil. Nil means no selection unless it is an option key.
+;; :options — Alist (value . label); default nil (disabled empty list). Unique symbol/number/string keys and unique nonempty string labels.
+;; :label, :placeholder — Strings; defaults "Select" and "—". Caption/name and no-selection text.
+;; :on-change — Optional function (chosen-value); default nil. Caller stores the selection.
+;; :disabled, :hide-label — Optional flags; default nil. Suppress activation or omit the caption.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;; :presentation — auto/chips/dropdown; default auto (chips for at most four options).
+;; :width — Dropdown Host length; default (ch 28), not the whole chip group's width.
+;; :ref — Optional Host reference; default nil. Dropdown trigger or the whole chips field.
+;;
 ;; Choose a controlled value from OPTIONS without leaving the UI.
 ;; PRESENTATION is `chips', `dropdown' or `auto' (default): chips render each
 ;; option as an inline pill with the current one filled; a dropdown renders one
@@ -327,20 +443,65 @@
 ;; Invalid props signal contextual `etaf-view-error'. Use (etaf-view (etaf-select ...)).
 
 ;; Component: etaf-radio (&key value options label on-change disabled bind)
+;; Parameters:
+;; :value — Scalar/ref/computed; default nil. Nil or a key in :options.
+;; :options — Required nonempty alist (value . label); unique scalar keys and unique nonempty string labels.
+;; :label — String; default "Choice". Visible group caption.
+;; :on-change — Optional function (chosen-value); default nil. Caller stores the selection.
+;; :disabled — Optional flag; default nil. Disable every choice.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;;
 ;; Render a controlled single-choice group from an options alist. VALUE/ON-CHANGE
 ;; or the writable BIND ref owns the selection.
 ;;
 ;; Component: etaf-switch (&key checked label on-change disabled bind)
+;; Parameters:
+;; :checked — Boolean/ref/computed; default nil, unless :bind supplies it.
+;; :label — String; default "Switch". Caption and accessible name.
+;; :on-change — Optional function (next-boolean); default nil. Caller stores the state.
+;; :disabled — Optional flag; default nil. Disable activation.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :checked and :on-change, even nil.
+;;
 ;; Render a controlled binary switch with Checkbox's ownership contract.
 ;;
 ;; Component: etaf-segmented (&key value options on-change disabled bind)
+;; Parameters:
+;; :value — Scalar/ref/computed; default nil. Nil or a key in :options.
+;; :options — Required nonempty alist (value . label); unique scalar keys and unique nonempty string labels.
+;; :on-change — Optional function (chosen-value); default nil. Caller stores the selection.
+;; :disabled — Optional flag; default nil. Disable every segment.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;;
 ;; Render a compact mutually-exclusive selector from an options alist.
 ;;
 ;; Component: etaf-slider (&key value min max step label on-change disabled bind)
+;; Parameters:
+;; :value — Required integer/ref/computed unless :bind supplies it; no valid empty default. Align (value - min) to :step within bounds.
+;; :min, :max — Integer bounds; defaults 0 and 100; min <= max.
+;; :step — Positive integer; default 1. Alignment unit and arrow increment.
+;; :label — String; default "Value". Caption and native prompt name.
+;; :on-change — Optional function (next-integer); default nil. Store the accepted value.
+;; :disabled — Optional flag; default nil. Disable arrows and prompt.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;;
 ;; Render a controlled integer value within MIN..MAX aligned to STEP.
+;; Activation uses a native number prompt, not pointer scrubbing. Use Range
+;; for drag/seek preview and commit, or NumberInput for in-place integer entry.
 ;; Left and Right on the focused slider report the value moved by STEP.
 ;;
 ;; Component: etaf-range (&key value min max step key-step on-change on-commit disabled color track-color bar-height label ref fill-ref)
+;; Parameters:
+;; :value — Number/ref/computed in :min..:max; default nil paints an empty span.
+;; :min, :max — Numbers/ref/computed; defaults 0 and 100; resolved min <= max. Pending nil bounds paint an empty span.
+;; :step — Optional positive number; default nil. Pointer values snap to this increment from :min.
+;; :key-step — Optional positive number; nil uses :step, otherwise one twentieth of the span. Arrow increment.
+;; :on-change, :on-commit — Optional functions (number); default nil. Intermediate change versus released/clicked/keyboard value; no :bind prop.
+;; :disabled — Boolean; default nil. Disable pointer and keyboard input.
+;; :color, :track-color — Optional Host colors; nil uses :ui-range-fill and :ui-range-track.
+;; :bar-height — Integer percentage 1..100; default 40. Requested bar thickness within one row.
+;; :label — Optional string; nil uses "Range" as accessible name.
+;; :ref, :fill-ref — Optional symbol Host references; nil generates instance-local track/fill identities.
+;;
 ;; Render a controlled interactive Range (progress, seek, volume) within MIN..MAX.
 ;; ON-CHANGE reports intermediate values and ON-COMMIT the released one; the bar
 ;; paints a Track and a percentage Fill inside one standard row. A retained
@@ -352,6 +513,16 @@
 ;; ON-COMMIT; Home and End report MIN and MAX.
 
 ;; Component: etaf-pagination (&key controller previous-ref next-ref previous-label next-label class color bgcolor border padding aria-label)
+;; Parameters:
+;; :controller — Optional caller-owned ETAF Data Controller; nil shows an empty disabled one-page pager.
+;; :previous-ref, :next-ref — Optional Button Host references; default nil.
+;; :previous-label, :next-label — Optional captions; nil uses "‹ Previous" and "Next ›". Accessible names remain "Previous page" and "Next page".
+;; :class — Optional extra root classes; default nil.
+;; :color, :bgcolor — Optional Host colors; nil uses Theme foreground/background.
+;; :border — Optional Button border override; default nil (Button Theme default).
+;; :padding — Optional root Host padding; nil uses ((lh 0) (ch 1)).
+;; :aria-label — Optional string; nil uses "Pagination" for the navigation group.
+;;
 ;; Render a controlled pager whose callbacks follow its committed CONTROLLER.
 ;; PREVIOUS-LABEL and NEXT-LABEL override the complete Button captions.
 ;; Each Button captures its render's Controller; Runtime publishes that callback
@@ -359,10 +530,37 @@
 ;; Use inside (etaf-view (etaf-pagination ...)); keyword arguments are component props.
 ;;
 ;; Component: etaf-panel (&key title variant)
+;; Parameters:
+;; :title — Optional display value/ref/computed; default nil (no title row).
+;; :variant — Optional style symbol; nil uses default; flat omits background and border. Other names add a class only.
+;;
 ;; Render a titled Panel with named header and default slots.
+;; Panel supplies a header slot; Card instead supplies a description prop.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
 
 ;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier full-bleed font-size font-family ref id class role use overflow)
+;; Parameters:
+;; :x, :y — Host lengths/ref/computed; defaults (px 0), (lh 0). Left and top positions; px means pixels, lh standard text rows.
+;; :width, :height — Optional Host lengths/ref/computed; default nil (Host auto sizing). Prefer explicit dimensions on a positioned canvas.
+;; :position — absolute/relative; default absolute. Positioning mode within the containing canvas.
+;; :z-index, :visible — Stacking integer/ref/computed (default nil) and visibility flag/ref/computed (default t).
+;; :min-width, :min-height — Host lengths/ref/computed; defaults (px 80) and (lh 2).
+;; :max-width, :max-height — Optional Host lengths/ref/computed; default nil (no maximum).
+;; :resizable — Boolean; default t. Handles still need :on-resize or :resize-use.
+;; :resize-edges — List; defaults to all eight: top/right/bottom/left and top-left/top-right/bottom-left/bottom-right.
+;; :resize-refs — Optional alist (edge . Host-reference); default nil. Supported references are symbols or functions.
+;; :resize-use — Optional alist (edge . Behavior-composition); default nil. Caller-owned resizing policy.
+;; :on-resize — Optional function (edge gesture); default nil. Gesture :delta is (dx . dy) in pixels; caller updates dimensions and restores cancelled geometry.
+;; :on-move — Optional function (gesture); default nil. Panel-root drag, with pixel delta and start/move/end/cancel phase.
+;; :header-style — Optional Host style plist; default nil. Paint header corner cells like the header slot.
+;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default nil (held-button tracking).
+;; :full-bleed — Boolean; default nil. Let body reach the frame edges with handles above it.
+;; :font-size, :font-family — Optional positive CSS pixel size and family string; default nil (inherit). Must fit the canvas line height.
+;; :ref, :id, :class — Optional Host reference, semantic ID and extra classes; default nil; class may be reactive.
+;; :role — Optional Host role; nil uses region.
+;; :use — Optional root Behavior composition; default nil.
+;; :overflow — Optional Host overflow mode; nil uses hidden.
+;;
 ;; Render a controlled positioned panel and optional edge/corner resize handles.
 ;; Geometry props are passed to Ebox and may be values, refs or computed values;
 ;; CLASS may also be a ref or computed so a caller's mode class changes stay a
@@ -389,6 +587,14 @@
 ;; Ebox rejects a font whose resolved line height exceeds that canvas.
 
 ;; Component: etaf-window-controls (&key mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close group class)
+;; Parameters:
+;; :mode — normal/minimized/maximized or ref/computed; default normal. Selects the Zoom action, not geometry.
+;; :show-minimize, :show-maximize, :show-close — Optional flags; default t for each. Include the corresponding light.
+;; :active — Boolean/ref/computed; default t. Colored lights when active, gray when inactive.
+;; :on-minimize, :on-maximize, :on-restore, :on-close — Optional functions (); default nil. Request caller-owned transitions; Zoom restores only in maximized mode.
+;; :group — Scalar hover-group key; default etaf-window-controls. Share across one window's lights.
+;; :class — Optional extra root classes; default nil.
+;;
 ;; Render reusable macOS-style traffic-light controls.  GROUP is forwarded to
 ;; Ebox hover grouping so all controls update in one incremental batch.  ACTIVE
 ;; selects the macOS presentation: an inactive window shows one gray for all
@@ -400,6 +606,19 @@
 ;; marks show `x', `-' and `+' on hover, preserving the same action targets.
 ;;
 ;; Component: etaf-window-chrome (&key title mode show-minimize show-maximize show-close active on-minimize on-maximize on-restore on-close on-move drag-lock-modifier title-font-size font-family group ref class use)
+;; Parameters:
+;; :title — Optional display value/ref/computed; default nil (empty title).
+;; :mode — normal/minimized/maximized or ref/computed; default normal. Presentation and Zoom action only.
+;; :show-minimize, :show-maximize, :show-close — Optional flags; default t for each.
+;; :active — Boolean/ref/computed; default t. Active title/control paint.
+;; :on-minimize, :on-maximize, :on-restore, :on-close — Optional functions (); default nil. Caller owns transitions.
+;; :on-move — Optional function (gesture); default nil. Title drag supplies pixel :delta (dx . dy) and start/move/end/cancel :phase.
+;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default shift. Enable release-independent dragging; caller restores cancelled geometry.
+;; :title-font-size, :font-family — Optional positive CSS pixel size and family string; default nil (inherit). Must fit the canvas line height.
+;; :group — Optional scalar hover-group key; nil uses :ref, then etaf-window-controls.
+;; :ref, :class — Optional title Host reference and extra classes; default nil.
+;; :use — Optional title Behavior composition; default nil. Can implement movement instead of a callback.
+;;
 ;; Render a controlled title bar with minimize, zoom and close action
 ;; buttons; MODE may be a scalar, ref or computed and only changes classes.  The title bar forwards drag gestures to ON-MOVE; its
 ;; `drag-lock-modifier' defaults to `shift' for a release-independent drag.
@@ -412,6 +631,34 @@
 ;; Ebox rejects a larger resolved font before publishing the candidate.
 
 ;; Component: etaf-window (&key title mode x y width height z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use move-use full-bleed on-move on-resize on-focus drag-lock-modifier title-font-size content-font-size font-family controls-group controls-active on-minimize on-maximize on-restore on-close show-minimize show-maximize show-close ref id chrome-ref class use overflow)
+;; Parameters:
+;; :title — Optional display value/ref/computed; default nil (empty title).
+;; :mode — normal/minimized/maximized or ref/computed; default normal. Minimized collapses the body, but never computes new geometry.
+;; :x, :y — Host lengths/ref/computed; defaults (px 0) and (lh 0). Left/top within the positioned canvas.
+;; :width, :height — Host lengths/ref/computed; defaults (ch 42) and (lh 16). Character-width and standard-row units, not bare numbers.
+;; :z-index, :visible — Stacking integer/ref/computed (default nil) and visibility flag/ref/computed (default t).
+;; :min-width, :min-height — Host lengths/ref/computed; defaults (px 160) and (lh 2).
+;; :max-width, :max-height — Optional Host lengths/ref/computed; default nil (no maximum).
+;; :resizable — Boolean; default t. Each enabled edge also needs :on-resize or its :resize-use entry.
+;; :resize-edges — List; defaults to all eight: top/right/bottom/left and top-left/top-right/bottom-left/bottom-right.
+;; :resize-refs — Optional alist (edge . Host-reference); default nil. Keyboard handles get instance-local references when absent.
+;; :resize-use — Optional alist (edge . Behavior-composition); default nil. Caller-owned resize policy.
+;; :move-use — Optional title-bar Behavior composition; default nil. Caller-owned move policy.
+;; :full-bleed — Boolean; default nil. Body reaches frame edges; handles overlay its edge cells.
+;; :on-move — Optional function (gesture); default nil. Title drag/keyboard move reports pixel :delta (dx . dy), not new geometry.
+;; :on-resize — Optional function (edge gesture); default nil. Caller updates dimensions and handles start/move/end/cancel phases.
+;; :on-focus — Optional function (); default nil. Body activation and keyboard focus entry request caller-owned focus/z-order.
+;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default shift. Applies to title and handles; cancellation does not restore caller data automatically.
+;; :title-font-size, :content-font-size — Optional positive CSS pixel sizes; default nil (inherit independently). Must fit the shared canvas line height.
+;; :font-family — Optional string; default nil (inherit in both regions).
+;; :controls-group — Optional scalar hover-group key; nil derives from the title reference.
+;; :controls-active — Boolean/ref/computed; default t. Select active versus inactive control paint.
+;; :on-minimize, :on-maximize, :on-restore, :on-close — Optional functions (); default nil. Caller owns all state transitions.
+;; :show-minimize, :show-maximize, :show-close — Optional flags; default t for each.
+;; :ref, :id, :chrome-ref, :class — Optional panel reference, semantic ID, title reference and extra classes; default nil. A missing title reference is instance-local.
+;; :use — Optional panel-root Behavior composition; default nil. Use :move-use for title movement.
+;; :overflow — Optional Host overflow mode; nil uses hidden.
+;;
 ;; Compose a controlled Window shell from `etaf-resizable-panel' and
 ;; `etaf-window-chrome'.  MODE, geometry, visibility and callbacks remain
 ;; caller-owned.  Slots are `header', `actions', `default' and `footer'.  The
@@ -446,6 +693,14 @@
 ;; fallback glyph fonts with different metrics even at an equal CSS font size.
 ;;
 ;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
+;; Parameters:
+;; :items — List of plists; default nil ("No windows"). Unique scalar :key and nonempty string :label; optional :state (active/minimized/error/nil or reactive) and boolean :disabled.
+;; :active — Scalar key/ref/computed or nil; default nil. Matching item is highlighted; no window focus state is created.
+;; :on-select — Optional function (key); default nil. Caller focuses/restores the chosen window.
+;; :on-launch — Optional function (); default nil (no launcher control).
+;; :launcher-label — String; default "Applications". Launcher caption and accessible name.
+;; :class — Optional extra root classes; default nil.
+;;
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
 ;; string :label, with optional :state (`active', `minimized' or `error', or a
 ;; ref or computed of one) and :disabled.  Callers own window state; ON-SELECT receives a key and
@@ -454,6 +709,19 @@
 ;; come from the Desktop Theme tokens below; provide a Theme to restyle.
 ;;
 ;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action class)
+;; Parameters:
+;; :workspaces — List; default nil (empty). Scalar keys or plists with :key/:label and optional :description/:disabled; keep keys distinct.
+;; :active — Scalar key/ref/computed or nil; default nil. Marks the selected workspace.
+;; :on-select — Optional function (key); default nil. Caller switches workspace.
+;; :on-add, :on-close — Optional functions (); default nil (omit their controls). Close is a bar-level action, not a per-item callback.
+;; :add-label — String; default "New workspace". Add action's accessible name.
+;; :brand — Optional string; default nil (no brand).
+;; :status — String/nil or ref/computed; default nil. Remaining single-row space clips overflow.
+;; :layout-label — String/ref/computed or nil; default nil (no layout control). Fixed-width caption.
+;; :layout-action — Optional function (); default nil. Caller changes layout mode.
+;; :settings-label, :settings-action — Optional string and function (); defaults nil. Both are needed to show settings.
+;; :class — Optional extra root classes; default nil.
+;;
 ;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item
 ;; plists with :key/:label.  Callbacks request caller-owned workspace changes;
 ;; this Component creates no workspace state.  LAYOUT-LABEL/LAYOUT-ACTION and
@@ -467,6 +735,7 @@
 ;; text; layout and settings actions stay at the right edge as status length
 ;; changes.
 ;;
+
 ;; Desktop Theme tokens.  The desktop Components (`etaf-taskbar',
 ;; `etaf-workspace-bar', `etaf-window', `etaf-splitter', `etaf-launcher',
 ;; `etaf-switcher' and their pickers) read these semantic tokens through
@@ -488,6 +757,14 @@
 ;;   their light fallback colors.
 ;;
 ;; Component: etaf-launcher (&key open title items on-select on-close close-label backdrop)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed).
+;; :title, :close-label — Strings; defaults "Applications" and "Close".
+;; :items — List of plists; default nil (empty). Unique scalar :key, nonempty :label; optional :description, :state and :disabled. Caller owns the registry.
+;; :on-select — Required function (key), even while closed. Caller launches/selects and decides when to close.
+;; :on-close — Required function (), even while closed. Caller dismisses the launcher.
+;; :backdrop — Boolean; default t. Nil leaves the underlying surface painted.
+;;
 ;; Render a controlled modal application launcher from item plists.  The
 ;; caller owns the registry and OPEN state; ON-SELECT receives a selected key.
 ;; Items show their :label caption with an optional muted :description below
@@ -496,11 +773,33 @@
 ;; no backdrop at all, leaving the underlying surface fully visible.
 ;;
 ;; Component: etaf-switcher (&key open title items selected on-select on-close close-label backdrop)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed).
+;; :title, :close-label — Strings; defaults "Switch application" and "Close".
+;; :items — List of Launcher plists; default nil (empty). Unique scalar :key, nonempty :label; optional :description, :state and :disabled.
+;; :selected — Key/ref/computed or nil; default nil. Non-nil must be present in :items.
+;; :on-select — Required function (key), even while closed. Caller changes application/window focus and decides when to close.
+;; :on-close — Required function (), even while closed. Caller dismisses the switcher.
+;; :backdrop — Boolean; default t. Nil leaves the underlying surface painted.
+;;
 ;; Render a controlled modal application/window switcher.  SELECTED marks the
 ;; caller-owned active item and ON-SELECT receives a key.  Presentation,
 ;; sizing and BACKDROP follow `etaf-launcher'.
 ;;
 ;; Component: etaf-splitter (&key orientation ratio min-ratio max-ratio on-change use class overlay z-index divider-content overlay-rect visible)
+;; Parameters:
+;; :orientation — horizontal (left/right) or vertical (top/bottom); default horizontal.
+;; :ratio — Number/ref/computed; default 0.5. First pane's fraction within :min-ratio..:max-ratio.
+;; :min-ratio, :max-ratio — Numbers strictly between 0 and 1; defaults 0.1 and 0.9; min <= max. Validate supplied ratio, not a gesture-to-ratio conversion.
+;; :on-change — Optional function (gesture); default nil. Raw :phase and :delta (dx . dy) in pixels, not a ratio. Caller owns conversion and cancel restoration.
+;; :use — Optional divider Behavior composition; default nil. Alternative policy for pointer/keyboard gestures.
+;; :class — Optional extra root classes; default nil. Applies to the two-pane layout, not the overlay-only divider.
+;; :overlay — Boolean; default nil. Draw divider only; caller supplies positioned panes.
+;; :z-index — Integer/ref/computed or nil; default nil. Divider stacking order.
+;; :divider-content — String/ref/computed or nil; default nil. Painted extent of overlay divider.
+;; :overlay-rect — Optional plist/ref/computed; default nil. Requires :overlay; :left/:width are (px N), :top/:height are (lh N); entries may be reactive.
+;; :visible — Boolean/ref/computed; default t. Visibility of an allocated :overlay-rect divider.
+;;
 ;; Render a controlled horizontal or vertical split with named `first' and
 ;; `second' slots.  RATIO remains caller-owned; ON-CHANGE receives divider
 ;; gestures and USE can install an ETAF Behavior for keyboard/pointer updates.
@@ -516,6 +815,16 @@
 ;; The focused divider steps like a one-cell drag with the arrows across it.
 ;;
 ;; Component: etaf-pane-resizer (&key size side min max on-change on-end line background ref)
+;; Parameters:
+;; :size — Required numeric width in pixels or ref/computed for interactive resizing; caller owns the width.
+;; :side — right/left; default right. Which side of the sized pane holds the divider.
+;; :min, :max — Optional numeric pixel bounds; default nil (unbounded). Supply min <= max.
+;; :on-change — Optional function (pixel-width); default nil. Receives rounded clamped widths on move/end.
+;; :on-end — Optional function (pixel-width); default nil. Receives the released width after :on-change.
+;; :line — Optional flag; default t. Draw a one-pixel hairline beside the pane.
+;; :background — Optional Host color; default nil (inherit).
+;; :ref — Optional Host reference; default nil. Names the divider for focus/addressing.
+;;
 ;; Render a vertical divider that resizes an adjacent fixed-width pane. SIZE is
 ;; the pane's caller-owned width in pixels (a number, ref or computed). SIDE
 ;; `right' (default) places the divider on the pane's right so dragging right
@@ -529,6 +838,14 @@
 ;; Use (etaf-view (etaf-pane-resizer :size width :on-change #'set-width)).
 ;;
 ;; Component: etaf-table (&key columns rows row-key row-ref on-row-press row-selected-p)
+;; Parameters:
+;; :columns — Column plist list; default nil (no columns). Unique non-nil symbol/integer/string :key, optional :label, :width and pure :cell (row) returning View content. Width defaults to max-content; integers count columns and (fr N) shares remaining space.
+;; :rows — List of caller-owned rows; default nil (empty). Fields use column keys when :cell is absent.
+;; :row-key — Required function (row), including for empty rows; returns a unique stable non-nil key.
+;; :row-ref — Optional pure function (row) returning a distinct Host reference; default nil (instance-local).
+;; :on-row-press — Optional function (row); default nil (no row activation).
+;; :row-selected-p — Optional pure function (row) returning a selection flag; default nil (unselected).
+;;
 ;; Render ordinary ROWS as a presentational Table.
 ;;
 ;; COLUMNS contain a unique non-nil `:key', optional `:label', `:width',
@@ -547,6 +864,14 @@
 ;;
 
 ;; Component: etaf-popover (&key open anchor placement width title on-close)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). Caller owns visibility.
+;; :anchor — Required nonempty string or symbol identifying one Host's semantic :id, not its :ref.
+;; :placement — bottom-start/bottom-end/top-start/top-end; default bottom-start. Flip vertically when needed and clamp to the canvas.
+;; :width — Host length; default (ch 32). Floating panel width.
+;; :title — Optional string; default nil (no title).
+;; :on-close — Required function (), even while closed. Requests a caller-owned visibility change.
+;;
 ;; Show controlled OPEN content on Ebox's root layer, anchored to a unique
 ;; semantic ID. OPEN can be a value, ref or computed; ON-CLOSE requests closing
 ;; without owning application state. Default PLACEMENT is bottom-start and
@@ -565,6 +890,18 @@
 ;; Ebox owns clipping, flipping, occlusion and layout. No child frame is created.
 ;;
 ;; Component: etaf-dialog (&key open title width height compact close-label on-close backdrop keys on-direction)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). Caller owns visibility and form state.
+;; :title — String; default "Dialog". Header caption.
+;; :width — Host length; default (ch 48). Panel width.
+;; :height — Optional (lh positive-integer); default nil (content height). Fixed rows include header/body/footer and are bounded by the window.
+;; :compact — Boolean; default nil. Remove body vertical padding.
+;; :close-label — String/nil; default "Close". Nil omits the default footer action, not Escape or header dismissal.
+;; :on-close — Required function (), even while closed. Caller updates :open.
+;; :backdrop — Optional flag; default t. Dim/block the background; nil leaves outside-click policy to the caller.
+;; :keys — Optional scoped ETAF key declarations; default nil. Entries (key callback label) follow the Host :keys contract.
+;; :on-direction — Optional function (direction); default nil. Return handled/release according to the Host direction contract.
+;;
 ;; Show a controlled modal panel using the same floating surface as Popover.
 ;; TITLE defaults to Dialog and WIDTH to (ch 48).  HEIGHT optionally fixes the
 ;; panel to `(lh N)' rows, bounded by the visible window.  COMPACT removes
@@ -589,6 +926,10 @@
 ;; Dialogs own no form data.
 ;;
 ;; Component: etaf-key-help (&key data on-close)
+;; Parameters:
+;; :data — Required snapshot plist returned by etaf-help-data, including string :title and scope/groups. Read-only descriptions, not executable commands.
+;; :on-close — Required function (). Caller removes its controlled help View; normal etaf-help owns this automatically.
+;;
 ;; Show DATA from etaf-help-data as a read-only searchable keyboard dialog.
 ;; ON-CLOSE is a zero-argument dismissal callback.  Descriptions are grouped
 ;; by source; wide windows use two columns, compact windows one scrolling
@@ -603,6 +944,17 @@
 ;; :on-close close) when owning a separate controlled dialog lifecycle.
 ;;
 ;; Component: etaf-media-viewer (&key open kind src source-size title subtitle caption duration on-close on-previous on-next autoplay)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). Caller controls lifetime.
+;; :kind — image/video/audio; default image.
+;; :src — Source required for visible media: image Host file/descriptor, etaf-video source, or audio file path. Default nil supplies no media.
+;; :source-size — Optional pair (width . height) of positive integer pixels; nil reads/probes image/video dimensions once.
+;; :title, :subtitle, :caption — Optional strings; default nil. Header name, secondary name and media description.
+;; :duration — Optional nonnegative number of seconds; default nil. Audio total duration.
+;; :on-close — Required function (), even while closed. Caller closes the viewer.
+;; :on-previous, :on-next — Optional functions (); default nil (no corresponding browse action). Caller switches media.
+;; :autoplay — Optional flag; default t. Start audio/video playback on open; does not affect images.
+;;
 ;; Show one image, video or audio file in a controlled modal viewer over the
 ;; application, inside the same buffer.  KIND is `image' (default), `video'
 ;; or `audio'.  SRC is an `image' Host source (a file or image descriptor) or
@@ -630,6 +982,12 @@
 ;; application whose root is one window tall, such as a (vh 100) shell.
 ;;
 ;; Component: etaf-reactions (&key items on-toggle choices add-label)
+;; Parameters:
+;; :items — List/ref/computed; default nil. Plists with unique non-nil :key, nonempty :label, optional natural :count and boolean :chosen.
+;; :on-toggle — Required function (key). Caller updates counts/choice state; no automatic mutation.
+;; :choices — Optional alist (key . label); default nil (no picker). Unique non-nil scalar keys and nonempty labels.
+;; :add-label — Nonempty string; default "Add reaction". Picker trigger's accessible name.
+;;
 ;; Render one row of controlled reaction chips, for example under a chat
 ;; message.  ITEMS are plists with a unique non-nil :key, a nonempty string
 ;; :label (usually an emoji), an optional natural :count shown after it and a
@@ -645,6 +1003,15 @@
 ;; Use (etaf-view (etaf-reactions :items items :on-toggle #'toggle)).
 ;;
 ;; Component: etaf-dropdown-menu (&key label items on-select disabled width icon placement)
+;; Parameters:
+;; :label — String; default "Actions". Trigger caption/help/accessibility name.
+;; :items — List of plists; default nil (disabled). Unique non-nil scalar :key and unique nonempty :label; optional :disabled and icon name :icon.
+;; :on-select — Optional function (key); default nil (disabled trigger). Menu closes before the callback.
+;; :disabled — Optional flag; default nil. Disable the trigger.
+;; :width — Host length; default (ch 28). Popover width.
+;; :icon — Optional icon name; default nil. Replace trigger text with an icon, retaining :label as its name.
+;; :placement — Anchor placement symbol; default bottom-start. Follows Popover.
+;;
 ;; Render a Button and an anchored Popover of menu items. LABEL defaults to
 ;; Actions; WIDTH defaults to (ch 28). ITEMS use etaf-menu's item contract and
 ;; may carry an :icon shown before the label. ICON makes the trigger that icon,
@@ -658,33 +1025,82 @@
 ;; when completion matching, rather than an in-buffer menu, suits the task.
 ;;
 ;; Component: etaf-badge (&key text variant)
+;; Parameters:
+;; :text — Optional display value/ref/computed; default nil (empty).
+;; :variant — neutral/success/warning/danger/info; default neutral. Semantic status paint.
+;;
 ;; Render compact semantic status text using neutral, success, warning, danger
 ;; or info styling. The value is caller-owned and may be reactive.
 ;;
 ;; Component: etaf-divider (&key orientation label)
+;; Parameters:
+;; :orientation — horizontal/vertical; default horizontal.
+;; :label — Optional display value/ref/computed; default nil. Centered label for a horizontal divider; ignored for vertical.
+;;
 ;; Render a horizontal or vertical separator, optionally with a centered label.
 ;;
 ;; Component: etaf-progress (&key value max label variant)
+;; Parameters:
+;; :value — Required number/ref/computed; 0 <= value <= max. Display only, no change callback.
+;; :max — Positive number/ref/computed; default 100. Total work units.
+;; :label — Optional display value/ref/computed; default nil (empty caption).
+;; :variant — neutral/success/warning/danger/info; default success. Fill color.
+;;
 ;; Render a determinate progress bar. VALUE and MAX are numeric (or reactive)
 ;; with 0 <= VALUE <= MAX and MAX > 0. LABEL is optional.
 ;;
 ;; Component: etaf-alert (&key title message variant dismissible on-dismiss)
+;; Parameters:
+;; :title — Optional string; default nil (empty heading).
+;; :message — Optional display value/ref/computed; default nil (empty body).
+;; :variant — neutral/success/warning/danger/info; default info.
+;; :dismissible — Optional flag; default nil. Add a dismissal button.
+;; :on-dismiss — Function () required when :dismissible is non-nil; otherwise optional, default nil. Does not remove the Alert itself.
+;;
 ;; Render an alert with semantic styling. A dismissible alert invokes ON-DISMISS;
 ;; the caller decides whether its state remains visible.
 ;;
 ;; Component: etaf-statistic (&key label value trend)
+;; Parameters:
+;; :label, :value, :trend — Optional display values/refs/computeds; default nil. Muted caption, emphasized metric and success-colored trend respectively; no arithmetic is performed.
+;;
 ;; Render a compact metric card from caller-owned display values.
 ;;
 ;; Component: etaf-empty (&key title description action-label on-action)
+;; Parameters:
+;; :title — Display value/ref/computed; default "Nothing here". Heading.
+;; :description — Optional display value/ref/computed; default nil (empty).
+;; :action-label — Optional display value; default nil (no action button).
+;; :on-action — Function () required when :action-label is non-nil; otherwise optional, default nil.
+;;
 ;; Render an empty state with optional action callback.
 ;;
 ;; Component: etaf-skeleton (&key width height)
+;; Parameters:
+;; :width — Host length; default stretch. Horizontal extent, e.g. (ch 24).
+;; :height — Host length; default (lh 1). Vertical extent in standard rows when using lh.
+;;
 ;; Render a neutral loading placeholder without owning loading state.
 
 ;; Component: etaf-card (&key title description variant)
+;; Parameters:
+;; :title, :description — Optional display values/refs/computeds; default nil (omit row). Heading and muted summary.
+;; :variant — Optional style name; default default. Adds a class; does not select a built-in alternative paint scheme.
+;;
 ;; Render a reusable titled surface with default content slots.
+;; Card supplies a summary description; use Panel for a named header slot.
 ;;
 ;; Component: etaf-avatar (&key name initials src size variant lines background shape)
+;; Parameters:
+;; :name — Optional display value/ref/computed; default nil. Accessible name and source for derived initials.
+;; :initials — Optional display value/ref/computed; nil/empty derives the first two name characters, or "?".
+;; :src — Optional local image path/descriptor or reactive source; default nil. Circle photo, with initials fallback.
+;; :size — Width; default (ch 5). Round avatars also accept an integer column count.
+;; :variant — neutral/success/warning/danger/info; default info. Semantic color when :background is absent.
+;; :lines — Positive integer; default 3. Fixed height in text lines.
+;; :background — Optional color; default nil. Override semantic background, with white initials.
+;; :shape — circle/square; default circle. Square and terminal frames use initials rather than a photo.
+;;
 ;; Render a compact avatar with semantic color and accessible name.
 ;; SIZE is its width (`(ch N)' or an integer column count for round avatars);
 ;; LINES (default 3, a positive integer) its height, so a one- or two-line
@@ -698,25 +1114,46 @@
 ;; are cached by source and cell size; pass `equal'-stable sources.
 ;;
 ;; Component: etaf-timeline (&key items)
+;; Parameters:
+;; :items — Required nonempty list of plists with :title, :content and optional :status. Display values use Label semantics; absent status displays "Update". Caller supplies chronological order.
+;;
 ;; Render chronological item plists containing :title, :content and :status.
 ;;
 ;; Component: etaf-tag (&key text variant closable on-close)
+;; Parameters:
+;; :text — Optional display value/ref/computed; default nil (empty).
+;; :variant — neutral/success/warning/danger/info; default neutral.
+;; :closable — Optional flag; default nil. Show the close action.
+;; :on-close — Function () required when :closable is non-nil; otherwise optional, default nil. Caller removes the tag from its data.
+;;
 ;; Render a compact semantic tag; an optional close action remains caller-owned.
 ;; A closable tag requires ON-CLOSE. It reports dismissal without removing
 ;; itself; the caller decides whether to retain it.
 ;;
 ;; Component: etaf-kbd (&key keys)
+;; Parameters:
+;; :keys — Required nonempty list of nonempty strings, e.g. ("C-x" "C-s"). Display only; does not install bindings.
+;;
 ;; Render a keyboard shortcut as accessible keycaps from a nonempty string list.
 ;; Compact rounded caps keep the normal line height; their subtle fill and
 ;; edge derive from the inherited panel background and foreground Theme tokens.
 ;;
 ;; Component: etaf-steps (&key items current on-change)
+;; Parameters:
+;; :items — Required nonempty list of plists with unique scalar :key and unique nonempty string :label.
+;; :current — Required key/ref/computed present in :items. Marks the current step.
+;; :on-change — Optional function (key); default nil. Requests a step; does not own workflow validation or content.
+;;
 ;; Render ordered step buttons. ITEMS contain :key and :label; CURRENT and the
 ;; callback are controlled by the caller.
 ;; Keys and nonempty labels must be unique; CURRENT is a value/ref/computed
 ;; containing one of the keys. ON-CHANGE is optional and receives a selected key.
 ;;
 ;; Component: etaf-list (&key items on-select)
+;; Parameters:
+;; :items — List of plists; default nil (empty). Unique non-nil :key, nonempty string :title and optional string :description.
+;; :on-select — Optional function (key); default nil. Receives the key, not the whole item; caller owns selection/navigation.
+;;
 ;; Render a selectable list. ITEMS contain :key, :title and optional
 ;; :description; selection is reported to ON-SELECT.
 ;; Keys are unique and titles are nonempty strings; an empty list is allowed.
@@ -724,49 +1161,121 @@
 ;; optional; no selection state is created by the List.
 ;;
 ;; Component: etaf-date-picker (&key value label placeholder on-change disabled bind)
+;; Parameters:
+;; :value — ISO YYYY-MM-DD string/nil or ref/computed; default nil (empty).
+;; :label, :placeholder — Strings; defaults "Date" and "YYYY-MM-DD". Caption and empty-value hint.
+;; :on-change — Optional function (iso-date-or-nil); default nil. Complete valid edits report the date; clearing reports nil.
+;; :disabled — Optional flag; default nil. Disable editing.
+;; :bind — Optional writable ref; default nil. Non-nil excludes explicit :value and :on-change, even nil.
+;;
 ;; Semantic date input on the catalog's native text field. The controlled
 ;; value is an ISO `YYYY-MM-DD' string or nil; typing a partial date keeps the
 ;; last accepted value and submitting rejects an invalid date with a readable
 ;; error instead of writing it.
 ;;
 ;; Component: etaf-tree (&key items expanded on-toggle on-select)
+;; Parameters:
+;; :items — Required nonempty list of nested plists with unique :key, nonempty string :label and optional :children lists.
+;; :expanded — List/ref/computed; default nil (all branches closed). Contains expanded keys.
+;; :on-toggle — Optional function (next-expanded-keys); default nil. Receives the whole next list, not just the branch key.
+;; :on-select — Optional function (leaf-key); default nil. Branch activation requests expansion instead of selection.
+;;
 ;; Render nested items with caller-owned expanded keys and selection callbacks.
 ;; Right opens and Left closes the focused branch through ON-TOGGLE.
 ;;
 ;; Component: etaf-calendar (&key month value on-change label)
+;; Parameters:
+;; :month — Two-integer list (year month-number); default (2026 1), not the current month. Month number is 1..12; pass the desired month explicitly.
+;; :value — Optional integer day-of-month; default nil (no selection). Only a matching displayed day is highlighted; this is not a full date or ref prop.
+;; :on-change — Optional function (date-list); default nil. Receives (year month day), unlike the integer :value prop.
+;; :label — Optional display value; default "Calendar". Caption preceding the month/year.
+;;
 ;; Render a controlled month grid; MONTH is `(YEAR MONTH)' and ON-CHANGE gets
 ;; `(YEAR MONTH DAY)'.
 ;;
 ;; Component: etaf-command-palette (&key open title items on-select on-close)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed).
+;; :title — String; default "Command palette". Dialog title.
+;; :items — List plists; default nil. Unique non-nil :key, nonempty string :title and optional string :description; follows List, not Menu's :label format.
+;; :on-select — Optional function (key); default nil. Caller executes the action and decides whether to close; no built-in search/filtering.
+;; :on-close — Required function (), even while closed. Caller updates visibility.
+;;
 ;; Compose a modal Dialog and List for caller-owned command selection.
 ;;
 ;; Component: etaf-tabs (&key items active on-change variant)
+;; Parameters:
+;; :items — Required nonempty plist list; unique scalar :key and nonempty unique :label; optional scalar :count and symbol :ref.
+;; :active — Required key/ref/computed present in :items. Selected tab.
+;; :on-change — Required function (key). Caller updates selection and content.
+;; :variant — Optional style name; default underline. Adds a class; selection paint is shared across variants.
+;;
 ;; Render controlled tabs from unique scalar keys and labels.  An item may
 ;; carry a scalar :count and a symbol :ref, so callers can address a tab by
 ;; name.  ON-CHANGE receives the selected key; content can be composed with
 ;; ordinary conditional Views.
 ;;
 ;; Component: etaf-accordion (&key items open on-toggle multiple)
+;; Parameters:
+;; :items — Plist list; default nil (empty). Unique non-nil :key and unique nonempty :label; :content is a string or pure function () returning a View.
+;; :open — List of item keys/ref/computed; default nil (all closed). At most one key when :multiple is nil.
+;; :on-toggle — Required function (next-open-keys), not (key). Caller stores the complete next list.
+;; :multiple — Boolean; default t. Allow several expanded sections.
+;;
 ;; Render controlled disclosure sections. Items contain :key, :label and
 ;; string or zero-argument function :content. OPEN is a list of expanded keys.
 ;; A directional icon shows expansion; the accessible name remains :label.
 ;;
 ;; Component: etaf-breadcrumb (&key items on-select)
+;; Parameters:
+;; :items — Required nonempty list of strings, ordered from root to current location.
+;; :on-select — Optional function (zero-based-index); default nil (read-only labels). No navigation state is stored.
+;;
 ;; Render a navigation trail of strings; ON-SELECT receives a zero-based index.
 ;;
 ;; Component: etaf-tooltip (&key open anchor text placement on-close)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). No automatic hover trigger.
+;; :anchor — Semantic Host :id required when open; nonempty string or symbol.
+;; :text — Required string/ref/computed, including while closed. Tooltip content.
+;; :placement — Anchor placement symbol; default top-start. Follows Popover.
+;; :on-close — Required function (), even while closed. Caller changes visibility.
+;;
 ;; Show controlled short text near an anchor using Popover placement. The caller
 ;; controls visibility; no second hover event system is introduced.
 ;;
 ;; Component: etaf-toast (&key open anchor message title variant on-close)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). Caller controls timing; no timer is created.
+;; :anchor — Semantic Host :id required when open; nonempty string or symbol. Placement is top-end.
+;; :message — Required string/ref/computed, including while closed. Notification content.
+;; :title — String; default "Notification". Panel header.
+;; :variant — neutral/success/warning/danger/info; default info. Semantic badge paint.
+;; :on-close — Required function (), even while closed. Caller dismisses the notification.
+;;
 ;; Show a controlled dismissible anchored notification. The caller owns its
 ;; lifecycle and message state.
 
 ;; Component: etaf-context-menu (&key label items on-select disabled width)
+;; Parameters:
+;; :label — String; default "More". Explicit action trigger; does not install a global right-click handler.
+;; :items — List of Menu item plists; default nil (disabled). Unique non-nil scalar :key, unique nonempty :label, optional :disabled/:icon.
+;; :on-select — Optional function (key); default nil (disabled). Menu closes before callback.
+;; :disabled — Optional flag; default nil. Disable the trigger.
+;; :width — Host length; default (ch 30). Menu width.
+;;
 ;; Compose a keyboard and mouse accessible context action trigger from the
 ;; DropdownMenu contract.
 ;;
 ;; Component: etaf-drawer (&key open title placement width modal on-close)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). Caller owns visibility.
+;; :title — String/nil; default "Drawer". Optional panel heading.
+;; :placement — left/right; default right. Side of the root canvas.
+;; :width — Host length; default (ch 42). Clamped to the root width.
+;; :modal — Boolean; default t. Block the background while open.
+;; :on-close — Required function (), even while closed. Caller updates :open.
+;;
 ;; Show a controlled left or right side surface with default and footer slots.
 ;; PLACEMENT defaults to right, WIDTH to (ch 42), and MODAL to t. Width is
 ;; constrained to the root canvas. OPEN accepts a value/ref/computed; ON-CLOSE
@@ -794,8 +1303,12 @@
 ;; Mount the complete component browser and return its buffer (default
 ;; *ETAF UI Gallery*). An explicit buffer/name allows independent mounts;
 ;; interactive calls display it. Browse categories or search names/purposes,
-;; operate live specimens, switch a scoped light/dark Theme, and copy complete
-;; runnable examples. Specimen state survives browsing and Theme changes;
+;; operate live specimens, switch a scoped light/dark Theme, and read each
+;; Component's signature, parameter types/defaults, callbacks and constraints
+;; in its usage panel. Reference text comes from this public Commentary,
+;; read before mounting; keep the installed etaf-ui.el source available.
+;; Complete runnable examples use the same bindings/View as the live specimen.
+;; Specimen state survives browsing and Theme changes;
 ;; reset or reopening restores defaults. Unmount or kill the buffer to release
 ;; its local controllers. Unrelated nonempty buffers or mounted applications
 ;; raise user-error instead of being replaced.
@@ -809,6 +1322,17 @@
 ;; This example is a GUI workload, not a performance certification.
 ;;
 ;; Component: etaf-ui-icon (&key name set size color face lines min-width help-echo on-press tab-index aria-label id class ref)
+;; Parameters:
+;; :name — Required icon symbol or nonempty string. Unknown names use a safe text fallback.
+;; :set — Optional registered set symbol; nil starts at etaf-ui-icon-default-set.
+;; :size — Positive number; default 1.0. Relative scale clamped to the reserved rows.
+;; :lines, :min-width — Row count 1/2 (default 1) and minimum cell width >= 1 (default 2).
+;; :color, :face — Optional foreground and face/plist; default nil. Only face foreground/background are used; color overrides foreground.
+;; :on-press — Optional function (); default nil. Makes the complete icon box actionable.
+;; :tab-index — Optional integer; nil uses 0 when actionable; negative skips Tab.
+;; :help-echo, :aria-label — Optional help and accessible name; default nil. Name falls back to string help, then icon name.
+;; :id, :class, :ref — Optional Host identity, extra classes and reference; default nil.
+;;
 ;; Render NAME in one standard row, or exactly two with :lines 2. SIZE defaults
 ;; to 1.0 and is clamped within those rows; font ascent and descent must each
 ;; fit the default baseline. MIN-WIDTH is in cells (default 2). ON-PRESS is a
@@ -849,6 +1373,18 @@
 ;; strings are independent; shared image values must not be mutated.
 ;;
 ;; Component: etaf-ui-toggle-icon (&key value off on set size color on-color face lines min-width help-echo on-press tab-index aria-label id class ref)
+;; Parameters:
+;; :value — Boolean/ref/computed; default nil. Chooses :off or :on; caller owns changes.
+;; :off, :on — Required icon symbols or nonempty strings. Resolved before retained updates.
+;; :set — Optional registered set symbol; nil starts at etaf-ui-icon-default-set.
+;; :size — Positive number; default 1.0. Relative scale clamped to the reserved rows.
+;; :lines, :min-width — Row count 1/2 (default 1) and minimum cell width >= 1 (default 2).
+;; :color, :on-color, :face — Optional colors and face/plist; default nil. On-color falls back to color; face supplies paint only.
+;; :on-press — Optional function (); default nil. Requests caller-owned state changes; no automatic toggle or :bind.
+;; :tab-index — Optional integer; nil uses 0 when actionable; negative skips Tab.
+;; :help-echo, :aria-label — Optional help and accessible name; default nil. Name falls back to string help, then "OFF / ON".
+;; :id, :class, :ref — Optional Host identity, extra classes and reference; default nil.
+;;
 ;; Render one icon that switches between OFF and ON through retained Host
 ;; text instead of repainting the View. VALUE is a boolean or a reactive
 ;; source; both variants resolve while rendering and each row then reads

@@ -4,6 +4,11 @@
 
 ### Added
 
+- Gallery usage panels show every component's public signature, parameter
+  types, required/default values, units, callback arguments and constraints
+  alongside the existing live and copyable example. Reference text comes
+  directly from the installed package Commentary, without a manual dependency
+  or a second API inventory.
 - `etaf-key-help` presents effective shortcuts in a searchable, read-only
   dialog inside the application: wide windows use two columns, compact
   windows one scrolling column. It follows the opening Theme and restores

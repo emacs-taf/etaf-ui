@@ -671,7 +671,7 @@
   {
    "name": "etaf-ui-gallery-copies-runnable-examples",
    "file": "tests/etaf-ui-gallery-tests.el",
-   "purpose": "Every copied example evaluates and mounts independently through public APIs."
+   "purpose": "Every component displays a public signature and parameter reference; its copied example evaluates and mounts independently."
   },
   {
    "name": "etaf-ui-gallery-isolates-mounts-and-unrelated-buffers",
@@ -682,6 +682,11 @@
    "name": "etaf-ui-gallery-searches-symbols-chinese-and-clears-empty-results",
    "file": "tests/etaf-ui-gallery-tests.el",
    "purpose": "Native live search matches symbols and Chinese across categories and recovers from no matches."
+  },
+  {
+   "name": "etaf-ui-gallery-reference-explains-value-and-callback-contracts",
+   "file": "tests/etaf-ui-gallery-tests.el",
+   "purpose": "Scrolled reference text exposes defaults, controlled-value exclusions, callback payloads and units; reset collapses it."
   },
   {
    "name": "etaf-ui-gallery-dialog-submits-chinese-and-cancels",
