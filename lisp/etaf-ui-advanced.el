@@ -157,7 +157,10 @@ ON-CHANGE receives (YEAR MONTH DAY)."
                         collect (cl-subseq cells start (min (+ start 7) (length cells)))))
          (week-days '("Mo" "Tu" "We" "Th" "Fr" "Sa" "Su"))
          (week-views
-          (mapcar (lambda (day) (etaf-node 'etaf-label (list :text day :variant 'muted) nil))
+          (mapcar (lambda (day)
+                    (etaf-node 'etaf-label
+                               (list :text day :variant 'muted
+                                     :width '(ch 4) :text-align 'center) nil))
                   week-days))
          (row-views
           (mapcar
@@ -169,7 +172,10 @@ ON-CHANGE receives (YEAR MONTH DAY)."
                                (etaf-node
                                 'etaf-button
                                 (list :label (format "%2d" day)
-                                      :variant (if (equal day value) 'secondary 'ghost)
+                                      :variant 'ghost :width '(ch 4)
+                                      :box-sizing 'border-box
+                                      :padding '((lh 0) (ch 1))
+                                      :text-align 'center
                                       :aria-selected (equal day value)
                                       :aria-label (format "%s %d" name day)
                                       :on-press
@@ -177,7 +183,7 @@ ON-CHANGE receives (YEAR MONTH DAY)."
                                            (lambda ()
                                              (funcall on-change (list year number day)))))
                                 nil)
-                             (etaf-node 'etaf-label (list :text "  ") nil)))
+                             (etaf-node 'etaf-label (list :text "  " :width '(ch 4)) nil)))
                          calendar-row)))
            rows)))
     (etaf-node

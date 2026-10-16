@@ -252,7 +252,7 @@ session ends with its submit or its cancel key."
          (cons "tag-dismiss" (lambda () (etaf-ui-gallery-gui-search "etaf-tag") (etaf-ui-gui-activate "Remove 草稿") (etaf-ui-gui-visible "Remove 草稿" nil) (etaf-ui-gui-visible "恢复标签" t)))
          (cons "list-select" (lambda () (etaf-ui-gallery-gui-search "etaf-list") (etaf-ui-gui-activate "组合界面") (etaf-ui-gui-text "当前选择：compose")))
          (cons "data-pagination" (lambda () (etaf-ui-gallery-gui-search "etaf-pagination") (etaf-ui-gui-activate "Next page") (etaf-ui-gui-text "第三项 · 第四项")))
-         (cons "calendar-select" (lambda () (etaf-ui-gallery-gui-search "etaf-calendar") (etaf-ui-gui-text "October 2026") (etaf-ui-gui-activate "October 16")))
+         (cons "calendar-select" (lambda () (etaf-ui-gallery-gui-search "etaf-calendar") (etaf-ui-gui-text "October 2026") (etaf-ui-gui-activate "October 16") (etaf-ui-gui-selected "October 16")))
          (cons "tree-select" (lambda () (etaf-ui-gallery-gui-search "etaf-tree") (etaf-ui-gui-activate "基础控件") (etaf-ui-gui-text "当前节点：basic")))
          (cons "command-palette" (lambda () (etaf-ui-gallery-gui-search "etaf-command-palette") (etaf-ui-gui-activate "打开命令面板") (etaf-ui-gui-activate "新建项目") (etaf-ui-gui-text "已执行：new")))
          (cons "window-move-resize" #'etaf-ui-gallery-gui-window-gestures)

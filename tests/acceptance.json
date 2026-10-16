@@ -719,6 +719,11 @@
    "purpose": "An item's optional :ref lets a caller press its tab control by name."
   },
   {
+   "name": "etaf-ui-calendar-aligns-weekdays-dates-and-selection",
+   "file": "tests/etaf-ui-modern-tests.el",
+   "purpose": "Calendar dates and leading blanks align with the same seven weekday columns and stay aligned as selection changes."
+  },
+  {
    "name": "etaf-ui-selection-components-render-public-contracts",
    "file": "tests/etaf-ui-modern-tests.el",
    "purpose": "Radio, Segmented, Switch and Slider render controlled values through the public DSL."

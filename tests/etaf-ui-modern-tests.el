@@ -197,6 +197,46 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-calendar-aligns-weekdays-dates-and-selection ()
+  "Every date stays under its weekday, including leading blanks and selection."
+  (with-temp-buffer
+    (let ((day (etaf-ref 14)))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (etaf-calendar :month '(2026 10) :value (etaf-value day)
+                             :on-change (lambda (date) (etaf-set-value day (nth 2 date))))))
+            (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                   (weekdays
+                    (mapcar (lambda (label)
+                              (save-excursion
+                                (goto-char (point-min)) (search-forward label)
+                                (etaf-string-pixel-width
+                                 (buffer-substring (line-beginning-position) (- (point) 2)))))
+                            '("Mo" "Tu" "We" "Th" "Fr" "Sa" "Su"))))
+              (dolist (selected '(1 16 31))
+                (etaf-ui-modern-test-activate runtime (format "October %d" selected))
+                (should (= (etaf-value day) selected))
+                (dotimes (index 31)
+                  (let* ((date (1+ index))
+                         (entry (cl-find-if
+                                 (lambda (entry)
+                                   (equal (format "October %d" date)
+                                          (plist-get (cdr entry) :aria-label)))
+                                 (etaf-runtime-host-props-entries runtime)))
+                         (bounds (etaf-host-ref-bounds runtime (car entry)))
+                         (column (save-excursion
+                                   (goto-char (car bounds))
+                                   (search-forward (format "%2d" date) (cdr bounds))
+                                   (etaf-string-pixel-width
+                                    (buffer-substring (line-beginning-position) (- (point) 2))))))
+                    (ert-info ((format "Day %d with %d selected" date selected))
+                      (should (= column (nth (% (+ index 3) 7) weekdays)))))))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-selection-components-render-public-contracts ()
   "Selection Components render controlled values through the public DSL."
   (with-temp-buffer

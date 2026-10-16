@@ -22,6 +22,8 @@
 
 ### Fixed
 
+- Calendar weekday headings, leading blanks and dates use equal-width cells.
+  Changing the selected date no longer shifts the remaining days in its week.
 - Select choices, expanded tree branches, taskbar items and workspace items
   retain their padding and typeface when their state changes. Selection uses
   Theme paint only, and selected dropdown options suppress hover fill.
