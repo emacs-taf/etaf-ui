@@ -137,7 +137,8 @@ the writable BIND ref owns the selected value; the Component owns no state."
   "Render a controlled numeric SLIDER using the native number prompt.
 VALUE must be an integer in MIN..MAX; STEP is a positive integer.  The
 native prompt keeps editing accessible while the Component remains reusable;
-Left and Right change the focused slider by STEP."
+Left and Right change the focused slider by STEP, stopping at MIN and the
+largest STEP-aligned value not greater than MAX.  MAX need not be aligned."
   :validate
   (progn
     (etaf-check-prop :min min (integerp min) "an integer" 'etaf-slider)
@@ -149,7 +150,8 @@ Left and Right change the focused slider by STEP."
   :render
   (let* ((input (etaf-ui--controlled-input 'etaf-slider :value bind value on-change))
          (current (etaf-ui--reactive-value (car input)))
-         (callback (cdr input)))
+         (callback (cdr input))
+         (last-value (- max (% (- max min) step))))
     (etaf-check-prop :value current
                      (and (integerp current) (<= min current max)
                           (zerop (% (- current min) step)))
@@ -166,7 +168,7 @@ Left and Right change the focused slider by STEP."
                          (lambda (direction)
                            (pcase direction
                              ('left (funcall callback (max min (- current step))) 'handled)
-                             ('right (funcall callback (min max (+ current step))) 'handled)
+                             ('right (funcall callback (min last-value (+ current step))) 'handled)
                              (_ 'release))))
                     :on-press
                     (and (not disabled) callback

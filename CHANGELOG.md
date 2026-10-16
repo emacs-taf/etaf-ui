@@ -27,6 +27,9 @@
 
 ### Fixed
 
+- Slider arrows stop at the largest step-aligned value within the bounds,
+  even when `:max` is not aligned. A bound slider no longer writes an invalid
+  value and fails to render when Right reaches a non-step upper bound.
 - The Gallery Splitter example converts gesture pixels using its live pane
   width rather than an assumed 600 pixels, so pointer and keyboard movement
   remain proportional after resizing. Copied examples use the same correction.

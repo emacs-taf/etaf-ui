@@ -269,6 +269,42 @@
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
 
+(ert-deftest etaf-ui-slider-arrows-stay-on-aligned-values ()
+  "Bound sliders keep every arrow result aligned, including non-step maxima."
+  (dolist (case '((0 5 2 4 ((right . 4) (left . 2) (left . 0) (left . 0)
+                            (right . 2) (right . 4) (right . 4)))
+                  (-5 2 3 1 ((right . 1) (left . -2) (left . -5) (left . -5)))
+                  (3 4 5 3 ((right . 3) (left . 3)))
+                  (7 7 2 7 ((right . 7) (left . 7)))
+                  (0 6 2 4 ((right . 6) (right . 6) (left . 4)))))
+    (pcase-let ((`(,low ,high ,step ,initial ,moves) case))
+      (with-temp-buffer
+        (let ((value (etaf-ref initial)))
+          (unwind-protect
+              (progn
+                (etaf-mount
+                 (current-buffer)
+                 (etaf-view
+                  (etaf-slider :bind value :min low :max high :step step
+                               :label "Aligned value")))
+                (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                       (target (car (cl-find-if
+                                     (lambda (entry)
+                                       (equal "Aligned value"
+                                              (plist-get (cdr entry) :aria-label)))
+                                     (etaf-runtime-host-props-entries runtime)))))
+                  (should target)
+                  (etaf-focus runtime target)
+                  (dolist (move moves)
+                    (etaf-direction (car move) runtime)
+                    (ert-info ((format "%s..%s step %s, %s" low high step (car move)))
+                      (should (= (etaf-value value) (cdr move)))
+                      (let* ((bounds (etaf-host-ref-bounds runtime target))
+                             (text (buffer-substring-no-properties (car bounds) (cdr bounds))))
+                        (should (string-match-p (format "◀  %d  ▶" (cdr move)) text)))))))
+            (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (etaf-unmount runtime))))))))
+
 (ert-deftest etaf-ui-composition-components-render-public-contracts ()
   "Tag, Kbd, Steps and List compose with caller-owned selection callbacks."
   (with-temp-buffer

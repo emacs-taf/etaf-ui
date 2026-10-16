@@ -734,6 +734,11 @@
    "purpose": "Calendar dates and leading blanks align with the same seven weekday columns and stay aligned as selection changes."
   },
   {
+   "name": "etaf-ui-slider-arrows-stay-on-aligned-values",
+   "file": "tests/etaf-ui-modern-tests.el",
+   "purpose": "Mounted bound sliders keep arrow results and displayed values aligned at non-step maxima, negative bounds, narrow spans and equal bounds."
+  },
+  {
    "name": "etaf-ui-selection-components-render-public-contracts",
    "file": "tests/etaf-ui-modern-tests.el",
    "purpose": "Radio, Segmented, Switch and Slider render controlled values through the public DSL."

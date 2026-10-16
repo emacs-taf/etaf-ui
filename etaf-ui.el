@@ -477,7 +477,7 @@
 ;; Component: etaf-slider (&key value min max step label on-change disabled bind)
 ;; Parameters:
 ;; :value — Required integer/ref/computed unless :bind supplies it; no valid empty default. Align (value - min) to :step within bounds.
-;; :min, :max — Integer bounds; defaults 0 and 100; min <= max.
+;; :min, :max — Integer bounds; defaults 0 and 100; min <= max. Max need not align to :step.
 ;; :step — Positive integer; default 1. Alignment unit and arrow increment.
 ;; :label — String; default "Value". Caption and native prompt name.
 ;; :on-change — Optional function (next-integer); default nil. Store the accepted value.
@@ -487,7 +487,9 @@
 ;; Render a controlled integer value within MIN..MAX aligned to STEP.
 ;; Activation uses a native number prompt, not pointer scrubbing. Use Range
 ;; for drag/seek preview and commit, or NumberInput for in-place integer entry.
-;; Left and Right on the focused slider report the value moved by STEP.
+;; Left and Right on the focused slider report the value moved by STEP,
+;; clamped to MIN and the largest aligned value <= MAX. For 0..5 with STEP 2,
+;; the reachable values are 0, 2 and 4; Right at 4 reports 4, never 5.
 ;;
 ;; Component: etaf-range (&key value min max step key-step on-change on-commit disabled color track-color bar-height label ref fill-ref)
 ;; Parameters:
