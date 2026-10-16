@@ -39,11 +39,11 @@ CLAUSE is (RUNTIME PROP VALUE ...); RUNTIME receives (BUFFER . RUNTIME)."
     (should bounds)
     (with-current-buffer buffer
       (let ((start (car bounds)) (end (cdr bounds)))
-        (list (ebox-string-pixel-width
+        (list (etaf-string-pixel-width
                (buffer-substring (save-excursion (goto-char start)
                                                  (line-beginning-position))
                                  start))
-              (ebox-string-pixel-width (buffer-substring start end)))))))
+              (etaf-string-pixel-width (buffer-substring start end)))))))
 
 (defun etaf-ui-range-test--dispatch (entry host kind ratio &optional phase)
   "Dispatch KIND for HOST in ENTRY at RATIO, with drag PHASE when given."
@@ -64,22 +64,62 @@ this batch contract covers the Host identities every retained update needs."
       (should (etaf-host-ref-bounds runtime 'range-track))
       (should (memq 'range-fill refs)))))
 
+(ert-deftest etaf-ui-range-bar-height-changes-ink-without-changing-geometry ()
+  "Thickness changes graphical bar paint, never row size or retained widths."
+  (let (displays)
+    (dolist (height '(1 10 40 90 100))
+      (let ((value (etaf-ref 50)))
+        (etaf-ui-range-test--with-range
+            (entry :value value :bar-height height :ref 'range-track :fill-ref 'range-fill)
+          (let* ((runtime (cdr entry))
+                 (track-size (etaf-host-ref-size runtime 'range-track))
+                 (fill-size (etaf-host-ref-size runtime 'range-fill)))
+            (should (equal track-size '(240 . 1)))
+            (should (equal fill-size '(120 . 1)))
+            (with-current-buffer (car entry)
+              (let ((position (etaf-host-ref-position runtime 'range-fill)))
+                (let ((display (get-text-property position 'display)))
+                  (push display displays)
+                  (when (and (display-graphic-p) (image-type-available-p 'svg))
+                    (let* ((image (assq 'image display))
+                           (size (and image (image-size image t))))
+                      (should size)
+                      (should (= (cdr size) (frame-char-height))))))
+                (when (display-graphic-p)
+                  (redisplay t)
+                  (save-excursion
+                    (goto-char position)
+                    (should (= (line-pixel-height) (frame-char-height)))))))
+            (etaf-set-value value 75)
+            (let ((next-size (etaf-host-ref-size runtime 'range-fill)))
+              (should (equal next-size '(180 . 1))))
+            (dolist (width '(160 480 240))
+              (etaf-runtime-refit runtime width 8)
+              (let ((size (etaf-host-ref-size runtime 'range-fill))
+                    (pixels (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
+                (should (equal size (cons (/ (* width 3) 4) 1)))
+                (should (= pixels (* width 0.75)))))))))
+    (if (and (display-graphic-p) (image-type-available-p 'svg))
+        (progn
+          (should (cl-every #'identity displays))
+          (should (= (length (delete-dups displays)) 5)))
+      ;; Text-only frames keep the ordinary rule; fractional ink is graphical.
+      (should (equal displays '(nil nil nil nil nil))))))
+
 (ert-deftest etaf-ui-range-fill-moves-through-retained-geometry ()
   "A caller moves the Fill in place through ETAF's retained geometry update.
 The Fill is an absolutely positioned Host, so a playing position advances
 in one geometry commit without re-rendering the View."
   (etaf-ui-range-test--with-range (entry :value 25 :ref 'range-track :fill-ref 'range-fill)
     (pcase-let* ((`(,buffer . ,runtime) entry)
-                 (before (etaf-host-ref-bounds runtime 'range-fill))
+                 (before (cadr (etaf-ui-range-test--pixels entry 'range-fill)))
                  (generation (etaf-runtime-revision runtime)))
       (should before)
       (etaf-runtime-update-host-geometries
        runtime (list (cons 'range-fill (list :width '(% 75)))))
       (etaf-runtime-flush runtime)
-      (let ((after (etaf-host-ref-bounds runtime 'range-fill)))
-        (should (and after
-                     (> (- (cdr after) (car after))
-                        (- (cdr before) (car before)))))
+      (let ((after (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
+        (should (> after before))
         ;; One in-place geometry commit; no re-render precedes it.
         (should (= (etaf-runtime-revision runtime) (1+ generation)))))))
 
@@ -147,11 +187,11 @@ Engine gestures carry no Host reference, so the Range names its own track."
       (should (< (abs (- (car commits) 75)) 1.5))
       (etaf-runtime-flush (cdr entry))
       (should (eq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag)))
-      (let ((before (etaf-host-ref-bounds (cdr entry) 'range-fill)))
+      (let ((before (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
         (etaf-set-value value 20)
         (etaf-runtime-flush (cdr entry))
-        (let ((after (etaf-host-ref-bounds (cdr entry) 'range-fill)))
-          (should (< (- (cdr after) (car after)) (- (cdr before) (car before))))))
+        (let ((after (cadr (etaf-ui-range-test--pixels entry 'range-fill))))
+          (should (< after before))))
       (should (eq handler (plist-get (cdr (assq 'range-track (etaf-runtime-host-props-entries (cdr entry)))) :on-drag)))
       ;; Display-only previews must not leave stale authored values behind:
       ;; a later viewport refit still paints the controlled backend value.

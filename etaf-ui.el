@@ -500,13 +500,15 @@
 ;; :on-change, :on-commit — Optional functions (number); default nil. Intermediate change versus released/clicked/keyboard value; no :bind prop.
 ;; :disabled — Boolean; default nil. Disable pointer and keyboard input.
 ;; :color, :track-color — Optional Host colors; nil uses :ui-range-fill and :ui-range-track.
-;; :bar-height — Integer percentage 1..100; default 40. Requested bar thickness within one row.
+;; :bar-height — Integer percentage 1..100; default 40. Centered graphical thickness within one standard row, pixel-rounded with a one-pixel minimum. Text-only frames keep a thin rule.
 ;; :label — Optional string; nil uses "Range" as accessible name.
 ;; :ref, :fill-ref — Optional symbol Host references; nil generates instance-local track/fill identities.
 ;;
 ;; Render a controlled interactive Range (progress, seek, volume) within MIN..MAX.
 ;; ON-CHANGE reports intermediate values and ON-COMMIT the released one; the bar
-;; paints a Track and a percentage Fill inside one standard row. A retained
+;; paints a Track and a percentage Fill inside one standard row. SVG-capable
+;; graphical frames honor BAR-HEIGHT without changing row or hit-target size.
+;; Other frames retain a thin text rule. A retained
 ;; binding updates FILL-REF's width without re-rendering the Component.
 ;; MIN/MAX accept numbers or reactive sources. Live bounds are checked by the
 ;; retained Fill getter; invalid bounds reject publication until corrected.

@@ -118,7 +118,8 @@ the sidebar or the compact category picker."
                     (execute-kbd-macro (kbd keys))
                   (pcase route
                   ('callback (etaf-dispatch-event runtime target 'press))
-                  ('keyboard (etaf-focus runtime target) (execute-kbd-macro (kbd "RET")))
+                  ('keyboard (etaf-focus runtime target)
+                             (execute-kbd-macro (kbd (or (plist-get step :key) "RET"))))
                   ('mouse (execute-kbd-macro (vector (list 'down-mouse-1 position)
                                                    (list 'mouse-1 position)))))))))
          ;; Pressed-state publication precedes ETAF's application callback;
@@ -212,6 +213,31 @@ the sidebar or the compact category picker."
              (:keys "/ ?" :text "查看快捷键" :visible t)
              (:keys "<escape>" :text "关闭帮助" :visible t)
              (:keys "<escape>" :text "快捷键 · 只读" :visible nil)))))
+
+(taf-benchmark-register
+ "gallery.range.steady.keyboard"
+ :version 1 :modes '(gui) :isolation 'series :required-providers '(ebox)
+ :budget-ms 100 :impact 'local
+ :description "Alternate Range arrows and verify live and committed Gallery values"
+ :setup
+ (lambda (mode)
+   (let* ((fixture
+           (etaf-ui-benchmark--gallery
+            nil nil 'keyboard mode
+            '((:label "音量示例" :key "<right>" :text "当前 61% · 已提交 61%" :visible t)
+              (:label "音量示例" :key "<left>" :text "当前 60% · 已提交 60%" :visible t))))
+          (ready (plist-get fixture :ready))
+          prepared)
+     (setf (plist-get fixture :ready)
+           (lambda ()
+             (funcall ready)
+             (unless prepared
+               (etaf-text-input-begin (etaf-runtime-for-buffer (plist-get fixture :buffer))
+                                      'gallery-search)
+               (execute-kbd-macro (vconcat "etaf-range" (kbd "RET")))
+               (setq prepared t))
+             t))
+     fixture)))
 
 (defconst etaf-ui-benchmark--mixed-steps
   '((:label "操作菜单" :text "复制内容" :toggle t)

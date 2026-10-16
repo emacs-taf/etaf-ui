@@ -258,7 +258,9 @@ republishing the View, which is how a playing position advances in place.  A
 press or drag re-proportions the two parts through retained Host geometry
 before the caller's value arrives, so the gesture still follows the pointer
 while a backend reply is pending.  BAR-HEIGHT is the painted thickness as a
-percentage of the row (default 40).
+percentage of the standard row (default 40), centered and rounded to at
+least one pixel.  Graphical frames with SVG support paint this thickness;
+text-only frames keep a thin rule.  The hit target stays one full row.
 
 Left and Right on the focused range report the value moved by KEY-STEP
 through ON-CHANGE and ON-COMMIT; Home and End report MIN and MAX.  KEY-STEP
@@ -288,13 +290,28 @@ defaults to STEP, else a twentieth of the span."
     (etaf-check-prop :on-commit on-commit (or (null on-commit) (functionp on-commit))
                      "a function or nil" 'etaf-range)
     (etaf-check-prop :disabled disabled (booleanp disabled) "a boolean" 'etaf-range))
-  :bindings ((rule (make-string 512 ?─))
-             (drag (etaf-ref nil))
+  :bindings ((drag (etaf-ref nil))
              (fill-target (or fill-ref (gensym "etaf-range-fill-")))
              ;; The track is measured for hit-testing, so it always has a ref.
              (track-target (or ref (gensym "etaf-range-track-"))))
   :render
-  (let* (;; Read controlled/drag sources inside the Host getter, not the
+  (let* ((rule
+          (if (and (display-graphic-p) (image-type-available-p 'svg))
+              (let* (;; The canvas only needs to cover the live viewport.
+                     ;; A long text rule converted to one huge SVG can exceed
+                     ;; native image limits when its frame becomes compact.
+                     (width (max 1 (ceiling (or (car (etaf-viewport))
+                                                (frame-pixel-width)))))
+                     (height (frame-char-height))
+                     (ink (max 1 (round (* height (/ bar-height 100.0)))))
+                     (image
+                      (create-image
+                       (format "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d'><rect y='%d' width='%d' height='%d' fill='currentColor'/></svg>"
+                               width height (/ (- height ink) 2) width ink)
+                       'svg t :ascent 'center :scale 1)))
+                (propertize " " 'display (list (list 'slice 0 0 width height) image)))
+            (make-string 512 ?─)))
+         ;; Read controlled/drag sources inside the Host getter, not the
          ;; Component render. A pointer move then changes only Fill geometry.
          ;; MIN and MAX follow the same contract: a reactive bound keeps a
          ;; duration change on the retained width binding instead of
@@ -376,9 +393,11 @@ defaults to STEP, else a twentieth of the span."
                           (unless (plist-get gesture :keyboard)
                             (funcall report gesture (eq (plist-get gesture :phase) 'end)))))
           :ref track-target :id (symbol-name track-target)
-       ;; The track is ordinary flow content: it gives the row its width and a
-       ;; measurable text span for pointer hit-testing and tests.
-       (box :height '(lh 1) :overflow 'hidden :wrap-mode 'none :flex-grow 1 :flex-basis '(px 0)
+       ;; A one-row image keeps the bar's ink independent of font glyphs.
+       ;; Keep the rule in the line until box composition clips its image
+       ;; slice; overflow hidden on this text box would drop the whole glyph.
+       ;; The flow track keeps the entire row measurable for hit-testing.
+       (box :height '(lh 1) :wrap-mode 'none :flex-grow 1 :flex-basis '(px 0)
             :min-width '(px 0)
             :color (or track-color (etaf-theme-token :ui-range-track "#C9CED6"))
          (text (expr rule)))
@@ -386,7 +405,7 @@ defaults to STEP, else a twentieth of the span."
        ;; geometry, so a playing second or a drag step resizes one Host
        ;; instead of publishing a new View.
        (box :position 'absolute :z-index 0 :left '(px 0) :top '(lh 0)
-            :width (funcall filled) :height '(lh 1) :overflow 'hidden :wrap-mode 'none
+            :width (funcall filled) :height '(lh 1) :wrap-mode 'none
             :color (or color (etaf-theme-token :ui-range-fill "#D8232A"))
             :ref fill-target :id (symbol-name fill-target)
          (text (expr rule)))))))

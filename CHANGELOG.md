@@ -27,6 +27,10 @@
 
 ### Fixed
 
+- Range now honors `:bar-height` for both track and fill on SVG-capable
+  graphical frames. Thickness stays centered inside a standard row, without
+  changing the full-row hit target or retained fill updates. Text-only frames
+  keep a thin rule.
 - Slider arrows stop at the largest step-aligned value within the bounds,
   even when `:max` is not aligned. A bound slider no longer writes an invalid
   value and fails to render when Right reaches a non-step upper bound.
