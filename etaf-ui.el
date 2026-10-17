@@ -3,7 +3,7 @@
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
-;; Version: 0.1.2
+;; Version: 0.1.3
 ;; Package-Requires: ((emacs "29.1") (etaf "0.2.2") (ebox "3.0.1"))
 ;; URL: https://github.com/emacs-taf/etaf-ui
 
@@ -1593,14 +1593,13 @@
 
 ;;;###autoload
 (eval-and-compile
-  (let ((root (file-name-directory
-               (or load-file-name
-                   (bound-and-true-p byte-compile-current-file)
-                   buffer-file-name))))
-    (add-to-list 'load-path (expand-file-name "lisp" root))
-    ;; The example commands are autoloaded by a path relative to this package,
-    ;; so the root must be resolvable even when the caller only added `lisp'.
-    (add-to-list 'load-path root)))
+  (defconst etaf-ui--root
+    (file-name-directory
+     (or load-file-name
+         (bound-and-true-p byte-compile-current-file)
+         buffer-file-name))
+    "Directory of this package entry, resolved when it is loaded.")
+  (add-to-list 'load-path (expand-file-name "lisp" etaf-ui--root)))
 
 (require 'etaf-ui-basic)
 (require 'etaf-ui-icon)
@@ -1626,9 +1625,14 @@
 (require 'etaf-ui-markdown-parse)
 (require 'etaf-ui-markdown)
 
-(autoload 'etaf-ui-surfaces-open "examples/etaf-ui-surfaces" nil t)
-(autoload 'etaf-ui-gallery-open "examples/etaf-ui-gallery" nil t)
-(autoload 'etaf-ui-window-resize-open "examples/etaf-ui-window-resize" nil t)
+;; Absolute files: an installed archive must not depend on the package root
+;; being on `load-path', which some hosts do not add.
+(autoload 'etaf-ui-surfaces-open
+  (expand-file-name "examples/etaf-ui-surfaces" etaf-ui--root) nil t)
+(autoload 'etaf-ui-gallery-open
+  (expand-file-name "examples/etaf-ui-gallery" etaf-ui--root) nil t)
+(autoload 'etaf-ui-window-resize-open
+  (expand-file-name "examples/etaf-ui-window-resize" etaf-ui--root) nil t)
 
 (provide 'etaf-ui)
 ;;; etaf-ui.el ends here
