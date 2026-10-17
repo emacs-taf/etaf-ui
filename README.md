@@ -1,12 +1,29 @@
 # etaf-ui
 
-Source layout: add the repository root to `load-path` and use
-`(require 'etaf-ui)`. The supported API and usage notes are in
-[`etaf-ui.el`](etaf-ui.el); implementation modules live in `lisp/`.
-
 `etaf-ui` is the official ETAF Component catalog. It is a normal optional package above `etaf`; it does not add a second Control or Widget model. Button, Checkbox, Label, Panel, and DataGrid are all ordinary Components with the same View, props, slots, events, and Data contracts.
 It requires Emacs 29.1+, ETAF 0.2.1+, and Ebox 3.0.0+.
 
+## Installation
+
+Evaluate this once in Emacs and accept the default component gallery:
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'package)
+(add-to-list 'package-archives '("etaf" . "https://etaf.top/packages/"))
+(package-initialize)
+(package-refresh-contents)
+(package-install 'etaf-install)
+(call-interactively #'etaf-install)
+```
+
+Package.el installs ETAF and its dependencies without Git, Python or a system
+compiler; your configuration is not replaced. Reopen with `M-x etaf-install` or
+`M-x etaf-ui-gallery-open`, including offline. Use `M-x list-packages` to update
+or remove packages and restart after updates or installation failures. See
+[installation and recovery](https://etaf.top/introduction/#installation).
+
+## First Component
 
 Use the exact registered names `etaf-panel`, `etaf-label`, `etaf-button`, and
 `etaf-checkbox` in every View. Evaluate this complete example in a lexical-binding

@@ -1,11 +1,25 @@
 # etaf-ui
 
-源码布局：将仓库根目录加入 `load-path`，然后 require 与包同名的入口。
-入口 Commentary 列出公共 API 及用法；内部实现位于 `lisp/`。
-
 `etaf-ui` 是 ETAF 的官方 Component 目录，是建立在 `etaf` 之上的可选独立包。它不增加第二套 Control 或 Widget 模型；Button、Checkbox、Label、Panel、DataGrid 都是使用同一套 View、属性、slot、事件和 Data 契约的普通 Component。
 依赖 Emacs 29.1+、ETAF 0.2.1+ 和 Ebox 3.0.0+。
 
+## 安装
+
+在 Emacs 中执行以下代码一次，接受默认的组件画廊选项：
+
+```elisp
+;;; -*- lexical-binding: t; -*-
+(require 'package)
+(add-to-list 'package-archives '("etaf" . "https://etaf.top/packages/"))
+(package-initialize)
+(package-refresh-contents)
+(package-install 'etaf-install)
+(call-interactively #'etaf-install)
+```
+
+package.el 自动安装 ETAF 及其依赖，不需要 Git、Python 或系统编译器，也不替换现有配置。以后用 `M-x etaf-install` 或 `M-x etaf-ui-gallery-open` 重开，包括离线使用。通过 `M-x list-packages` 更新或卸载包；更新或安装失败后先重启。详见[安装与恢复](https://etaf.top/zh-cn/introduction/#安装)。
+
+## 第一个组件
 
 所有 View 都使用准确的注册名称：`etaf-panel`、`etaf-label`、`etaf-button` 和
 `etaf-checkbox`。把下面完整例子放进启用 lexical-binding 的 `.el` 文件求值，
