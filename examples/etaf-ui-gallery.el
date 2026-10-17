@@ -14,6 +14,11 @@
 (require 'pp)
 (require 'etaf-ui)
 
+;; Emacs 29's pretty printer ignores this newer dynamic customization and
+;; uses its own formatter. Declaring it keeps the binding special on both.
+(defvar pp-default-function)
+(declare-function pp-fill "pp" (beg &optional end))
+
 (defconst etaf-ui-gallery--palette
   '(:gallery-bg ("#F6F7FB" . "#141923")
     :gallery-sidebar ("#F0F2F8" . "#171D28")
@@ -568,7 +573,10 @@ Compile the live View and retain the identical source for runnable examples."
                   (pop-to-buffer buffer))))
     (concat ";;; -*- lexical-binding: t; -*-\n(require 'etaf-ui)\n\n"
             (let ((print-circle nil) (print-length nil) (print-level nil)
-                  (pp-default-function #'pp-fill) (fill-column 88)
+                  (pp-default-function
+                   (if (fboundp 'pp-fill) #'pp-fill
+                     (and (boundp 'pp-default-function) pp-default-function)))
+                  (fill-column 88)
                   (indent-tabs-mode nil))
               (pp-to-string form)))))
 

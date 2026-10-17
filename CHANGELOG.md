@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- Optional native icon and media calls no longer produce undeclared-function
+  warnings when package.el compiles the catalog on text-only Emacs builds.
+  Graphical capability checks and printable fallbacks stay unchanged. Gallery
+  example generation also compiles with Emacs 29's older pretty printer.
+
 - Range now honors `:bar-height` for both track and fill on SVG-capable
   graphical frames. Thickness stays centered inside a standard row, without
   changing the full-row hit target or retained fill updates. Text-only frames

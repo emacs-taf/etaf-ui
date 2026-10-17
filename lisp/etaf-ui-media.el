@@ -12,6 +12,9 @@
 (require 'etaf-ui-icon)
 (require 'etaf-ui-selection)
 
+;; Source dimensions are probed only when native images are available.
+(declare-function image-size "image.c" (spec &optional pixels frame))
+
 (defvar etaf-video-ffplay-program)
 (defvar etaf-video-audio-volume)
 

@@ -13,6 +13,14 @@
 (require 'etaf-ui-basic)
 (require 'xml)
 
+;; These native primitives are used only on graphical frames. Text-only
+;; builds compile the same library and keep the printable icon fallback.
+(declare-function font-info "font.c" (name &optional frame))
+(declare-function font-face-attributes "font.c" (font &optional frame))
+(declare-function image-size "image.c" (spec &optional pixels frame))
+(declare-function set-fontset-font "fontset.c" (name target font-spec &optional frame add))
+(declare-function create-fontset-from-fontset-spec "fontset" (fontset-spec &optional style-variant-p noerror))
+
 (defvar etaf-ui-icon-default-set 'nerd
   "Default registered icon set, used after an explicitly requested set.")
 
