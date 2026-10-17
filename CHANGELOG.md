@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- The gallery, surfaces and window-resize commands load from `examples/`
+  through the package root, which the entry now adds to `load-path` itself.
+  Installed archives no longer depend on the host adding that root, which
+  failed on Windows with `Cannot open load file: examples/etaf-ui-gallery`.
+
 - Optional native icon and media calls no longer produce undeclared-function
   warnings when package.el compiles the catalog on text-only Emacs builds.
   Graphical capability checks and printable fallbacks stay unchanged. Gallery

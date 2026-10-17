@@ -3,7 +3,7 @@
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Package-Requires: ((emacs "29.1") (etaf "0.2.2") (ebox "3.0.1"))
 ;; URL: https://github.com/emacs-taf/etaf-ui
 
@@ -1593,12 +1593,14 @@
 
 ;;;###autoload
 (eval-and-compile
-  (add-to-list 'load-path
-               (expand-file-name "lisp"
-                                 (file-name-directory
-                                  (or load-file-name
-                                      (bound-and-true-p byte-compile-current-file)
-                                      buffer-file-name)))))
+  (let ((root (file-name-directory
+               (or load-file-name
+                   (bound-and-true-p byte-compile-current-file)
+                   buffer-file-name))))
+    (add-to-list 'load-path (expand-file-name "lisp" root))
+    ;; The example commands are autoloaded by a path relative to this package,
+    ;; so the root must be resolvable even when the caller only added `lisp'.
+    (add-to-list 'load-path root)))
 
 (require 'etaf-ui-basic)
 (require 'etaf-ui-icon)
