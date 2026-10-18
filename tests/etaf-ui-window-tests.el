@@ -181,8 +181,7 @@
     (kill-buffer buffer)))
 
 (etaf-define-component etaf-ui-window-test-viewport (&key seen)
-  "Record the Component subtree's viewport into the cons cell SEEN."
-  :setup
+  "Record the Component subtree's viewport into the cons cell SEEN."  :setup
   (progn
     (etaf-watch-effect
      (lambda () (setcar seen (etaf-viewport))))
@@ -265,6 +264,49 @@
                 (should (eq 'hand (get-text-property
                                   (etaf-host-ref-position runtime 'body-action) 'pointer)))))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer))) (etaf-unmount runtime))
+      (kill-buffer buffer))))
+
+(ert-deftest etaf-ui-window-full-bleed-handles-leave-the-body-painted ()
+  "A full-bleed handle is a hit surface: the body's own paint stays visible."
+  (let* ((buffer (generate-new-buffer " *etaf-ui-window-bleed-paint*"))
+         (width (etaf-ref '(px 360))) (height (etaf-ref '(lh 12)))
+         (edges '(left right bottom))
+         (background
+          (lambda (position)
+            (let ((face (get-text-property position 'face)))
+              (cond ((and (listp face) (plist-get face :background))
+                     (plist-get face :background))
+                    ((listp face)
+                     (cl-some (lambda (attributes)
+                                (and (listp attributes)
+                                     (plist-get attributes :background)))
+                              face))
+                    ((and (symbolp face) face)
+                     (face-attribute face :background nil t)))))))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (etaf-window :title "Paint" :width width :height height
+                         :full-bleed t
+                         :on-resize (lambda (_edge _gesture) nil)
+                         :resize-refs (mapcar (lambda (edge) (cons edge edge)) edges)
+                         (box :width 'stretch :height 'stretch
+                              :background-color "#ff0000"
+                              (text "X")))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (with-current-buffer buffer
+              (dolist (edge edges)
+                (let ((position (etaf-host-ref-position runtime edge)))
+                  (should position)
+                  ;; The handle still owns the pointer...
+                  (should (get-text-property position 'pointer))
+                  ;; ...while the body's paint shows through it.
+                  (should (equal (color-values (funcall background position))
+                                 (color-values "#ff0000"))))))))
+      (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
+        (etaf-unmount runtime))
       (kill-buffer buffer))))
 
 ;;; etaf-ui-window-tests.el ends here

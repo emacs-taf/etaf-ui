@@ -558,7 +558,7 @@
 ;; :on-move — Optional function (gesture); default nil. Panel-root drag, with pixel delta and start/move/end/cancel phase.
 ;; :header-style — Optional Host style plist; default nil. Paint header corner cells like the header slot.
 ;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default nil (held-button tracking).
-;; :full-bleed — Boolean; default nil. Let body reach the frame edges with handles above it.
+;; :full-bleed — Boolean; default nil. Let body reach the frame edges; handles keep their edge cells as hit surfaces that show the body's paint.
 ;; :font-size, :font-family — Optional positive CSS pixel size and family string; default nil (inherit). Must fit the canvas line height.
 ;; :ref, :id, :class — Optional Host reference, semantic ID and extra classes; default nil; class may be reactive.
 ;; :role — Optional Host role; nil uses region.
@@ -648,7 +648,7 @@
 ;; :resize-refs — Optional alist (edge . Host-reference); default nil. Keyboard handles get instance-local references when absent.
 ;; :resize-use — Optional alist (edge . Behavior-composition); default nil. Caller-owned resize policy.
 ;; :move-use — Optional title-bar Behavior composition; default nil. Caller-owned move policy.
-;; :full-bleed — Boolean; default nil. Body reaches frame edges; handles overlay its edge cells.
+;; :full-bleed — Boolean; default nil. Body reaches frame edges; handles sit on its edge cells as hit surfaces, so no chrome strip covers the body.
 ;; :on-move — Optional function (gesture); default nil. Title drag/keyboard move reports pixel :delta (dx . dy), not new geometry.
 ;; :on-resize — Optional function (edge gesture); default nil. Caller updates dimensions and handles start/move/end/cancel phases.
 ;; :on-focus — Optional function (); default nil. Body activation and keyboard focus entry request caller-owned focus/z-order.

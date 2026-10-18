@@ -161,8 +161,9 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
                      ;; layer.  Full-bleed body handles are absolute strips
                      ;; in the frame, sized by CSS from its current viewport.
                      ;; Each strip owns exactly the outermost row or column of
-                     ;; the body, so the frame stays seamless while an
-                     ;; application keeps one margin cell clear for it.
+                     ;; the body, so the frame stays seamless: the strip is a
+                     ;; hit surface rather than paint, and the application's own
+                     ;; pixels stay visible right up to the frame edge.
                      (when full-bleed
                        (when-let* ((strip
                                     (pcase edge
@@ -186,7 +187,14 @@ DRAG-LOCK-MODIFIER is forwarded to each handle's native gesture binding."
                                        '(:left (calc (- (% 100) (ch 1)))
                                          :top (calc (- (% 100) (lh 1)))
                                          :width (ch 1) :height (lh 1))))))
-                         (setq placement (append '(:position absolute :z-index 1) strip))))
+                         (setq placement
+                               (append (list :position 'absolute :z-index 1
+                                             ;; An identity backdrop keeps the
+                                             ;; cells behind a blank handle, so
+                                             ;; resizing never repaints the
+                                             ;; application's edge.
+                                             :backdrop-filter '(brightness 1))
+                                       strip))))
                      (etaf-ui--window-handle
                       edge on-resize (cdr (assq edge refs))
                       (cdr (assq edge behaviors))

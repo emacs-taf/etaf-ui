@@ -934,6 +934,11 @@
    "purpose": "All eight resize handles own their painted cells and directional pointers across full-bleed geometry changes; child controls retain their authored pointer."
   },
   {
+   "name": "etaf-ui-window-full-bleed-handles-leave-the-body-painted",
+   "file": "tests/etaf-ui-window-tests.el",
+   "purpose": "A full-bleed resize strip keeps its pointer target while the body's own background stays painted across the window edge cells."
+  },
+  {
    "name": "etaf-ui-svg-elements-emit-compact-escaped-markup",
    "file": "tests/etaf-ui-svg-tests.el",
    "purpose": "Scene helpers format numbers compactly, keep attribute order and escape XML values."

@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- Full-bleed window resize strips no longer paint the window background over
+  the body's outermost column and row. Each strip stays a pointer target but
+  keeps an identity backdrop, so an embedded application's own background and
+  content reach the window edges again while the edges still resize.
+
 - The gallery, surfaces and window-resize commands are autoloaded by absolute
   path from this package's own `examples/` directory. Installed archives no
   longer depend on the package root being on `load-path`, which failed on
