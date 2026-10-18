@@ -571,7 +571,7 @@
   {
    "name": "etaf-ui-reactions-toggle-chips-and-pick-choices",
    "file": "tests/etaf-ui-reactions-tests.el",
-   "purpose": "Reaction chips report their key, keep their footprint when chosen, and the picker popover adds a chosen reaction then closes."
+   "purpose": "Reaction chips report their key, keep their footprint when chosen, and the picker popover adds a chosen reaction then closes; malformed and compound keys are rejected."
   },
   {
    "name": "etaf-ui-dropdown-opens-navigates-selects-and-restores-focus",

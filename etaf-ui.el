@@ -991,13 +991,13 @@
 ;;
 ;; Component: etaf-reactions (&key items on-toggle choices add-label)
 ;; Parameters:
-;; :items — List/ref/computed; default nil. Plists with unique non-nil :key, nonempty :label, optional natural :count and boolean :chosen.
+;; :items — List/ref/computed; default nil. Plists with unique non-nil scalar :key, nonempty :label, optional natural :count and boolean :chosen.
 ;; :on-toggle — Required function (key). Caller updates counts/choice state; no automatic mutation.
 ;; :choices — Optional alist (key . label); default nil (no picker). Unique non-nil scalar keys and nonempty labels.
 ;; :add-label — Nonempty string; default "Add reaction". Picker trigger's accessible name.
 ;;
 ;; Render one row of controlled reaction chips, for example under a chat
-;; message.  ITEMS are plists with a unique non-nil :key, a nonempty string
+;; message.  ITEMS are plists with a unique non-nil scalar :key, a nonempty string
 ;; :label (usually an emoji), an optional natural :count shown after it and a
 ;; boolean :chosen that tints the chip with the accent; ITEMS may be a value
 ;; or ref.  Chosen and unchosen

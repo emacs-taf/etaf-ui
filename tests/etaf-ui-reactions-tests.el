@@ -72,6 +72,24 @@
                (etaf-mount (generate-new-buffer " *reactions-invalid*")
                            (etaf-view (etaf-reactions :items '((:label "x"))
                                                       :on-toggle #'ignore)))
+               :type 'etaf-view-error)
+              ;; ETAF View keys are scalars, so a compound key is rejected
+              ;; when the items are validated instead of failing the render.
+              (should-error
+               (etaf-mount (generate-new-buffer " *reactions-compound*")
+                           (etaf-view
+                            (etaf-reactions
+                             :items (list (list :key (cons 'custom "61835609")
+                                                :label "✦" :count 1))
+                             :on-toggle #'ignore)))
+               :type 'etaf-view-error)
+              (should-error
+               (etaf-mount (generate-new-buffer " *reactions-compound-choice*")
+                           (etaf-view
+                            (etaf-reactions
+                             :items '((:key "👍" :label "👍"))
+                             :choices (list (cons (cons 'custom "1") "✦"))
+                             :on-toggle #'ignore)))
                :type 'etaf-view-error)))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))

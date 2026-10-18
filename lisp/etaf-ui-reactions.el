@@ -22,6 +22,10 @@ emoji sits centred in an even grid whatever its own glyph width.")
 (defconst etaf-ui--reaction-add-glyph "🙂"
   "Glyph of the chip that opens the reaction picker.")
 
+(defun etaf-ui--reaction-scalar-key-p (key)
+  "Return non-nil when reaction KEY can name an ETAF View."
+  (and key (or (symbolp key) (stringp key) (integerp key))))
+
 (defun etaf-ui--reaction-items (items)
   "Validate reaction ITEMS and return them."
   (etaf-check-prop :items items (proper-list-p items)
@@ -30,30 +34,31 @@ emoji sits centred in an even grid whatever its own glyph width.")
     (dolist (item items)
       (etaf-check-prop :items items
                        (and (proper-list-p item)
-                            (plist-get item :key)
+                            (etaf-ui--reaction-scalar-key-p (plist-get item :key))
                             (not (member (plist-get item :key) keys))
                             (stringp (plist-get item :label))
                             (not (equal (plist-get item :label) ""))
                             (let ((count (plist-get item :count)))
                               (or (null count) (natnump count))))
-                       "plists with unique non-nil :key, nonempty string :label and natural :count"
+                       "plists with unique non-nil scalar :key, nonempty string :label and natural :count"
                        'etaf-reactions)
       (push (plist-get item :key) keys)))
   items)
 
 (defun etaf-ui--reaction-choices (choices)
-  "Validate picker CHOICES, an alist of (KEY . LABEL), and return it."
+  "Validate picker CHOICES, an alist of (KEY . LABEL) with scalar keys."
   (etaf-check-prop :choices choices
                    (and (proper-list-p choices)
                         (cl-every (lambda (choice)
-                                    (and (consp choice) (car choice)
+                                    (and (consp choice)
+                                         (etaf-ui--reaction-scalar-key-p (car choice))
                                          (stringp (cdr choice))
                                          (not (equal (cdr choice) ""))))
                                   choices)
                         (= (length choices)
                            (length (cl-remove-duplicates
                                     (mapcar #'car choices) :test #'equal))))
-                   "an alist of unique keys and nonempty string labels"
+                   "an alist of unique non-nil scalar keys and nonempty string labels"
                    'etaf-reactions)
   choices)
 
@@ -78,7 +83,7 @@ emoji sits centred in an even grid whatever its own glyph width.")
 (etaf-define-component etaf-reactions
     (&key items on-toggle choices (add-label "Add reaction"))
   "Render controlled reaction chips with an optional picker.
-ITEMS, a value or ref, are plists with unique :key, nonempty string
+ITEMS, a value or ref, are plists with unique scalar :key, nonempty string
 :label, optional natural :count and boolean :chosen.  Pressing a chip
 calls ON-TOGGLE with its key.  CHOICES, an alist of (KEY . LABEL), adds
 a trailing smile chip named ADD-LABEL that opens a Popover; picking a
