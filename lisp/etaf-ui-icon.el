@@ -319,7 +319,12 @@ single centered canvas, sliced at standard row boundaries by the caller."
                  (list (list 'slice 0 (* row (frame-char-height))
                              (car (image-size image t)) (frame-char-height)) image))
                value)
-            (unless (and presentation (= row 0))
+            ;; A text frame has no font metrics to clamp.  Inheriting the
+            ;; default face there would paint the default background behind
+            ;; each glyph, so a one-cell mark and a two-cell mark would show
+            ;; differently sized squares instead of one aligned column.
+            (when (and (display-graphic-p)
+                       (not (and presentation (= row 0))))
               (put-text-property 0 (length value) 'face safe-face value)))
           (when paint (add-face-text-property 0 (length value) paint nil value))
           (push value values)))

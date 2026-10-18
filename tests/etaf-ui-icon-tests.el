@@ -76,6 +76,28 @@ owns names that set does not cover."
     (should-error (etaf-ui-icon-lines 'play :size 0))
     (should-error (etaf-ui-icon-lines 'play :set 'never-a-set))))
 
+(defun etaf-ui-icon-test--face-plists (value)
+  "Return the face plists in VALUE, a face property value."
+  (cond ((null value) nil)
+        ((and (listp value) (keywordp (car value))) (list value))
+        ((listp value) (apply #'append (mapcar #'etaf-ui-icon-test--face-plists value)))
+        (t nil)))
+
+(ert-deftest etaf-ui-icon-text-mark-keeps-the-row-background ()
+  "A terminal icon paints ink only and keeps the row's own background.
+Inheriting the default face would paint a differently sized square behind a
+one-cell mark and a two-cell mark, so an icon column would look misaligned."
+  (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
+    (let* ((output (ebox-render (etaf-render (etaf-ui-icon 'play :set 'svg :color "#123456"))))
+           (position (string-match "▶" output))
+           (faces (etaf-ui-icon-test--face-plists
+                   (get-text-property position 'face output))))
+      (should position)
+      (should (cl-some (lambda (face) (equal (plist-get face :foreground) "#123456"))
+                       faces))
+      (should-not (cl-some (lambda (face) (plist-get face :background)) faces))
+      (should-not (cl-some (lambda (face) (plist-get face :inherit)) faces)))))
+
 (ert-deftest etaf-ui-icon-renders-without-a-default-face-font ()
   "A graphical frame without a resolved default font still renders a row.
 `face-font' is nil in a batch or daemon frame while the frame can still
