@@ -135,7 +135,7 @@ derives its own fill instead of repeating that token."
           :hover-bg (and hover (plist-get theme hover))
           :border nil
           :padding (if (memq variant '(primary secondary))
-                       '((lh 0) (ch 2))
+                       '((lh 0) (ch 1))
                      '((lh 0) (ch 1)))
           :font-weight (if (or disabled (eq variant 'ghost)) 'normal 'bold))))
 

@@ -309,8 +309,11 @@ single centered canvas, sliced at standard row boundaries by the caller."
                   ((and presentation (not image))
                    (propertize (copy-sequence (cdr (assq name (plist-get spec :glyphs))))
                                'face (list (car presentation))))
-                  ;; The terminal set's glyphs are plain characters, not a fallback.
-                  ((and (eq chosen terminal-set) text-display)
+                  ;; A requested font set and the terminal set draw their own
+                  ;; glyphs on a text display; fallback sets keep their
+                  ;; printable variants.
+                  ((and text-display (eq (plist-get spec :kind) 'font)
+                        (or (eq chosen terminal-set) (eq chosen set)))
                    (or (cdr (assq name (plist-get spec :glyphs)))
                        (etaf-ui--icon-text name spec)))
                   (t (etaf-ui--icon-text name spec))))

@@ -90,12 +90,22 @@ owns names that set does not cover."
 (ert-deftest etaf-ui-icon-terminal-set-resolves-marks-from-a-font-set ()
   "A terminal can resolve an SVG request through a font set such as `nerd`.
 The glyph is used as text, not its printable fallback, so a terminal with an
-icon font gets the same marks the graphical frame draws."
+icon font gets the same marks the graphical frame draws.  An application's own
+font set draws its glyphs too, which is how a sidebar shows Han marks."
   (let ((etaf-ui-terminal-icon-set 'nerd))
     (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
       (let* ((nerd (plist-get (etaf-ui-icon-set-spec 'nerd) :glyphs))
              (line (substring-no-properties (car (etaf-ui-icon-lines 'play :set 'svg)))))
-        (should (equal line (cdr (assq 'play nerd))))))))
+        (should (equal line (cdr (assq 'play nerd)))))))
+  (unwind-protect
+      (progn
+        (etaf-ui-icon-set-register
+         'test-nav '(:kind font :family "Monospace" :height 1.0
+                     :glyphs ((star . "荐")) :fallback ((star . "*"))))
+        (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
+          (should (equal "荐" (substring-no-properties
+                               (car (etaf-ui-icon-lines 'star :set 'test-nav)))))))
+    (etaf-ui-icon-set-remove 'test-nav)))
 
 (ert-deftest etaf-ui-icon-text-mark-keeps-the-row-background ()
   "A terminal icon paints ink only and keeps the row's own background.
