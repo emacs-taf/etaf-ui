@@ -254,7 +254,11 @@
             (setq offset (etaf-scroll-offset runtime 'gallery-scroll))
             (push (etaf-ui-gallery-test--text buffer) pages)
             (etaf-scroll-by runtime 'gallery-scroll 12))
-          (let ((text (replace-regexp-in-string "[ \t\n]+" " " (string-join (nreverse pages) "\n"))))
+          ;; The panel paints vertical borders inside the scanned pages, so a
+          ;; phrase that wraps crosses a box glyph as well as a newline.
+          (let ((text (replace-regexp-in-string
+                       "[ \t\n│]+" " " (string-join (nreverse pages) "\n")))
+                (case-fold-search nil))
             (dolist (phrase (cdr case))
               (ert-info ((format "%s: %s" (car case) phrase))
                 (should (string-match-p (regexp-quote phrase) text)))))))

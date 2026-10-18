@@ -4,6 +4,12 @@
 
 ### Added
 
+- Terminal frames use a registered `tty` icon set: one-cell Unicode marks for
+  the catalog's icon names, so playback, navigation and library controls keep
+  their shape without an icon font.  A request for the SVG set selects the
+  terminal set on a text display; names it does not cover still fall back to
+  the requested set.
+
 - Gallery usage panels show every component's public signature, parameter
   types, required/default values, units, callback arguments and constraints
   alongside the existing live and copyable example. Reference text comes
@@ -26,6 +32,9 @@
 - The package manual `docs/manual.md` is replaced by the [UI chapters](https://etaf.top/ui-overview/) of the ETAF Reference Manual, which the README and the package Commentary link.
 
 ### Fixed
+
+- The gallery reference scenario reads wrapped reference text across the
+  panel's vertical borders, so phrases that cross a box glyph still match.
 
 - Floating surfaces center and clamp themselves in terminal frames too: the
   window viewport is read for any displaying window and measured in character
