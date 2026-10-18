@@ -1359,8 +1359,10 @@
 ;; line-safe text variant in the first row.
 ;; Resolve NAME in SET, then `etaf-ui-icon-default-set', then sys, then svg
 ;; (its line-safe text variant without graphical SVG), then show the name as
-;; plain text (control/non-ASCII characters are escaped). Absent
-;; fonts/glyphs follow the same lookup; terminal font sets use text variants.
+;; plain text (control/non-ASCII characters are escaped). On a text terminal an
+;; SVG request consults `etaf-ui-terminal-icon-set' before SET, because a
+;; terminal cannot draw the artwork. Absent fonts/glyphs follow the same
+;; lookup; terminal font sets use their glyph as text.
 ;; An unknown explicitly requested/default set is a usage error, wrapped by
 ;; ETAF during rendering. Invalid geometry/callback props fail before publish.
 ;; Use (etaf-view (etaf-ui-icon :name 'play :set 'svg :on-press action)).
@@ -1408,6 +1410,12 @@
 ;; Registered fallback style, initially nerd. Bind or set it before rendering.
 ;; Registry changes/default changes take effect on the next render; existing
 ;; mounted values remain valid and are not implicitly rerendered.
+;;
+;; Variable: etaf-ui-terminal-icon-set
+;; Icon set consulted first on a text terminal for an SVG request, initially
+;; tty. Set it to a registered font set whose glyphs the terminal font
+;; contains, such as nerd after installing a Nerd Font, to keep one icon family
+;; in a terminal. Names the set lacks fall through to the requested set.
 ;;
 ;; Function: etaf-ui-icon-set-register (name spec)
 ;;;###autoload (autoload 'etaf-ui-icon-set-register "etaf-ui" nil nil)

@@ -24,6 +24,12 @@
 (defvar etaf-ui-icon-default-set 'nerd
   "Default registered icon set, used after an explicitly requested set.")
 
+(defvar etaf-ui-terminal-icon-set 'tty
+  "Icon set consulted first on a text terminal for an SVG request.
+Set it to a registered font set whose glyphs the terminal font contains, such
+as `nerd` after installing a Nerd Font, to keep one icon family in a terminal.
+Names the set does not contain fall through to the requested set.")
+
 (defvar etaf-ui--icon-sets nil "Icon set specifications in registration order.")
 (defvar etaf-ui--icon-cache (make-hash-table :test #'equal)
   "Cached fonts, faces and images, keyed by frame and default typography.")
@@ -38,7 +44,8 @@
   "Register or replace symbolic NAME with icon set plist SPEC.
 Font sets require :family, positive float :height and :glyphs.  SVG sets
 require :viewbox and :paths or :draw; :inset defaults to 2 pixels.  Entries
-are alists from symbols to single characters, SVG bodies or nullary draw
+are alists from symbols to printable strings of one or two cells, SVG bodies
+or nullary draw
 functions respectively.  Optional :fallback maps names to printable ASCII.
 Invalid specifications signal `user-error' without changing the registry.
 Treat the stored SPEC as immutable; re-register to change it.  Return NAME."
@@ -58,7 +65,8 @@ Treat the stored SPEC as immutable; re-register to change it.  Return NAME."
                       (cl-every (lambda (entry)
                                   (and (consp entry) (symbolp (car entry))
                                        (stringp (cdr entry))
-                                       (= (length (cdr entry)) 1)
+                                       (<= 1 (string-width (cdr entry)) 2)
+                                       (not (string-match-p "[\n\r\t]" (cdr entry)))
                                        (> (string-to-char (cdr entry)) 32)))
                                 glyphs)))
           ('svg (let ((viewbox (plist-get spec :viewbox))
@@ -265,15 +273,16 @@ single centered canvas, sliced at standard row boundaries by the caller."
   (etaf-ui--icon-spec etaf-ui-icon-default-set)
   (let* ((requested (and set (etaf-ui-icon-set-spec set)))
          (text-display (not (display-graphic-p)))
+         (terminal-set (and text-display etaf-ui-terminal-icon-set))
          (candidates
           (delete-dups
-           ;; A terminal cannot draw an SVG set; the registered text set is its
-           ;; implementation there, so it goes first instead of the artwork.
+           ;; A terminal cannot draw an SVG set; the registered terminal set is
+           ;; its implementation there, so it goes first instead of the artwork.
            (if (and text-display (eq set 'svg)
                     (eq (plist-get requested :kind) 'svg))
-               (list 'tty set etaf-ui-icon-default-set 'sys 'svg)
+               (list terminal-set set etaf-ui-icon-default-set 'sys 'svg)
              (append (list set)
-                     (and text-display '(tty))
+                     (and terminal-set (list terminal-set))
                      (list etaf-ui-icon-default-set 'sys 'svg)))))
          spec presentation chosen)
     (catch 'found
@@ -300,8 +309,8 @@ single centered canvas, sliced at standard row boundaries by the caller."
                   ((and presentation (not image))
                    (propertize (copy-sequence (cdr (assq name (plist-get spec :glyphs))))
                                'face (list (car presentation))))
-                  ;; The text set's glyphs are plain characters, not a fallback.
-                  ((and (eq chosen 'tty) text-display)
+                  ;; The terminal set's glyphs are plain characters, not a fallback.
+                  ((and (eq chosen terminal-set) text-display)
                    (or (cdr (assq name (plist-get spec :glyphs)))
                        (etaf-ui--icon-text name spec)))
                   (t (etaf-ui--icon-text name spec))))
@@ -545,7 +554,7 @@ change stays a retained Host update rather than a Component rerender."
    'tty
    (list :kind 'font :family "monospace" :height 1.0
          :glyphs
-         '((play . "▶") (pause . "‖") (next . "»") (previous . "«")
+         '((play . "▶") (pause . "▌▌") (next . "»") (previous . "«")
            (repeat . "↻") (repeat-one . "↻") (shuffle . "⇄")
            (heart . "♡") (heart-filled . "♥")
            (volume . "♪") (volume-mute . "×") (volume-low . "♪") (volume-high . "♪")
@@ -553,7 +562,7 @@ change stays a retained Host update rather than a Component rerender."
            (queue . "▤") (lyrics . "¶") (list . "▤") (music . "♫") (settings . "⚙")
            (chevron-up . "⌃") (chevron-down . "⌄") (chevron-left . "‹") (chevron-right . "›")
            (check . "✓") (account . "☺") (loading . "…") (more . "…")
-           (download . "↓") (star . "☆") (radio . "◌") (disc . "◎") (chart . "▥")
+           (download . "↓") (star . "☆") (radio . "◉") (disc . "◎") (chart . "▥")
            (mic . "◍") (clock . "◷") (send . "→") (reply . "←") (users . "▤")
            (at . "@") (dot . "•") (smile . "☺") (image . "▣") (video . "▶")
            (file . "▥") (paperclip . "&") (info . "i") (menu . "≡")

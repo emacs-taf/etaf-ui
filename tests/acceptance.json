@@ -141,12 +141,22 @@
   {
    "name": "etaf-ui-icon-lookup-distinguishes-missing-name-and-set",
    "file": "tests/etaf-ui-icon-tests.el",
-   "purpose": "Partial maps resolve names through the requested/default style, preserve the provided inventory, show unknown names, and reject unknown styles."
+   "purpose": "Partial maps resolve names through the requested/default style, preserve the provided inventory, show unknown names, and reject unknown styles; on a text display the terminal set answers an SVG request first while the requested style still owns names it lacks."
   },
   {
    "name": "etaf-ui-icon-svg-unavailable-has-printable-text-properties",
    "file": "tests/etaf-ui-icon-tests.el",
-   "purpose": "SVG-unavailable rendering preserves the documented printable ASCII variant, text-property paint and default minimum width."
+   "purpose": "SVG-unavailable rendering preserves the terminal mark as printable text with native paint properties and the default minimum width on every row."
+  },
+  {
+   "name": "etaf-ui-icon-text-mark-keeps-the-row-background",
+   "file": "tests/etaf-ui-icon-tests.el",
+   "purpose": "A terminal icon paints ink only: the mark carries the requested foreground without inheriting the default face or a background, so marks of different widths keep one aligned column and a play mark does not cut a hole in its pill."
+  },
+  {
+   "name": "etaf-ui-icon-terminal-set-resolves-marks-from-a-font-set",
+   "file": "tests/etaf-ui-icon-tests.el",
+   "purpose": "A terminal can resolve an SVG request through a registered font set such as nerd and uses its glyph as text, so a terminal with an icon font gets the same marks as a graphical frame."
   },
   {
    "name": "etaf-ui-icon-renders-without-a-default-face-font",
