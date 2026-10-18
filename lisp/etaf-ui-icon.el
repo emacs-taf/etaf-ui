@@ -263,9 +263,21 @@ single centered canvas, sliced at standard row boundaries by the caller."
   "Resolve NAME through SET and return SIZE/LINES text values with PAINT."
   (when set (etaf-ui--icon-spec set))
   (etaf-ui--icon-spec etaf-ui-icon-default-set)
-  (let (spec presentation chosen)
+  (let* ((requested (and set (etaf-ui-icon-set-spec set)))
+         (text-display (not (display-graphic-p)))
+         (candidates
+          (delete-dups
+           ;; A terminal cannot draw an SVG set; the registered text set is its
+           ;; implementation there, so it goes first instead of the artwork.
+           (if (and text-display (eq set 'svg)
+                    (eq (plist-get requested :kind) 'svg))
+               (list 'tty set etaf-ui-icon-default-set 'sys 'svg)
+             (append (list set)
+                     (and text-display '(tty))
+                     (list etaf-ui-icon-default-set 'sys 'svg)))))
+         spec presentation chosen)
     (catch 'found
-      (dolist (candidate (delete-dups (list set etaf-ui-icon-default-set 'sys 'svg)))
+      (dolist (candidate candidates)
         (when-let* ((entry (and candidate (etaf-ui-icon-set-spec candidate))))
           (when (memq name (etaf-ui-icon-names candidate))
             (let ((fontp (eq (plist-get entry :kind) 'font)))
@@ -284,10 +296,15 @@ single centered canvas, sliced at standard row boundaries by the caller."
                        ;; a glyph set as text is clipped by its row.
                        (or (eq (plist-get spec :kind) 'svg) presentation)
                        (etaf-ui--icon-image spec name size lines presentation)))
-           (text (if (and presentation (not image))
-                     (propertize (copy-sequence (cdr (assq name (plist-get spec :glyphs))))
-                                 'face (list (car presentation)))
-                   (etaf-ui--icon-text name spec)))
+           (text (cond
+                  ((and presentation (not image))
+                   (propertize (copy-sequence (cdr (assq name (plist-get spec :glyphs))))
+                               'face (list (car presentation))))
+                  ;; The text set's glyphs are plain characters, not a fallback.
+                  ((and (eq chosen 'tty) text-display)
+                   (or (cdr (assq name (plist-get spec :glyphs)))
+                       (etaf-ui--icon-text name spec)))
+                  (t (etaf-ui--icon-text name spec))))
            (default (etaf-ui--icon-default-info (selected-frame)))
            (safe-face (if default
                           (font-face-attributes (face-font 'default))
@@ -519,6 +536,24 @@ change stays a retained Host update rather than a Component rerender."
                                         (assq-delete-all 'check (assq-delete-all 'close (copy-tree glyphs)))
                                       glyphs))
                           :fallback fallback)))))
+  (etaf-ui-icon-set-register
+   'tty
+   (list :kind 'font :family "monospace" :height 1.0
+         :glyphs
+         '((play . "▶") (pause . "‖") (next . "»") (previous . "«")
+           (repeat . "↻") (repeat-one . "↻") (shuffle . "⇄")
+           (heart . "♡") (heart-filled . "♥")
+           (volume . "♪") (volume-mute . "×") (volume-low . "♪") (volume-high . "♪")
+           (search . "⌕") (refresh . "↻") (close . "✕") (plus . "+") (minus . "−")
+           (queue . "▤") (lyrics . "¶") (list . "▤") (music . "♫") (settings . "⚙")
+           (chevron-up . "⌃") (chevron-down . "⌄") (chevron-left . "‹") (chevron-right . "›")
+           (check . "✓") (account . "☺") (loading . "…") (more . "…")
+           (download . "↓") (star . "☆") (radio . "◌") (disc . "◎") (chart . "▥")
+           (mic . "◍") (clock . "◷") (send . "→") (reply . "←") (users . "▤")
+           (at . "@") (dot . "•") (smile . "☺") (image . "▣") (video . "▶")
+           (file . "▥") (paperclip . "&") (info . "i") (menu . "≡")
+           (more-vertical . "⋮") (eye . "◉"))
+         :fallback fallback))
   (etaf-ui-icon-set-register
    'svg
    (list :kind 'svg :viewbox [0 0 14 14] :inset 2 :fallback fallback

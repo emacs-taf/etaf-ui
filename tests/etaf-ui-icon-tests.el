@@ -33,16 +33,22 @@
       (etaf-ui-icon-set-remove 'test-icons))))
 
 (ert-deftest etaf-ui-icon-lookup-distinguishes-missing-name-and-set ()
-  "Absent names fall through styles to svg; an unknown style is a usage error."
+  "Absent names fall through styles to svg; an unknown style is a usage error.
+On a text display the terminal set answers first, and the requested style still
+owns names that set does not cover."
   (let ((etaf-ui-icon-default-set 'test-default))
     (unwind-protect
         (progn
-          (etaf-ui-icon-set-register 'test-partial '(:kind svg :viewbox [0 0 14 14] :paths ((local . "<path/>")) :fallback ((local . "L"))))
+          (etaf-ui-icon-set-register 'test-partial '(:kind svg :viewbox [0 0 14 14] :paths ((local . "<path/>") (pin . "<path/>")) :fallback ((local . "L") (pin . "P"))))
           (etaf-ui-icon-set-register 'test-default '(:kind svg :viewbox [0 0 14 14] :paths ((play . "<path/>")) :fallback ((play . "D"))))
           (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
-            (should (string-match-p "D" (ebox-render (etaf-render (etaf-ui-icon 'play :set 'test-partial)))))
+            ;; The terminal set implements an SVG request on a text display.
+            (should (string-match-p "▶" (ebox-render (etaf-render (etaf-ui-icon 'play :set 'test-partial)))))
             (should (string-match-p "L" (ebox-render (etaf-render (etaf-ui-icon 'local :set 'test-partial)))))
-            (should (equal ">" (substring-no-properties
+            ;; A name the terminal set lacks still uses the requested style.
+            (should (equal "P" (substring-no-properties
+                                (car (etaf-ui-icon-lines 'pin :set 'test-partial)))))
+            (should (equal "→" (substring-no-properties
                                 (car (etaf-ui-icon-lines 'send :set 'test-partial)))))
             (should (string-match-p "never-an-icon" (ebox-render (etaf-render (etaf-ui-icon 'never-an-icon :set 'test-partial))))))
           (should-not (memq 'play (etaf-ui-icon-names 'test-partial)))
@@ -52,17 +58,17 @@
       (etaf-ui-icon-set-remove 'test-default))))
 
 (ert-deftest etaf-ui-icon-svg-unavailable-has-printable-text-properties ()
-  "Unavailable SVG uses the documented ASCII mark with native paint properties."
+  "Unavailable SVG uses the terminal mark with native paint properties."
   (cl-letf (((symbol-function 'image-type-available-p) (lambda (_type) nil)))
     (let* ((output (ebox-render (etaf-render (etaf-ui-icon 'play :set 'svg :color "#123456"))))
-           (position (string-match ">" output)))
+           (position (string-match "▶" output)))
       (should position)
       (should-not (get-text-property position 'display output))
       (should (get-text-property position 'face output))
       (should (>= (string-width (car (split-string output "\n"))) 2)))
     (let ((lines (etaf-ui-icon-lines 'play :set 'svg :lines 2 :color "#123456")))
       (should (= 2 (length lines)))
-      (should (string-match-p ">" (car lines)))
+      (should (string-match-p "▶" (car lines)))
       (should (get-text-property 0 'face (car lines)))
       (put-text-property 0 1 'test-owned t (car lines))
       (should-not (get-text-property 0 'test-owned (car (etaf-ui-icon-lines 'play :set 'svg)))))
