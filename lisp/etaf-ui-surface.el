@@ -170,17 +170,14 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
   (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
          (runtime (etaf-current-runtime))
          (window-viewport
-          (and runtime (display-graphic-p)
-               (etaf-runtime-window-viewport runtime)))
+          (and runtime (etaf-runtime-window-viewport runtime)))
          (canvas-viewport (and runtime (etaf-runtime-viewport runtime)))
          (viewport-width (or (car window-viewport) (car canvas-viewport)))
          (viewport-height (or (cdr window-viewport) (cdr canvas-viewport)))
          (viewport-height-known
-          (and (display-graphic-p)
-               (numberp viewport-height) (> viewport-height 0)))
+          (and (numberp viewport-height) (> viewport-height 0)))
          (viewport-width-known
-          (and (display-graphic-p)
-               (numberp viewport-width) (> viewport-width 0)))
+          (and (numberp viewport-width) (> viewport-width 0)))
          (requested-width-px
           (pcase width
             (`(ch ,(and n (pred numberp)))

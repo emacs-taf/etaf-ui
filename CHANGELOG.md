@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- Floating surfaces center and clamp themselves in terminal frames too: the
+  window viewport is read for any displaying window and measured in character
+  cells, so dialogs, help and popovers no longer open at the left edge at the
+  full canvas width.
+
 - Full-bleed window resize strips no longer paint the window background over
   the body's outermost column and row. Each strip stays a pointer target but
   keeps an identity backdrop, so an embedded application's own background and
