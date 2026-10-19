@@ -4,6 +4,11 @@
 
 ### Added
 
+- `etaf-ui-theme-tokens` turns an application palette (surface, text,
+  panel, border, muted, accent and status roles) into every color token the
+  catalog reads.  Applications provide one palette instead of listing each
+  `:ui-*` token; omitted roles are derived, and a token placed before the
+  result still overrides it.
 - Terminal frames use a registered `tty` icon set: one-cell Unicode marks for
   the catalog's icon names, so playback, navigation and library controls keep
   their shape without an icon font.  A request for the SVG set selects the

@@ -1047,6 +1047,26 @@
    "name": "etaf-ui-markdown-table-keeps-short-cjk-cells-whole",
    "file": "tests/etaf-ui-markdown-tests.el",
    "purpose": "A starved table column still fits a short CJK word on one line instead of splitting it between characters."
+  },
+  {
+   "name": "etaf-ui-theme-tokens-maps-palette-roles",
+   "file": "tests/etaf-ui-theme-tokens-tests.el",
+   "purpose": "Each supplied application palette role becomes every catalog color token that names it."
+  },
+  {
+   "name": "etaf-ui-theme-tokens-derives-omitted-roles",
+   "file": "tests/etaf-ui-theme-tokens-tests.el",
+   "purpose": "Omitted palette roles derive from the surface, the text and whether the background is light or dark."
+  },
+  {
+   "name": "etaf-ui-theme-tokens-rejects-invalid-palettes",
+   "file": "tests/etaf-ui-theme-tokens-tests.el",
+   "purpose": "A palette without both base colors, with an unknown role or with a non-string color signals wrong-type-argument."
+  },
+  {
+   "name": "etaf-ui-theme-tokens-paint-catalog-components",
+   "file": "tests/etaf-ui-theme-tokens-tests.el",
+   "purpose": "Provided palette tokens paint a mounted catalog control, and a token placed before the result overrides it."
   }
  ]
 }

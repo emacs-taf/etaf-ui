@@ -132,6 +132,120 @@ unchanged, which keeps a Theme that uses a named color usable."
        (* 0.7152 (/ (nth 1 channels) 255.0))
        (* 0.0722 (/ (nth 2 channels) 255.0)))))
 
+;;; Application palettes
+
+(defconst etaf-ui--theme-roles
+  '(:bg :fg :panel :track :border :muted :dim :accent :accent-fg :accent-soft
+        :success :success-bg :success-border :warning :warning-bg :warning-border
+        :danger :danger-bg :danger-border :info :info-bg :info-border)
+  "Palette roles `etaf-ui-theme-tokens' accepts.")
+
+(defconst etaf-ui--theme-status-colors
+  '((:success "#1A7F37" "#3FB950")
+    (:warning "#9A6700" "#D29922")
+    (:danger "#D1242F" "#F85149"))
+  "Status colors for light and dark backgrounds when a palette omits them.")
+
+(defun etaf-ui--theme-palette-roles (palette)
+  "Return PALETTE's roles with every omitted role derived.
+PALETTE must name `:bg' and `:fg' as #RRGGBB strings unless every derived
+role is supplied too."
+  (unless (and (proper-list-p palette) (cl-evenp (length palette)))
+    (signal 'wrong-type-argument (list 'plistp palette)))
+  (cl-loop for (role value) on palette by #'cddr
+           do (unless (memq role etaf-ui--theme-roles)
+                (signal 'wrong-type-argument
+                        (list (cons 'member etaf-ui--theme-roles) role)))
+           do (unless (stringp value)
+                (signal 'wrong-type-argument (list 'stringp role value))))
+  (dolist (role '(:bg :fg))
+    (unless (plist-get palette role)
+      (signal 'wrong-type-argument (list 'stringp role nil))))
+  (let* ((roles (copy-sequence palette))
+         (get (lambda (role) (plist-get roles role)))
+         (default (lambda (role value)
+                    (unless (plist-get roles role)
+                      (setq roles (plist-put roles role value)))))
+         (bg (funcall get :bg))
+         (fg (funcall get :fg))
+         (dark (< (or (etaf-ui--color-luminance bg) 1.0) 0.5)))
+    (funcall default :panel bg)
+    (funcall default :track (funcall get :panel))
+    (funcall default :border (etaf-ui--color-mix bg fg 0.18))
+    (funcall default :muted (etaf-ui--color-mix fg bg 0.35))
+    (funcall default :dim (funcall get :muted))
+    (funcall default :accent fg)
+    (funcall default :accent-fg "#FFFFFF")
+    (funcall default :accent-soft (etaf-ui--color-mix bg (funcall get :accent) 0.16))
+    (dolist (status etaf-ui--theme-status-colors)
+      (funcall default (car status) (if dark (nth 2 status) (nth 1 status))))
+    (funcall default :info (funcall get :accent))
+    (dolist (status '(:success :warning :danger :info))
+      (let ((color (funcall get status))
+            (name (substring (symbol-name status) 1)))
+        (funcall default (intern (format ":%s-bg" name))
+                 (etaf-ui--color-mix bg color 0.12))
+        (funcall default (intern (format ":%s-border" name))
+                 (etaf-ui--color-mix bg color 0.35))))
+    roles))
+
+(defun etaf-ui-theme-tokens (palette)
+  "Return the catalog Theme tokens for application PALETTE.
+PALETTE is a plist of #RRGGBB color roles.  `:bg' (the application
+surface) and `:fg' (its text) are required.  Optional roles, each derived
+when omitted: `:panel' (raised surfaces, default `:bg'), `:track'
+\(progress and range tracks, default `:panel'), `:border' (lines),
+`:muted' (secondary text), `:dim' (disabled text, default `:muted'),
+`:accent' (default `:fg'), `:accent-fg' (text on the accent, default
+white), `:accent-soft' (selection and tonal fills), and `:success',
+`:warning', `:danger' and `:info' (default `:accent'), each with a `-bg'
+and `-border' variant.  The result maps these roles onto every color token
+the catalog components read, so an application provides one coherent
+palette instead of listing each token.  An application that wants a
+different value for one token puts that token before the result when it
+provides the Theme; the first value of a key wins."
+  (let* ((roles (etaf-ui--theme-palette-roles palette))
+         (role (lambda (name) (plist-get roles name)))
+         (bg (funcall role :bg)) (fg (funcall role :fg))
+         (panel (funcall role :panel)) (track (funcall role :track))
+         (border (funcall role :border)) (muted (funcall role :muted))
+         (dim (funcall role :dim)) (accent (funcall role :accent))
+         (accent-fg (funcall role :accent-fg))
+         (accent-soft (funcall role :accent-soft)))
+    (list :ui-fg fg :ui-bg bg :ui-border border :ui-muted-fg muted
+          :ui-disabled-fg dim :ui-disabled-bg panel :ui-disabled-border border
+          :ui-accent accent :ui-accent-fg accent-fg :ui-accent-soft-bg accent-soft
+          :ui-button-primary-fg accent-fg :ui-button-primary-bg accent
+          :ui-button-secondary-fg accent :ui-button-secondary-bg accent-soft
+          :ui-button-ghost-fg muted
+          :ui-success-fg (funcall role :success)
+          :ui-success-bg (funcall role :success-bg)
+          :ui-success-border (funcall role :success-border)
+          :ui-warning-fg (funcall role :warning)
+          :ui-warning-bg (funcall role :warning-bg)
+          :ui-warning-border (funcall role :warning-border)
+          :ui-danger-fg (funcall role :danger)
+          :ui-danger-bg (funcall role :danger-bg)
+          :ui-danger-border (funcall role :danger-border)
+          :ui-info-fg (funcall role :info)
+          :ui-info-bg (funcall role :info-bg)
+          :ui-info-border (funcall role :info-border)
+          :ui-panel-fg fg :ui-panel-bg panel :ui-panel-border border
+          :ui-divider-bg border
+          :ui-progress-track track :ui-range-track track :ui-range-fill accent
+          :ui-table-border border :ui-table-selected-fg accent
+          :ui-table-selected-bg accent-soft
+          :ui-shell-bg panel :ui-shell-fg fg :ui-shell-muted-fg muted
+          :ui-shell-item-fg muted :ui-shell-item-minimized-fg dim
+          :ui-window-bg bg :ui-window-fg fg :ui-window-border border
+          :ui-window-title-bg panel :ui-window-title-fg muted
+          :ui-window-title-active-fg fg
+          :ui-picker-item-bg panel :ui-picker-item-fg fg
+          :ui-picker-item-muted-fg muted
+          :ui-pagination-muted-fg muted
+          :ui-data-grid-error-fg (funcall role :danger)
+          :ui-checkbox-enabled-fg fg :ui-checkbox-disabled-fg dim)))
+
 (defun etaf-ui--state-hover-step (color amount)
   "Return COLOR stepped AMOUNT away from mid grey for a hover fill.
 A dark surface gets a darker fill and a light one a lighter fill, so the

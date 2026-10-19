@@ -3,7 +3,7 @@
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
-;; Version: 0.1.3
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "29.1") (etaf "0.2.2") (ebox "3.0.1"))
 ;; URL: https://github.com/emacs-taf/etaf-ui
 
@@ -26,6 +26,18 @@
 ;; inside them.  Dialogs, drawers, popovers and the media viewer are modal
 ;; key scopes closed by Escape.  `?' opens read-only key help listing the
 ;; keys in scope.
+;;
+;; Function: etaf-ui-theme-tokens (palette)
+;;;###autoload (autoload 'etaf-ui-theme-tokens "etaf-ui" nil nil)
+;; Return the catalog's color Theme tokens for application PALETTE, a plist
+;; of #RRGGBB roles: `:bg' and `:fg' are required; `:panel', `:track',
+;; `:border', `:muted', `:dim', `:accent', `:accent-fg', `:accent-soft' and
+;; the status roles `:success', `:warning', `:danger' and `:info' (each with
+;; `-bg' and `-border' variants) are derived when omitted.  Append the result
+;; to the application's own Theme keys and provide it with
+;; `etaf-theme-provide'; a key placed before the result overrides it, since
+;; the first value of a key wins.  An unknown role, a non-string value or a
+;; missing `:bg' or `:fg' signals `wrong-type-argument'.
 ;;
 ;; Component: etaf-button (&key label on-press disabled id ref class color bgcolor border padding font-size font-weight tab-index aria-label aria-selected help-echo hover-content hover-group pointer use variant)
 ;; Parameters:
