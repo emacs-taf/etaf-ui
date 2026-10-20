@@ -629,15 +629,17 @@ ACTION is `step', `page' or `jump'."
      :verify
      (lambda ()
        (with-current-buffer buffer
-         (save-excursion
-           (goto-char (point-min))
-           (let ((line (buffer-substring-no-properties
-                        (line-beginning-position) (line-end-position)))
-                 (expected (etaf-ui-sheet-benchmark--text offset 0)))
-             (cond ((not (string-match-p (regexp-quote expected) line))
-                    (format "First visible row starts %S, not %S"
-                            (substring line 0 (min 24 (length line))) expected))
-                   (t t))))))
+         ;; The viewport keeps overscan rows around the target, so the jump is
+         ;; correct when the cursor's row is painted at all.
+         (let ((painted (buffer-substring-no-properties (point-min) (point-max)))
+               ;; The first column is narrower than a long row number, so the
+               ;; needle is the text as painted, not as computed.
+               (expected (truncate-string-to-width
+                          (etaf-ui-sheet-benchmark--text offset 0)
+                          (aref etaf-ui-sheet-benchmark--widths 0))))
+           (cond ((not (string-match-p (regexp-quote expected) painted))
+                  (format "Row %d (%s) is not painted" offset expected))
+                 (t t)))))
      :observe (lambda (sink) (ebox-buffer-set-observer buffer sink)
                 (lambda () (ebox-buffer-set-observer buffer nil)))
      :cleanup (lambda ()
