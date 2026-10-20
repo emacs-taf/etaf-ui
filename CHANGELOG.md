@@ -4,6 +4,10 @@
 
 ### Added
 
+- `etaf-ui-qr-paint` paints scanned-code modules as half-block text and
+  `etaf-ui-qr-login` presents that code in a modal sign-in panel.  The
+  caller owns the request cycle and the account state, and the painted
+  glyphs keep pure black on white in both palettes.
 - `etaf-ui-theme-tokens` turns an application palette (surface, text,
   panel, border, muted, accent and status roles) into every color token the
   catalog reads.  Applications provide one palette instead of listing each

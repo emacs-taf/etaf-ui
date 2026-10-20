@@ -3,7 +3,7 @@
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; Package-Requires: ((emacs "29.1") (etaf "0.2.2") (ebox "3.0.1"))
 ;; URL: https://github.com/emacs-taf/etaf-ui
 
@@ -1222,6 +1222,31 @@
 ;; :on-close — Required function (), even while closed. Caller updates visibility.
 ;;
 ;; Compose a modal Dialog and List for caller-owned command selection.
+;;
+;; Function: etaf-ui-qr-paint (rows &optional quiet)
+;;;###autoload (autoload 'etaf-ui-qr-paint "etaf-ui" nil nil)
+;; Paint module ROWS as a scannable code string.
+;; ROWS is a list of strings of "0" and "1"; a shorter row is blank past its
+;; end.  QUIET is the number of blank modules drawn on every side, four when
+;; omitted.  Two module rows share one text row through half blocks, so the
+;; code stays square in a text cell twice as tall as it is wide, and every
+;; glyph keeps pure black on white because a scanner needs that contrast in
+;; both palettes.  The caller or its backend supplies the rows; the function
+;; paints text and contacts nothing.
+;;
+;; Component: etaf-ui-qr-login (&key open code status hint on-close)
+;; Parameters:
+;; :open — Value/ref/computed; default nil (closed). Caller owns visibility.
+;; :code — Optional painted-code string/ref; default nil (no code). Normally from `etaf-ui-qr-paint'.
+;; :status — Optional string/ref; default nil. Transport state or the site's own error.
+;; :hint — Optional string; default "请用手机客户端扫码，并在手机上确认登录。". Explains the confirmation step.
+;; :on-close — Required function (), even while closed. Caller updates visibility.
+;;
+;; Compose a modal Dialog with the painted code and a status line for a
+;; caller-owned sign-in cycle.  The code sizes the panel, the page underneath
+;; keeps its content and only dims, and Escape, the header close control and
+;; the footer cancel button request ON-CLOSE.  The component sends no request
+;; and asks for no credentials; mount it as the application shell's last child.
 ;;
 ;; Component: etaf-tabs (&key items active on-change variant)
 ;; Parameters:

@@ -62,4 +62,81 @@
         (etaf-unmount runtime))
       (kill-buffer buffer))))
 
+(defun etaf-ui-advanced-test--key (key)
+  "Execute the native command bound to KEY in the current test buffer."
+  (let ((command (key-binding (kbd key))))
+    (should (commandp command))
+    (call-interactively command)))
+
+(ert-deftest etaf-ui-qr-paint-draws-modules-with-scannable-contrast ()
+  "The painted code pairs module rows, keeps a quiet zone and stays black on white."
+  (let ((code (etaf-ui-qr-paint '("111" "101" "111"))))
+    (should (equal (split-string code "\n")
+                   (list "           "
+                         "           "
+                         "    █▀█    "
+                         "    ▀▀▀    "
+                         "           "
+                         "           ")))
+    (dolist (position '(2 4 5 16 17))
+      (let ((face (get-text-property position 'face code)))
+        (should (equal "#000000" (plist-get face :foreground)))
+        (should (equal "#FFFFFF" (plist-get face :background))))))
+  ;; A shorter row is blank past its end, and QUIET sets the margin exactly.
+  (should (equal (etaf-ui-qr-paint '("1" "11") 0) "█▄"))
+  (should (equal (nth 1 (split-string (etaf-ui-qr-paint '("11" "10") 2) "\n"))
+                 "  █▀  "))
+  (should-error (etaf-ui-qr-paint '("1" 2)) :type 'wrong-type-argument))
+
+(ert-deftest etaf-ui-qr-login-overlays-the-code-and-returns-its-dismissal ()
+  "The sign-in panel follows caller state, blocks the page and reports close."
+  (with-temp-buffer
+    (let ((open (etaf-ref nil))
+          (code (etaf-ref (etaf-ui-qr-paint '("111" "101" "111"))))
+          (status (etaf-ref "等待扫码…"))
+          (background 0))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              (column :width '(ch 80) :height '(lh 25)
+                (etaf-button :ref 'entry :label "Sign in"
+                             :on-press (lambda () (setf (etaf-value open) t)))
+                (etaf-button :ref 'background :label "Library"
+                             :on-press (lambda () (cl-incf background)))
+                (etaf-ui-qr-login :open open :code code :status status
+                                  :on-close (lambda () (setf (etaf-value open) nil))))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer))))
+              (should-not (string-match-p "扫码登录" (buffer-string)))
+              (etaf-focus runtime 'entry)
+              (etaf-activate runtime)
+              (should (string-match-p "扫码登录" (buffer-string)))
+              (should (string-match-p "█" (buffer-string)))
+              (should (string-match-p "等待扫码…" (buffer-string)))
+              (should (string-match-p "请用手机客户端扫码" (buffer-string)))
+              (should-not (etaf-host-ref-position runtime 'background))
+              (should-error (etaf-focus runtime 'background) :type 'etaf-event-error)
+              (setf (etaf-value status) "已扫码，请在手机上确认")
+              (should (string-match-p "已扫码，请在手机上确认" (buffer-string)))
+              (etaf-ui-advanced-test--key "<escape>")
+              (should-not (etaf-value open))
+              (should-not (string-match-p "扫码登录" (buffer-string)))
+              (should (eq 'entry (etaf-focused-host-ref runtime)))
+              (etaf-activate runtime)
+              (etaf-ui-advanced-test-activate runtime "取消")
+              (should-not (etaf-value open))
+              (should (= background 0))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))
+    (dolist (props '((:open bogus :on-close ignore)
+                     (:code 42 :on-close ignore)
+                     (:status 42 :on-close ignore)
+                     (:hint 7 :on-close ignore)
+                     (:open t)))
+      (with-temp-buffer
+        (should-error (etaf-mount (current-buffer)
+                                  (etaf-node 'etaf-ui-qr-login props nil))
+                      :type 'etaf-component-call-error)))))
+
 ;;; etaf-ui-advanced-tests.el ends here

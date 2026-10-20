@@ -774,6 +774,16 @@
    "purpose": "DatePicker, Tree, Calendar and CommandPalette compose shared public input, navigation and floating-surface contracts."
   },
   {
+   "name": "etaf-ui-qr-paint-draws-modules-with-scannable-contrast",
+   "file": "tests/etaf-ui-advanced-tests.el",
+   "purpose": "Painted sign-in code pairs module rows, honours the quiet zone and keeps black-on-white glyphs; malformed rows are rejected."
+  },
+  {
+   "name": "etaf-ui-qr-login-overlays-the-code-and-returns-its-dismissal",
+   "file": "tests/etaf-ui-advanced-tests.el",
+   "purpose": "The sign-in panel follows caller-owned visibility, code and status, blocks the covered page, and reports close from Escape and its cancel button."
+  },
+  {
    "name": "etaf-ui-composition-components-render-public-contracts",
    "file": "tests/etaf-ui-modern-tests.el",
    "purpose": "Tag, Kbd, Steps and List compose through public props and caller-owned selection callbacks."
