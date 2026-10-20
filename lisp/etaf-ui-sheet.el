@@ -94,7 +94,7 @@
 
 (defun etaf-ui--sheet-cell-px (width char-width)
   "Return the pixels column content WIDTH takes, separator included."
-  (+ (* (+ 2 etaf-cell-line-padding width) char-width) 1))
+  (+ (* (+ (* 2 etaf-cell-line-padding) width) char-width) 1))
 
 (defun etaf-ui--sheet-head-px (state char-width)
   "Return the pixels STATE's row number column takes, separator included."
@@ -301,6 +301,11 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
               number (/ (- number remainder) 26))))
     name))
 
+(defun etaf-ui--sheet-column-ref (state col)
+  "Return the Host reference of STATE's heading for COL."
+  (let ((self (plist-get state :self)))
+    (intern (format "%s-header-%d" self col))))
+
 (defun etaf-ui--sheet-header-children (state)
   "Return STATE's column header as a list of Hosts."
   (let* ((palette (plist-get state :palette))
@@ -339,7 +344,10 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
              (text (concat " " (make-string pad ?\s) name
                            (make-string (max 0 (- width pad (length name))) ?\s)
                            " ")))
-        (push (etaf-node 'box (list :on-drag (plist-get state :header-drag)
+        (push (etaf-node 'box (list :ref (etaf-ui--sheet-column-ref state col)
+                                    :on-drag (lambda (gesture)
+                                               (etaf-ui--sheet-resize-column
+                                                state gesture col))
                                     :width (list 'ch (+ 2 width))
                                     :padding '((lh 0) (ch 0))
                                     :height '(lh 1) :wrap-mode 'none)
@@ -401,6 +409,7 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
              :on-direction (plist-get state :direction)
              :on-reveal (plist-get state :reveal)
              :on-scroll (plist-get state :scroll)
+             :on-cell-at (plist-get state :cell-at)
        (row :ref (plist-get state :header-host)
             :height (list 'lh (if header 1 0))
             :wrap-mode 'none :overflow 'hidden
@@ -413,6 +422,8 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
               :height (list 'lh (progn (etaf-value version)
                                        (etaf-ui--sheet-offset heights first))))
          (row :for (r (number-sequence first (1- end))) :key r
+              :ref (etaf-ui--sheet-row-ref state r)
+              :on-drag (plist-get state :drag)
               :height (list 'lh (progn (etaf-value version)
                                        (etaf-ui--sheet-height heights r)))
               :wrap-mode 'none :overflow 'hidden
@@ -501,56 +512,70 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
 
 ;;; Pointer
 
-(defun etaf-ui--sheet-line-at (state y)
-  "Return the row STATE paints at Y."
+(defun etaf-ui--sheet-row-ref (state row)
+  "Return the Host reference of STATE's ROW."
+  (let ((ref (intern (format "%s-row-%d" (plist-get state :self) row))))
+    (put ref 'etaf-sheet-row row)
+    ref))
+
+(defun etaf-ui--sheet-line-at (_state y)
+  "Return the row the sheet paints at Y."
   (when-let* ((runtime (etaf-current-runtime))
               (window (get-buffer-window (current-buffer) t))
-              (body (plist-get state :body))
-              (origin (etaf-host-ref-position runtime body))
-              (position (posn-point (posn-at-x-y 1 y window))))
-    (when (>= position origin)
-      (etaf-ui--sheet-row-at (plist-get state :heights)
-                             (plist-get state :rows)
-                             (+ (etaf-scroll-offset runtime body)
-                                (count-lines origin position))))))
+              (position (posn-point (posn-at-x-y 1 y window)))
+              (ref (etaf-host-ref-at
+                    runtime position
+                    (lambda (reference)
+                      (and (symbolp reference)
+                           (get reference 'etaf-sheet-row))))))
+    (get ref 'etaf-sheet-row)))
 
 (defun etaf-ui--sheet-col-at (state x)
   "Return the column STATE paints at X."
   (when-let* ((runtime (etaf-current-runtime))
               (char-width (plist-get (etaf-display-metrics runtime) :char-width))
               (avail (etaf-ui--sheet-avail state runtime))
-              (left (etaf-value (plist-get state :left)))
-              (columns (etaf-ui--sheet-visible-cols state char-width avail left))
               (widths (etaf-ui--sheet-prop-value (plist-get state :widths)))
-              (used 0)
-              (col nil))
-    (let ((relative (- x (etaf-ui--sheet-head-px state char-width))))
+              (columns (etaf-ui--sheet-visible-cols
+                        state char-width avail (etaf-value (plist-get state :left)))))
+    (let ((relative (- x (etaf-ui--sheet-head-px state char-width)))
+          (used 0)
+          (col nil))
       (dolist (candidate columns)
         (when (null col)
           (cl-incf used (etaf-ui--sheet-cell-px (aref widths candidate) char-width))
-          (when (< relative used) (setq col candidate)))))
-    col))
+          (when (< relative used) (setq col candidate))))
+      col)))
 
 (defun etaf-ui--sheet-drag (state gesture)
-  "Track STATE's pointer GESTURE: select cells, or resize a row's height."
+  "Track STATE's GESTURE: select cells, or resize a row's height.
+A gesture without a position comes from the keyboard: its `:delta' moves the
+cursor by whole cells from wherever the cursor was when the gesture started."
   (pcase (plist-get gesture :phase)
     ('start
-     (let* ((x (car (plist-get gesture :position)))
-            (y (cdr (plist-get gesture :position)))
+     (let* ((position (plist-get gesture :position))
+            (x (car position))
+            (y (cdr position))
             (char-width (plist-get (etaf-display-metrics) :char-width))
             (head-px (etaf-ui--sheet-head-px state char-width))
-            (row-head (and (plist-get state :row-head) (< x head-px))))
+            (row-head (and position (plist-get state :row-head) (< x head-px))))
        (setq etaf-ui--sheet-drag
              (list :mode (if row-head 'row 'select)
-                   :row (and row-head (etaf-ui--sheet-line-at state y))))
+                   :row (and row-head (etaf-ui--sheet-line-at state y))
+                   :anchor (etaf-value (plist-get state :cursor))))
        (unless row-head
-         (when-let* ((col (etaf-ui--sheet-col-at state x))
-                     (row (etaf-ui--sheet-line-at state y)))
-           (etaf-set-value (plist-get state :cursor) (cons row col))
-           (when-let* ((region (plist-get state :region)))
-             (etaf-set-value region (cons row col)))))))
+         (if (null position)
+             ;; Keyboard drag: the cursor is already the gesture's target.
+             (when-let* ((region (plist-get state :region)))
+               (etaf-set-value region (etaf-value (plist-get state :cursor))))
+           (when-let* ((col (etaf-ui--sheet-col-at state x))
+                       (row (etaf-ui--sheet-line-at state y)))
+             (etaf-set-value (plist-get state :cursor) (cons row col))
+             (when-let* ((region (plist-get state :region)))
+               (etaf-set-value region (cons row col))))))))
     ('move
-     (let ((mode (plist-get etaf-ui--sheet-drag :mode)))
+     (let ((mode (plist-get etaf-ui--sheet-drag :mode))
+           (position (plist-get gesture :position)))
        (if (eq mode 'row)
            (when-let* ((row (plist-get etaf-ui--sheet-drag :row))
                        (resize (plist-get state :resize-row)))
@@ -558,19 +583,35 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
                                                    (etaf-ui--sheet-line-height-px)))))))
                (unless (= lines (etaf-ui--sheet-height (plist-get state :heights) row))
                  (funcall resize row lines))))
-         (when-let* ((col (etaf-ui--sheet-col-at state (car (plist-get gesture :position))))
-                     (row (etaf-ui--sheet-line-at state (cdr (plist-get gesture :position)))))
-           (etaf-set-value (plist-get state :cursor) (cons row col))))))
+         (if (null position)
+             (let* ((delta (plist-get gesture :delta))
+                    (char-width (plist-get (etaf-display-metrics) :char-width))
+                    (lines (round (cdr delta) (etaf-ui--sheet-line-height-px)))
+                    (columns (round (car delta) char-width))
+                    (anchor (or (plist-get etaf-ui--sheet-drag :anchor)
+                                (etaf-value (plist-get state :cursor)))))
+               (etaf-set-value (plist-get state :cursor)
+                               (etaf-ui--sheet-clamp
+                                state (cons (+ (car anchor) lines)
+                                            (+ (cdr anchor) columns)))))
+           (when-let* ((col (etaf-ui--sheet-col-at state (car position)))
+                       (row (etaf-ui--sheet-line-at state (cdr position))))
+             (etaf-set-value (plist-get state :cursor) (cons row col)))))))
     ('end (setq etaf-ui--sheet-drag nil))))
 
-(defun etaf-ui--sheet-resize-column (state gesture)
-  "Resize the column of STATE's header GESTURE through its caller."
+(defun etaf-ui--sheet-resize-column (state gesture &optional own-col)
+  "Resize a column of STATE from its heading GESTURE through the caller.
+OWN-COL names the heading's column for a gesture without a position; a pointer
+gesture finds the column under it."
   (let ((resize (plist-get state :resize-column))
-        (phase (plist-get gesture :phase)))
+        (phase (plist-get gesture :phase))
+        (position (plist-get gesture :position)))
     (when (and resize (memq phase '(start move end)))
       (let* ((char-width (plist-get (etaf-display-metrics) :char-width))
-             (x (car (plist-get gesture :position)))
-             (col (etaf-ui--sheet-col-at state x))
+             (col (or own-col
+                      (if position
+                          (etaf-ui--sheet-col-at state (car position))
+                        (plist-get etaf-ui--sheet-drag :col))))
              (widths (etaf-ui--sheet-prop-value (plist-get state :widths))))
         (when col
           (if (eq phase 'start)
@@ -645,6 +686,12 @@ PART `before' or `after' stops at the edited cell, which is a Host of its own."
     (setq state
           (plist-put state :reveal
                      (lambda () (etaf-ui--sheet-reveal-now state))))
+    (setq state
+          (plist-put state :cell-at
+                     (lambda (xy)
+                       (let ((col (etaf-ui--sheet-col-at state (car xy)))
+                             (row (etaf-ui--sheet-line-at state (cdr xy))))
+                         (and col row (cons row col))))))
     (setq state
           (plist-put state :scroll
                      (lambda (lines)
@@ -774,6 +821,13 @@ back through the caller's callbacks."
          :keys keys :on-commit on-commit :on-edit-cancel on-edit-cancel
          :resize-row on-resize-row :resize-column on-resize-column
          :on-commit on-commit)))
+
+(defun etaf-sheet-cell-at (runtime ref x y)
+  "Return the cell `(ROW . COL)' of the sheet REF in RUNTIME at X and Y.
+X and Y are window pixels, as a pointer gesture reports them. The result is
+nil when the position is outside the sheet's body, which is what an
+application needs to tell a press on a cell from one on the chrome."
+  (etaf-dispatch-event runtime ref 'cell-at (cons x y) t))
 
 (defun etaf-sheet-begin-edit (runtime ref editing cell)
   "Begin editing CELL in the sheet REF of RUNTIME.

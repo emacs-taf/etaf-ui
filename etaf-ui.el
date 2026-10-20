@@ -300,6 +300,15 @@
 ;; editing row is published before the field takes focus.
 ;; Use it for Excel's type-to-edit, which replaces a cell with what was typed.
 ;;
+;; Function: etaf-sheet-cell-at (runtime ref x y)
+;;;###autoload (autoload 'etaf-sheet-cell-at "etaf-ui" nil nil)
+;; Return the cell (ROW . COL) of the sheet REF in mounted RUNTIME at X and Y.
+;;
+;; X and Y are window pixels, as a pointer gesture reports them. The result is
+;; nil when the position is outside the sheet's body, so an application can tell
+;; a press on a cell from one on the chrome around it, for a context menu or a
+;; drop target. The sheet's own presses use the same mapping.
+;;
 ;; Function: etaf-sheet-scroll (runtime &optional ref lines)
 ;;;###autoload (autoload 'etaf-sheet-scroll "etaf-ui" nil nil)
 ;; Scroll the sheet REF of mounted RUNTIME by LINES, negative upwards.
