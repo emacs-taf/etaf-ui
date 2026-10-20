@@ -1087,6 +1087,56 @@
    "name": "etaf-ui-theme-tokens-paint-catalog-components",
    "file": "tests/etaf-ui-theme-tokens-tests.el",
    "purpose": "Provided palette tokens paint a mounted catalog control, and a token placed before the result overrides it."
+  },
+  {
+   "name": "etaf-ui-cell-line-fits-aligns-and-separates-cells",
+   "file": "tests/etaf-ui-cell-line-tests.el",
+   "purpose": "Cells keep their declared width, align their text, truncate overflow and end in a separator."
+  },
+  {
+   "name": "etaf-ui-cell-line-paints-ebox-stripes-and-the-row-rule",
+   "file": "tests/etaf-ui-cell-line-tests.el",
+   "purpose": "Separators are one-pixel spaces or box-rule glyphs with per-cell colours, and the row rule spans the line."
+  },
+  {
+   "name": "etaf-ui-cell-line-rejects-cells-it-cannot-paint",
+   "file": "tests/etaf-ui-cell-line-tests.el",
+   "purpose": "Broken widths, non-string or multi-line text and unknown alignment fail instead of painting."
+  },
+  {
+   "name": "etaf-ui-sheet-builds-only-the-viewport",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "A 100000-row sheet paints only its viewport, and revealing a far cursor scrolls to it."
+  },
+  {
+   "name": "etaf-ui-sheet-paints-cursor-and-selection",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "The cursor cell keeps its outline, selected cells take the selection fill, unselected ones do not."
+  },
+  {
+   "name": "etaf-ui-sheet-repaints-when-the-caller-bumps-version",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "Cell text changes reach the sheet only after the caller bumps the version ref."
+  },
+  {
+   "name": "etaf-ui-sheet-adds-lines-for-a-tall-row",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "A row declared taller paints filler lines that keep the row rule and push later rows down."
+  },
+  {
+   "name": "etaf-ui-sheet-edits-a-cell-through-the-field",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "Editing promotes the cell into a text field showing its raw value and reports the submitted text."
+  },
+  {
+   "name": "etaf-ui-sheet-rejects-invalid-props",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "Invalid sizes, widths, callbacks, cursor and header declarations signal before publication."
+  },
+  {
+   "name": "etaf-ui-sheet-pages-the-viewport-without-moving-the-cursor",
+   "file": "tests/etaf-ui-sheet-tests.el",
+   "purpose": "etaf-sheet-scroll pages by lines, shows later rows, and leaves the caller's cursor untouched."
   }
  ]
 }

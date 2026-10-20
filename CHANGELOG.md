@@ -4,6 +4,25 @@
 
 ### Added
 
+- `etaf-cell-line` paints one grid line of caller-owned cells with the same
+  one-pixel side stripes and closing underline an Ebox box uses, so a row of
+  cells is one text Host instead of two Hosts per cell.  Selected cells keep
+  their fill up to the stroke, no half-cell gap appears between cells, and the
+  row rule runs unbroken across every separator; `etaf-cell-line-width`
+  reports the line's character width.
+
+- `etaf-sheet` shows a caller-owned grid of cells as a scrolling sheet with
+  spreadsheet borders, a cursor cell, a rectangular selection and an in-place
+  editor.  It builds one text Host per visible row, so mounting, scrolling and
+  repainting follow the viewport rather than the sheet: with 5000 rows of
+  grid-table data a line scroll costs 2.3 ms of command time and a cursor move
+  1.4 ms, while the same data through grid-table's own renderer costs 24 ms and
+  12.5 ms.  Arrow keys move the cursor, Shift extends the selection, F2 and RET
+  edit the cell through `etaf-text-input`, dragged column headings and row
+  numbers resize them, and `etaf-sheet-reveal`, `etaf-sheet-scroll` and
+  `etaf-sheet-begin-edit` drive it from application code.  Colours come from the
+  catalog palette, with dark-frame colours and a `:colors` override.
+
 - `etaf-text-grid` accepts `:height`, `:ref` and `:on-scroll`.  With a
   height the grid shows that many lines in a scrolling viewport and builds
   only the rows near it, so mounting and scrolling cost the same for a

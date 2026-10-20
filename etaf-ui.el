@@ -205,6 +205,119 @@
 ;; (etaf-text-grid :rows 1000000 :columns 80 :height 30 :ref 'log
 ;;                 :row-text read-row) for a long scrolling surface.
 ;;
+;; Function: etaf-cell-line (cells &key (stripe 'px) border-color rule rule-color leading-edge)
+;;;###autoload (autoload 'etaf-cell-line "etaf-ui" nil nil)
+;; Return the styled text of one grid line holding CELLS.
+;;
+;; Parameters:
+;; :cells — Required list of cell plists: :width (content characters, required), :text (one line, no tabs), :align (left, right or center), :face (a face or face plist over the text) and :edge (the colour of the separator after this cell).
+;; :stripe — `px' (default) or `glyph'. One-pixel spaces with a background, or the box-rule character on a frame that cannot paint pixels.
+;; :border-color — Separator colour used when a cell names no :edge.
+;; :rule — Optional flag; default nil. Paint the row's bottom rule across the whole line.
+;; :rule-color — Colour of that rule; a rule without a colour paints nothing.
+;; :leading-edge — Optional colour of one separator before the first cell.
+;;
+;; Lay out CELLS at their declared widths, padded by one space on each side and
+;; aligned, and separate them with the stripe an Ebox box paints for a side
+;; border. A selected cell's fill therefore reaches the stroke, and no
+;; half-cell gap, overhanging rule or unaligned column can appear. RULE paints
+;; the underline an Ebox box paints on its last line, continuous across every
+;; separator, which is what closes a cell row without a second Host.
+;; The painter owns no state, no scrolling and no interaction: a grid surface
+;; decides which cells are visible and what each one says, and calls this once
+;; per line, so a row of cells costs one text Host rather than two per cell.
+;; Cell widths, texts, alignment and multi-line content are validated; invalid
+;; cells signal an error, and `etaf-cell-line-width' reports the line's
+;; character width for callers that size a surface.
+;; Use (etaf-cell-line (list (list :width 8 :text "Item 1")
+;;                            (list :width 5 :text "38" :align 'right))
+;;                      :border-color "#687386" :rule t :rule-color "#687386").
+;;
+;; Function: etaf-cell-line-width (cells)
+;;;###autoload (autoload 'etaf-cell-line-width "etaf-ui" nil nil)
+;; Return how many characters wide a line of CELLS is, separators included.
+;;
+;; CELLS is the same cell list `etaf-cell-line' paints. The count includes each
+;; cell's padding and one separator per cell, so a surface can size its Host
+;; before painting.
+;;
+;; Component: etaf-sheet (&key rows columns widths heights version cell-text cell-face cell-align header row-head cursor region height editing cell-edit-text colors on-commit on-edit-cancel on-resize-column on-resize-row keys label ref)
+;; Parameters:
+;; :rows, :columns — Required positive integers. Sheet size.
+;; :widths — Required vector of content widths in characters, or a reactive source holding one.
+;; :heights — Optional eql hash from row to extra lines; default nil (every row is one line).
+;; :version — Optional writable ref; bump it after changing cell text so the sheet asks CELL-TEXT again.
+;; :cell-text — Required function (row column) returning the cell's one-line text.
+;; :cell-face — Optional function (row column) returning a face merged over the cell's text; default nil.
+;; :cell-align — Optional function (row column) returning left, right or center; default nil (left).
+;; :header — Column headings: t for spreadsheet letters, a function (column) or nil to omit the header line.
+;; :row-head — Row headings: t for row numbers, a function (row) or nil to omit the number column.
+;; :cursor — Required writable ref of the active cell (ROW . COL).
+;; :region — Optional writable ref of the selection's other corner; default nil (the cursor cell alone).
+;; :height — Required positive integer. Visible body lines.
+;; :editing — Optional writable ref naming the cell being edited; default nil (no editor).
+;; :cell-edit-text — Optional function (row column) with the text an edit starts from; default CELL-TEXT.
+;; :on-commit — Optional function (row column text) receiving a submitted edit; default nil (no editing).
+;; :on-edit-cancel — Optional function (text) receiving an abandoned edit.
+;; :on-resize-column — Optional function (column width) from a dragged column heading.
+;; :on-resize-row — Optional function (row lines) from a dragged row number.
+;; :colors — Optional colour plist overriding :border, :rule, :selected, :selected-fg, :head, :muted and :accent.
+;; :keys — Optional additional (KEY COMMAND LABEL) entries, placed before the sheet's own.
+;; :label — String; default "Sheet". Accessible name of the grid.
+;; :ref — Optional Host reference; an application that edits programmatically needs a stable one.
+;;
+;; Show a caller-owned grid of cells as a scrolling sheet with spreadsheet
+;; borders, a cursor cell, a rectangular selection and an in-place editor.
+;; The sheet owns the viewport: which rows and columns are built, where the
+;; scroller sits and which cell a pointer landed on. It owns no cells: text,
+;; widths, heights and every change come from the caller, so formulas,
+;; formatting, undo and persistence stay in the caller's model. One text Host
+;; per visible row is built with `etaf-cell-line', so mounting, scrolling and
+;; repainting cost the viewport rather than the sheet; only the edited cell
+;; becomes a Host of its own, an `etaf-text-input' that the sheet focuses.
+;; Arrow keys move the cursor, Shift with an arrow extends the selection, F2
+;; and RET begin an edit, and the horizontal wheel scrolls columns. Column
+;; headings resize their column and row numbers resize their row when the
+;; corresponding callbacks are supplied. Colours come from the catalog palette
+;; (`:ui-table-border', `:ui-table-selected-bg', `:ui-table-selected-fg',
+;; `:ui-panel-bg', `:ui-muted-fg', `:ui-accent'), a dark frame gets the sheet's
+;; own dark colours, and :colors overrides either; a text frame paints
+;; box-rule separators instead of one-pixel stripes. Invalid sizes, callbacks or references signal
+;; `etaf-component-call-error' before publication.
+;; Use (etaf-view (etaf-sheet :rows 1000 :columns 6 :widths widths
+;;                            :height 20 :cursor cursor :cell-text read-cell
+;;                            :on-commit write-cell :ref 'orders)).
+;;
+;; Function: etaf-sheet-begin-edit (runtime ref editing cell)
+;;;###autoload (autoload 'etaf-sheet-begin-edit "etaf-ui" nil nil)
+;; Begin editing CELL in the sheet REF of mounted RUNTIME.
+;;
+;; EDITING is the writable ref the sheet took as `:editing', and REF the stable
+;; `:ref' it took, because the editor Host is addressable as REF's `-editor'
+;; companion. Sets EDITING to CELL, then starts the field's native session and
+;; returns its reference, or nil when the sheet or its editor is not mounted.
+;; Call it from a command or key handler, outside a reactive batch, so the
+;; editing row is published before the field takes focus.
+;; Use it for Excel's type-to-edit, which replaces a cell with what was typed.
+;;
+;; Function: etaf-sheet-scroll (runtime &optional ref lines)
+;;;###autoload (autoload 'etaf-sheet-scroll "etaf-ui" nil nil)
+;; Scroll the sheet REF of mounted RUNTIME by LINES, negative upwards.
+;;
+;; REF defaults to `etaf-sheet', and LINES defaults to one page: the sheet's
+;; visible body height. Scrolling moves the viewport only, so an application
+;; that pages a sheet also moves the `:cursor' ref and reveals it. Use it for
+;; page keys, a scrollbar-free "jump to row" or a benchmark harness; the sheet's
+;; own pointer wheel and arrow keys need no help.
+;;
+;; Function: etaf-sheet-reveal (runtime &optional ref)
+;;;###autoload (autoload 'etaf-sheet-reveal "etaf-ui" nil nil)
+;; Scroll the sheet REF of mounted RUNTIME so its cursor cell is visible.
+;;
+;; REF defaults to `etaf-sheet'. The sheet's own keys and pointer drags reveal
+;; the cursor already; call this after moving `:cursor' from application code,
+;; for example a "go to cell" command or a restored session.
+;;
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
 ;; Parameters:
 ;; :controller — Required caller-owned ETAF Data Controller; create it before rendering and stop it at its owner's disposal.
@@ -1676,6 +1789,8 @@
 (require 'etaf-ui-data)
 (require 'etaf-ui-tile-grid)
 (require 'etaf-ui-text-grid)
+(require 'etaf-ui-cell-line)
+(require 'etaf-ui-sheet)
 (require 'etaf-ui-playing-card)
 (require 'etaf-ui-advanced)
 (require 'etaf-ui-window)

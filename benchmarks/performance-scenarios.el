@@ -563,6 +563,96 @@ ACTION is `step', `page', `jump' or `column'."
                           (nth 2 case))
      :setup (lambda (mode) (etaf-ui-text-grid-benchmark--fixture mode action)))))
 
+;;;; Scrolling cell sheet
+
+(defconst etaf-ui-sheet-benchmark--rows 1000000
+  "Rows of the cell sheet workload.")
+
+(defconst etaf-ui-sheet-benchmark--height 40
+  "Visible body lines of the cell sheet workload.")
+
+(defconst etaf-ui-sheet-benchmark--widths
+  (vector 9 5 6 8 10 7 12 9 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7)
+  "Column widths of the cell sheet workload.")
+
+(defun etaf-ui-sheet-benchmark--text (row column)
+  "Return the cell text of ROW and COLUMN."
+  (cl-case column
+    (0 (format "Item %d" row))
+    (1 (number-to-string (% (* row 37) 500)))
+    (2 (format "%.2f" (/ (* 1.0 (1+ (% (* row 91) 900))) 7)))
+    (4 (format "2026-%02d-%02d" (1+ (% row 12)) (1+ (% (* row 7) 28))))
+    (t (number-to-string (% (+ (* row 100) column) 10000000)))))
+
+(defun etaf-ui-sheet-benchmark--align (_row column)
+  "Return the alignment of ROW and COLUMN."
+  (if (memq column '(1 2 3)) 'right 'left))
+
+(defun etaf-ui-sheet-benchmark--fixture (mode action)
+  "Mount a million-row cell sheet for MODE and repeat ACTION.
+ACTION is `step', `page' or `jump'."
+  (let* ((buffer (generate-new-buffer " *Sheet benchmark*"))
+         (rows etaf-ui-sheet-benchmark--rows)
+         (height etaf-ui-sheet-benchmark--height)
+         (cursor (etaf-ref (cons 0 0) :test #'equal))
+         (runtime
+          (progn
+            (etaf-mount buffer
+                        (etaf-view
+                         (etaf-sheet :rows rows
+                                     :columns (length etaf-ui-sheet-benchmark--widths)
+                                     :widths etaf-ui-sheet-benchmark--widths
+                                     :height height :cursor cursor :ref 'sheet
+                                     :cell-text #'etaf-ui-sheet-benchmark--text
+                                     :cell-align #'etaf-ui-sheet-benchmark--align
+                                     :on-commit #'ignore)))
+            (etaf-runtime-for-buffer buffer)))
+         (offset 0))
+    (list
+     :buffer buffer :environment #'etaf-ui-benchmark--environment
+     :ready (lambda ()
+              (if (eq mode 'gui) (etaf-refit runtime (selected-window))
+                (etaf-runtime-refit runtime (* 250 (frame-char-width)) 50))
+              t)
+     :invoke
+     (lambda (index)
+       (pcase action
+         ('step (setq offset (1+ offset))
+                (etaf-sheet-scroll runtime 'sheet 1))
+         ('page (setq offset (+ offset height))
+                (etaf-sheet-scroll runtime 'sheet height))
+         ('jump (setq offset (% (* (1+ index) 104729) (- rows height)))
+                (etaf-set-value cursor (cons offset 1))
+                (etaf-sheet-reveal runtime 'sheet))))
+     :outcome (lambda () (append (list :offset offset)
+                                 (etaf-ui-benchmark--outcome buffer runtime)))
+     :verify
+     (lambda ()
+       (with-current-buffer buffer
+         (save-excursion
+           (goto-char (point-min))
+           (let ((line (buffer-substring-no-properties
+                        (line-beginning-position) (line-end-position)))
+                 (expected (etaf-ui-sheet-benchmark--text offset 0)))
+             (cond ((not (string-match-p (regexp-quote expected) line))
+                    (format "First visible row starts %S, not %S"
+                            (substring line 0 (min 24 (length line))) expected))
+                   (t t))))))
+     :observe (lambda (sink) (ebox-buffer-set-observer buffer sink)
+                (lambda () (ebox-buffer-set-observer buffer nil)))
+     :cleanup (lambda ()
+                (when (etaf-runtime-for-buffer buffer) (etaf-unmount runtime))
+                (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(dolist (case '((step 16 "one line") (page 50 "one viewport") (jump 50 "a far row")))
+  (let ((action (car case)))
+    (taf-benchmark-register
+     (format "sheet.scroll.%s" action)
+     :version 1 :modes '(batch gui) :isolation 'series
+     :required-providers '(ebox) :budget-ms (nth 1 case) :impact 'subtree
+     :description (format "Scroll a million-row cell sheet by %s" (nth 2 case))
+     :setup (lambda (mode) (etaf-ui-sheet-benchmark--fixture mode action)))))
+
 (defun etaf-ui-editor-benchmark--typing (shared)
   "Compare native typing with SHARED editing behavior on the same text size."
   (let ((buffer (generate-new-buffer " *Editor typing benchmark*"))
