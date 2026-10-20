@@ -482,6 +482,87 @@ SIZE is the expected (WIDTH-PIXELS HEIGHT-LINES) window rectangle."
  :description "Real catalog window corner through native press, movement and release"
  :setup (lambda (_mode) (etaf-ui-resize-benchmark--native-fixture)))
 
+;;;; Scrolling text grid
+
+(defconst etaf-ui-text-grid-benchmark--rows 1000000
+  "Rows of the scrolling spreadsheet workload.")
+
+(defconst etaf-ui-text-grid-benchmark--height 40
+  "Visible lines of the scrolling spreadsheet workload.")
+
+(defun etaf-ui-text-grid-benchmark--cell (row column)
+  "Return the eight-column cell text of ROW and COLUMN."
+  (format "%7d " (% (+ (* row 100) column) 10000000)))
+
+(defun etaf-ui-text-grid-benchmark--fixture (mode action)
+  "Mount a million-row, 31-cell styled grid for MODE and repeat ACTION.
+ACTION is `step', `page', `jump' or `column'."
+  (let* ((buffer (generate-new-buffer " *Text grid benchmark*"))
+         (rows etaf-ui-text-grid-benchmark--rows)
+         (height etaf-ui-text-grid-benchmark--height)
+         (left (etaf-ref 0))
+         (row-text
+          (lambda (row)
+            (let ((first (etaf-value left)))
+              (concat (propertize (format "%7d " row) 'face 'bold)
+                      (mapconcat
+                       (lambda (column)
+                         (propertize (etaf-ui-text-grid-benchmark--cell row column)
+                                     'face (if (zerop (% (+ row column) 7)) 'italic 'default)))
+                       (number-sequence first (+ first 29)) "")))))
+         (runtime (progn
+                    (etaf-mount buffer
+                                (etaf-view (etaf-text-grid :rows rows :columns 248
+                                                           :height height :ref 'sheet
+                                                           :row-text row-text)))
+                    (etaf-runtime-for-buffer buffer)))
+         (offset 0) (column 0))
+    (list
+     :buffer buffer :environment #'etaf-ui-benchmark--environment
+     :ready (lambda ()
+              (if (eq mode 'gui) (etaf-refit runtime (selected-window))
+                (etaf-runtime-refit runtime (* 250 (frame-char-width)) 50))
+              t)
+     :invoke
+     (lambda (index)
+       (pcase action
+         ('step (setq offset (1+ offset)) (etaf-scroll-by runtime 'sheet 1))
+         ('page (setq offset (+ offset height)) (etaf-scroll-by runtime 'sheet height))
+         ('jump (setq offset (% (* (1+ index) 104729) (- rows height)))
+                (etaf-scroll-to runtime 'sheet offset))
+         ('column (setq column (1+ column)) (setf (etaf-value left) column))))
+     :outcome (lambda () (append (list :offset offset :column column)
+                                 (etaf-ui-benchmark--outcome buffer runtime)))
+     :verify
+     (lambda ()
+       (with-current-buffer buffer
+         (let ((first (buffer-substring-no-properties
+                       (point-min) (min (point-max) (+ (point-min) 16))))
+               (expected (concat (format "%7d " offset)
+                                 (etaf-ui-text-grid-benchmark--cell offset column))))
+           (cond ((/= (etaf-scroll-offset runtime 'sheet) offset)
+                  (format "Viewport shows row %d, not %d"
+                          (etaf-scroll-offset runtime 'sheet) offset))
+                 ((not (equal first expected))
+                  (format "First line starts %S, not %S" first expected))
+                 (t t)))))
+     :observe (lambda (sink) (ebox-buffer-set-observer buffer sink)
+                (lambda () (ebox-buffer-set-observer buffer nil)))
+     :cleanup (lambda ()
+                (when (etaf-runtime-for-buffer buffer) (etaf-unmount runtime))
+                (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(dolist (case '((step 16 "one line") (page 50 "one viewport")
+                (jump 50 "a far row") (column 50 "one column")))
+  (let ((action (car case)))
+    (taf-benchmark-register
+     (format "text-grid.scroll.%s" action)
+     :version 1 :modes '(batch gui) :isolation 'series
+     :required-providers '(ebox) :budget-ms (nth 1 case) :impact 'subtree
+     :description (format "Scroll a million-row, 31-cell styled text grid by %s"
+                          (nth 2 case))
+     :setup (lambda (mode) (etaf-ui-text-grid-benchmark--fixture mode action)))))
+
 (defun etaf-ui-editor-benchmark--typing (shared)
   "Compare native typing with SHARED editing behavior on the same text size."
   (let ((buffer (generate-new-buffer " *Editor typing benchmark*"))

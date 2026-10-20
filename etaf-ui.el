@@ -172,12 +172,15 @@
 ;; etaf-component-call-error. Use (etaf-view (etaf-playing-card :rank "A"
 ;; :suit 'hearts :on-press (lambda () ...))). No game backend is required.
 ;;
-;; Component: etaf-text-grid (&key rows columns row-text row-ref label)
+;; Component: etaf-text-grid (&key rows columns row-text row-ref label height ref on-scroll)
 ;; Parameters:
 ;; :rows, :columns — Required positive integers. Text line count and character-column capacity per line.
 ;; :row-text — Required pure function (zero-based-row) returning a single-line string fitting :columns; short strings are padded.
-;; :row-ref — Optional pure function (zero-based-row) returning distinct Text Host references; default nil (instance-local).
+;; :row-ref — Optional pure function (zero-based-row) returning distinct Text Host references; default nil (no row references).
 ;; :label — String; default "Text grid". Accessible name of this read-only surface.
+;; :height — Optional positive integer; default nil (every row shows). Lines shown in a scrolling viewport.
+;; :ref — Optional Host reference of the surface; default instance-local. Target of etaf-scroll-to, etaf-scroll-by and etaf-scroll-offset.
+;; :on-scroll — Optional function (first-visible-row); default nil. Called after the viewport moves.
 ;;
 ;; Display ROWS fixed text lines, each COLUMNS character columns wide.
 ;; Dimensions are positive integers. ROW-TEXT is a required callback receiving
@@ -189,8 +192,18 @@
 ;; LABEL names the read-only surface (default "Text grid"). The component has
 ;; no focus targets, input handling, timers or terminal escape interpretation.
 ;; Use monospaced text; wide characters occupy their Emacs display width.
+;; With HEIGHT the surface shows HEIGHT lines that scroll, and it builds only
+;; the rows near that viewport while spacers stand for the rest: mounting,
+;; scrolling and repainting the viewport cost the same for any number of rows,
+;; and ROW-TEXT runs only for built rows. The wheel, the scroll keys and
+;; etaf-scroll-to/etaf-scroll-by on REF move the viewport; etaf-scroll-offset
+;; and ON-SCROLL report the first visible row. Shrinking ROWS below the
+;; viewport clamps it to the last rows. To scroll columns, keep the first
+;; column in a ref that ROW-TEXT reads. Without HEIGHT every row is built.
 ;; Invalid dimensions, callbacks or row content signal etaf-component-call-error.
-;; Use (etaf-view (etaf-text-grid :rows 24 :columns 80 :row-text read-row)).
+;; Use (etaf-view (etaf-text-grid :rows 24 :columns 80 :row-text read-row)), or
+;; (etaf-text-grid :rows 1000000 :columns 80 :height 30 :ref 'log
+;;                 :row-text read-row) for a long scrolling surface.
 ;;
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
 ;; Parameters:

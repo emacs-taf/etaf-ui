@@ -936,7 +936,17 @@
   {
    "name": "etaf-ui-text-grid-rejects-invalid-shapes-and-text",
    "file": "tests/etaf-ui-text-grid-tests.el",
-   "purpose": "Invalid dimensions, callbacks, multiline, tabbed and overflowing text fail through the public component interface."
+   "purpose": "Invalid dimensions, heights, callbacks, multiline, tabbed and overflowing text fail through the public component interface."
+  },
+  {
+   "name": "etaf-ui-text-grid-scrolls-a-million-rows-through-its-viewport",
+   "file": "tests/etaf-ui-text-grid-tests.el",
+   "purpose": "A million-row grid with a height shows its viewport, follows scroll calls and keys, reports the first visible row, repaints rows that read a changed ref and builds only rows near the viewport."
+  },
+  {
+   "name": "etaf-ui-text-grid-keeps-its-viewport-within-changing-rows",
+   "file": "tests/etaf-ui-text-grid-tests.el",
+   "purpose": "Shrinking the row count below a scrolled grid clamps its viewport to the last rows, and a grown grid scrolls into the new rows."
   },
   {
    "name": "etaf-ui-window-body-reads-the-content-region",

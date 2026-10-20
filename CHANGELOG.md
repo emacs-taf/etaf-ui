@@ -4,6 +4,15 @@
 
 ### Added
 
+- `etaf-text-grid` accepts `:height`, `:ref` and `:on-scroll`.  With a
+  height the grid shows that many lines in a scrolling viewport and builds
+  only the rows near it, so mounting and scrolling cost the same for a
+  thousand or a million rows: in batch a million-row, 31-cell grid mounts in
+  9 ms, steps one line in 1.2 ms and jumps anywhere in 10 ms.  The wheel,
+  scroll keys and `etaf-scroll-*` calls on `:ref` move it, and `:on-scroll`
+  receives the first visible row.  Scroll columns by keeping the first
+  column in a ref the row callback reads.
+
 - `etaf-ui-qr-paint` paints scanned-code modules as half-block text and
   `etaf-ui-qr-login` presents that code in a modal sign-in panel.  The
   caller owns the request cycle and the account state, and the painted
