@@ -1775,10 +1775,17 @@
 (eval-and-compile
   (defconst etaf-ui--root
     (file-name-directory
-     (or load-file-name
+     (or (and load-file-name
+              ;; A native-compiled file lives in `eln-cache', where no
+              ;; sibling `lisp' directory exists.
+              (not (string-suffix-p ".eln" load-file-name))
+              load-file-name)
          (bound-and-true-p byte-compile-current-file)
+         (locate-library "etaf-ui")
          buffer-file-name))
-    "Directory of this package entry, resolved when it is loaded.")
+    "Directory of this package entry, resolved when it is loaded.
+Native-compiled entries live in `eln-cache', so their location says
+nothing about where the package directory is.")
   (add-to-list 'load-path (expand-file-name "lisp" etaf-ui--root)))
 
 (require 'etaf-ui-basic)
