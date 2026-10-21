@@ -1,23 +1,26 @@
-;;; -*- lexical-binding: t; -*-
-;;; etaf-ui.el --- Official ETAF Component catalog
+;;; etaf-ui.el --- Official ETAF component catalog  -*- lexical-binding: t; -*-
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Author: ETAF contributors
 ;; Version: 0.3.0
+;; Keywords: ui, convenience
 ;; Package-Requires: ((emacs "29.1") (etaf "0.2.2") (ebox "3.0.1"))
 ;; URL: https://github.com/emacs-taf/etaf-ui
 
 ;;; Commentary:
 
+;; A catalog of ready-made ETAF components: buttons, inputs, tables,
+;; sheets, media, navigation and window chrome, all built on Ebox boxes.
+;;
 ;; Public API
 ;;
 ;; Load this package with (require 'etaf-ui) after adding the repository
 ;; root to load-path.
 ;; Only the interfaces listed below are supported for use by other packages.
 ;; All unlisted symbols and implementation features are internal, including
-;; names without a double hyphen. Do not require files below lisp/ from consumers.
+;; names without a double hyphen.  Do not require files below lisp/ from consumers.
 ;; This Commentary is the authoritative export list; implementations and precise
-;; docstrings remain beside their definitions. The ETAF Reference Manual contains workflows.
+;; docstrings remain beside their definitions.  The ETAF Reference Manual contains workflows.
 ;;
 ;; Every Component is keyboard operable through ETAF's key layer.  Tabs,
 ;; segmented and radio selectors, desktop bars, window controls, tables,
