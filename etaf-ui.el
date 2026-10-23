@@ -624,6 +624,21 @@
 ;;
 ;; Render a compact mutually-exclusive selector from an options alist.
 ;;
+;; Function: etaf-toggle-strip (&key options value on-change theme label surface)
+;; Parameters:
+;; :options — Required nonempty alist (value . label); at least two unique scalar keys and unique nonempty string labels.
+;; :value — Scalar; default nil. Nil or a key in :options.
+;; :on-change — Optional function (chosen-value); default nil. Called when a segment is clicked.
+;; :theme — Required token plist; supplies `:ui-panel-fg', `:ui-panel-border', `:ui-accent' and `:ui-accent-fg'.
+;; :label — Optional string; default nil. Painted before the strip in `:ui-muted-fg'.
+;; :surface — Optional color; default nil, which uses the Theme's panel surface.
+;;
+;; Return the same control as a propertized string, for a row where a Component
+;; cannot mount: a header line or a mode line.  The segments form one row of
+;; equal width, the selected one paints the accent, the others the row surface,
+;; and each segment carries its own box and a click handler calling :on-change.
+;; A selected segment takes no pointer-hover face, so states do not stack.
+;;
 ;; Component: etaf-slider (&key value min max step label on-change disabled bind)
 ;; Parameters:
 ;; :value — Required integer/ref/computed unless :bind supplies it; no valid empty default. Align (value - min) to :step within bounds.

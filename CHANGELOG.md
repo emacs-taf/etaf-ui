@@ -4,6 +4,12 @@
 
 ### Added
 
+- `etaf-toggle-strip` returns a two-way or three-way choice as one row of
+  equal-width boxes for a header line or a mode line, where a Component cannot
+  mount.  The selected segment paints the accent, the others the row surface,
+  a click calls `:on-change`, and the selected segment takes no pointer-hover
+  face, so the two states never stack.
+
 - `etaf-cell-line` paints one grid line of caller-owned cells with the same
   one-pixel side stripes and closing underline an Ebox box uses, so a row of
   cells is one text Host instead of two Hosts per cell.  Selected cells keep

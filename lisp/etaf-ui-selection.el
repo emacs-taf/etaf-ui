@@ -410,5 +410,89 @@ defaults to STEP, else a twentieth of the span."
             :ref fill-target :id (symbol-name fill-target)
          (text (expr rule)))))))
 
+(cl-defun etaf-toggle-strip (&key options value on-change theme label surface)
+  "Return OPTIONS as a one-row toggle, a propertized string.
+OPTIONS is a nonempty alist of at least two unique scalar values and nonempty
+labels.  VALUE is the selected value; ON-CHANGE, when non-nil, is called with
+the value of the clicked segment.  THEME is a token plist that supplies
+`:ui-panel-fg', `:ui-panel-border', `:ui-accent' and `:ui-accent-fg'.
+
+The result is a control for a text row, such as a header line or a mode line,
+where a Component cannot mount.  The segments sit in one rectangle: the whole
+strip carries a single one-pixel outline, the selected segment paints the
+accent behind its label, and the remaining segments keep the row's surface, so
+a two-way and a three-way choice read alike.  Every segment is the same number
+of columns wide, which keeps the outline and the labels aligned whatever the
+caption lengths are.  LABEL, when non-nil, is painted before the strip in the
+muted colour.  SURFACE is the row's own background behind an unselected
+segment; nil keeps the Theme's panel surface."
+  (etaf-ui--selection-options options 'etaf-toggle-strip)
+  (etaf-check-prop :theme theme
+                   (and (listp theme) (plist-get theme :ui-panel-border))
+                   "a token plist with :ui-panel-border" 'etaf-toggle-strip)
+  (etaf-check-prop :value value
+                   (or (null value) (assoc value options))
+                   "nil or a value in :options" 'etaf-toggle-strip)
+  (when on-change
+    (etaf-check-prop :on-change on-change (functionp on-change)
+                     "a function" 'etaf-toggle-strip))
+  (let* ((cells (max 3 (apply #'max
+                              (mapcar (lambda (option)
+                                        (+ 2 (string-width (cdr option))))
+                                      options))))
+         (border (plist-get theme :ui-panel-border))
+         (fg (plist-get theme :ui-panel-fg))
+         (accent (plist-get theme :ui-accent))
+         (accent-fg (plist-get theme :ui-accent-fg))
+         (outline (list :box (list :line-width 1 :color border)))
+         pieces)
+    (dolist (option options)
+      (let* ((key (car option))
+             (caption (cdr option))
+             (selected (equal key value))
+             (padding (- cells (string-width caption)))
+             (left (/ padding 2))
+             (right (- padding left))
+             (map (make-sparse-keymap))
+             (text (concat (make-string left ?\s) caption
+                           (make-string right ?\s)))
+             (press (lambda ()
+                      (interactive)
+                      (when on-change (funcall on-change key)))))
+        (define-key map [header-line mouse-1] press)
+        (define-key map [mode-line mouse-1] press)
+        (define-key map [mouse-1] press)
+        ;; Each segment owns its outline: three boxes side by side read as
+        ;; three buttons, and the shared edge is what separates them.
+        (push (append
+               (list text
+                     'face (append (list :background (if selected accent
+                                                       (or surface
+                                                           (plist-get theme :ui-panel-bg)))
+                                         :foreground (if selected accent-fg fg)
+                                         :weight (if selected 'bold 'normal)
+                                         ;; A theme may invert its header line;
+                                         ;; the segment keeps its own paint.
+                                         :inverse-video nil)
+                                   outline))
+               ;; States do not stack: the selected segment already paints the
+               ;; accent, so pointer hover belongs to the other segments only.
+               (unless selected
+                 (list 'mouse-face
+                       (list :background (or (plist-get theme :ui-accent-soft-bg)
+                                             (plist-get theme :ui-panel-bg)))))
+               (list 'keymap map
+                     'help-echo (format "%s" caption)))
+              pieces)))
+    (concat (when label
+              (concat (propertize label
+                                  'face (list :foreground
+                                              (plist-get theme :ui-muted-fg)))
+                      "  "))
+            (apply #'concat
+                   (mapcar (lambda (piece)
+                             (apply #'propertize piece))
+                           (nreverse pieces))))))
+
 (provide 'etaf-ui-selection)
 ;;; etaf-ui-selection.el ends here
