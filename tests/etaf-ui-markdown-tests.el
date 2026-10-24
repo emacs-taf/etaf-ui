@@ -217,6 +217,56 @@
         (dolist (word (split-string long))
           (should (string-match-p (format "\\_<%s\\_>" word) published)))))))
 
+(defun etaf-ui-markdown-test--ruler (line)
+  "Return the display columns of LINE's cell borders.
+LINE is a rendered table row.  Each character is measured the way the
+buffer shows it: a space whose `display' property stands for a wider gap
+counts that width, and a plain character counts its own."
+  (let ((column 0) (positions nil) (index 0) (width (length line)))
+    (while (< index width)
+      (let* ((char (aref line index))
+             (display (get-text-property index 'display line))
+             (step (cond
+                    ((and (consp display) (eq (car display) 'space))
+                     (let ((width (plist-get (cdr display) :width)))
+                       (cond ((numberp width) width)
+                             ((consp width) (or (car width) 1))
+                             (t 1))))
+                    ((stringp display) (string-width display))
+                    (t (string-width (string char))))))
+        (when (eq char ?│) (push column positions))
+        (setq column (+ column step) index (1+ index))))
+    (nreverse positions)))
+
+(defun etaf-ui-markdown-test--border-columns (buffer-name)
+  "Return the border columns of every table row in BUFFER-NAME."
+  (with-current-buffer buffer-name
+    (let (rulers)
+      (save-excursion
+        (goto-char (point-min))
+        (while (not (eobp))
+          (let ((line (buffer-substring (line-beginning-position)
+                                        (line-end-position))))
+            (when (string-match-p "│" (substring-no-properties line))
+              (push (etaf-ui-markdown-test--ruler line) rulers)))
+          (forward-line 1)))
+      (nreverse rulers))))
+
+(ert-deftest etaf-ui-markdown-table-rows-share-one-column-grid ()
+  "Every row of a table draws its borders in the same columns.
+A cell whose content is wider than its neighbours must not push that row's
+columns out of line: the table resolves one set of tracks for all rows."
+  (etaf-ui-markdown-test--with-mount
+      (concat "| Option | Value | Default | Meaning |\n"
+              "| --- | --- | --- | --- |\n"
+              "| :at | placement | point | Where the panel sits |\n"
+              "| :focus-on-open | t, nil | the value of :focusable | Select it on open |\n"
+              "| :width | columns, fraction | 56 | Content columns |\n")
+      (etaf-ui-markdown-test--env)
+    (let ((rulers (etaf-ui-markdown-test--border-columns buffer-name)))
+      (should (>= (length rulers) 4))
+      (should (cl-every (lambda (ruler) (equal ruler (car rulers))) rulers)))))
+
 (ert-deftest etaf-ui-markdown-table-keeps-unbroken-columns ()
   "A column is never narrower than the widest unbreakable cell text."
   (let ((identifier "etaf-manual-reader--section")
@@ -294,7 +344,10 @@
                                                   (etaf-ui-markdown-test--text buffer-name))))))))
 
 (ert-deftest etaf-ui-markdown-table-keeps-short-cjk-cells-whole ()
-  "A starved table column still fits a short CJK word on one line."
+  "A tight table column still fits a short CJK word on one line.
+The container holds both the words and the columns' alignment; a table that
+cannot fit the words at all wraps them, so the case is measured at the width
+its columns need."
   (let* ((document (etaf-ui-markdown-parse
                     (concat "| Style | 初值 | 适用 | 继承 | 影响 |\n"
                             "| --- | --- | --- | --- | --- |\n"
@@ -304,7 +357,7 @@
          (buffer-name (format " *etaf-ui-markdown-%s*" (cl-gensym))))
     (unwind-protect
         (progn
-          (etaf-mount buffer-name (etaf-node 'column (list :width '(ch 40)) views))
+          (etaf-mount buffer-name (etaf-node 'column (list :width '(ch 56)) views))
           (let ((published (etaf-ui-markdown-test--text buffer-name)))
             (dolist (word '("初值" "适用" "继承" "影响"))
               (should (string-match-p (regexp-quote word) published)))))

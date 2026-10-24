@@ -423,107 +423,126 @@ instead of mutated."
                       (plist-get node :children)))))
     width))
 
+(defconst etaf-ui-markdown--cell-min-width 12
+  "Cap, in character cells, of a wide-character token's table floor.
+A line may break between wide characters, so a long CJK sentence does not
+force a wide column.  A narrow token has no such break opportunity, so it
+keeps its full width instead.")
+
+(defconst etaf-ui-markdown--cell-max-floor 32
+  "Cap, in character cells, of one table column's unbreakable floor.")
+
+(defun etaf-ui-markdown--token-width (token)
+  "Return the floor TOKEN asks of its table column."
+  (let ((width (string-width token))
+        (wide (cl-some (lambda (char) (>= (char-width char) 2))
+                       (string-to-list token))))
+    (if wide (min etaf-ui-markdown--cell-min-width width) width)))
+
 (defun etaf-ui-markdown--inline-segments (inlines)
-  "Return the display widths of the unbreakable segments of INLINES.
-A segment is a run of non-whitespace text; CJK runs count their full
-display width, so a short CJK word keeps its own floor."
+  "Return the unbreakable widths of the text of INLINES and their children."
   (let ((widths nil))
     (dolist (node inlines)
-      (dolist (segment (split-string (or (plist-get node :text) "")
-                                     "[ \t\n]+" t))
-        (push (string-width segment) widths))
+      (dolist (token (split-string (or (plist-get node :text) "")
+                                   "[ \t\n]+" t))
+        (push (etaf-ui-markdown--token-width token) widths))
       (setq widths (append (etaf-ui-markdown--inline-segments
                             (plist-get node :children))
                            widths)))
     widths))
 
-(defconst etaf-ui-markdown--cell-min-width 12
-  "Cap, in character cells, of a table cell's unbreakable floor.
-A longer run keeps wrapping, so a prose cell never forces a huge column.")
-
-(defun etaf-ui-markdown--table-cell-min-width (inlines)
-  "Return the min-width floor of a table cell holding INLINES.
-The floor keeps a short CJK word or code span together even when the
-renderer would allow a break between its characters.  It covers the cell's
-one-character padding on both sides and its hairline grid borders."
-  (list 'ch (+ 4 (min etaf-ui-markdown--cell-min-width
-                      (apply #'max 0 (etaf-ui-markdown--inline-segments inlines))))))
-
-(defun etaf-ui-markdown--table-tracks (rows columns)
-  "Return the grid tracks of COLUMNS for table ROWS.
-Each column's fraction follows its widest cell, bounded so a short column
-keeps a readable minimum and one long column cannot starve the others.  A
-column also never becomes narrower than its min-content, measured with the
-fonts its cells use, so a word or a short CJK run stays whole instead of
-being split mid-word."
+(defun etaf-ui-markdown--table-floors (rows columns)
+  "Return the min-width floors of COLUMNS for table ROWS.
+A column's floor covers its widest unbreakable token plus the cell's padding
+and hairline borders, so a word or a short CJK run stays whole.  Every row
+gets the same floor for a column: the table is one grid, so a floor taken
+from a single row would resolve that row's tracks against other widths and
+push it out of line."
   (let ((widths (make-list columns 0)))
     (dolist (row rows)
       (cl-loop for inlines in row
                for column from 0
                do (setf (nth column widths)
                         (max (nth column widths)
-                             (etaf-ui-markdown--inline-width inlines)))))
+                             (apply #'max 0
+                                    (etaf-ui-markdown--inline-segments inlines))))))
     (mapcar (lambda (width)
-              (list 'minmax 'min-content (list 'fr (max 4 (min 32 width)))))
+              (+ 4 (min etaf-ui-markdown--cell-max-floor (or width 0))))
             widths)))
+
+(defun etaf-ui-markdown--table-tracks (floors weights)
+  "Return the grid tracks of a table from FLOORS and content WEIGHTS.
+Each column keeps its floor, so its words stay whole, and shares the space
+above the floors in proportion to its widest cell, bounded so one long
+column cannot starve the others."
+  (cl-loop for floor in floors
+           for weight in weights
+           collect (list 'minmax (list 'ch floor)
+                         (list 'fr (max 4 (min 32 weight))))))
 
 (defun etaf-ui-markdown--table-node (block env)
   "Return the table View of BLOCK in ENV.
 The table draws its own grid: an outer border, a row separator, a column
 separator, a tinted header row and zebra striping, so every column and
 alignment stays visible at a glance.  Columns share the width in proportion
-to their content and never go narrower than their widest unbreakable text
-segment plus the cell padding, and cells wrap at word boundaries."
+to their content and never go narrower than their widest unbreakable token
+plus the cell padding, and cells wrap at word boundaries.
+
+The whole table is one grid, and its floors are the column maximums over
+every row.  A grid per row gave each row its own track resolution, so a row
+whose cells measured differently resolved the same `fr' tracks to other
+widths and drifted out of line with its neighbours; the grid's own minimum
+keeps a tight container from squeezing cells below their words."
   (let* ((aligns (plist-get block :aligns))
          (columns (length aligns))
          (rows (append (list (plist-get block :header))
                        (plist-get block :rows)))
-         (tracks (etaf-ui-markdown--table-tracks rows columns))
+         (floors (etaf-ui-markdown--table-floors rows columns))
+         (weights (cl-loop for column below columns
+                           collect (cl-loop for row in rows
+                                            maximize (etaf-ui-markdown--inline-width
+                                                      (nth column row)))))
+         (tracks (etaf-ui-markdown--table-tracks floors weights))
          (last-row (1- (length rows)))
          (border (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border)))
-         (grids nil))
+         (cells nil))
     (cl-loop for row in rows
              for row-index from 0
-             do (let ((cells nil))
-                  (cl-loop for inlines in row
-                           for align in aligns
-                           for column-index from 0
-                           do (push
-                               (etaf-node 'box
-                                          (list :padding '((lh 0) (ch 1))
-                                                :min-width (etaf-ui-markdown--table-cell-min-width
-                                                            inlines)
-                                                :width 'stretch
-                                                :overflow 'hidden
-                                                :wrap-mode 'word
-                                                :text-align (or align 'left)
-                                                :border-bottom (and (/= row-index last-row)
-                                                                    border)
-                                                :border-right (and (/= column-index
-                                                                       (1- columns))
-                                                                   border)
-                                                :background-color
-                                                (cond
-                                                 ((zerop row-index)
-                                                  (etaf-ui-markdown--env-color env :table-header))
-                                                 ((zerop (% row-index 2))
-                                                  (etaf-ui-markdown--env-color env :table-stripe))
-                                                 (t nil)))
-                                          (etaf-ui-markdown--runs-view
-                                           inlines env
-                                           (when (zerop row-index) (list :bold t))))
-                               cells))
-                  ;; One grid per row keeps every row's columns aligned by the
-                  ;; same fractional tracks while staying within the layouts
-                  ;; the native renderer can accelerate.
-                  (push (etaf-node 'grid
-                                   (list :width 'stretch
-                                         :grid-template-columns tracks)
-                                   (nreverse cells))
-                        grids)))
+             do (cl-loop for inlines in row
+                         for align in aligns
+                         for column-index from 0
+                         do (push
+                             (etaf-node 'box
+                                        (list :padding '((lh 0) (ch 1))
+                                              :min-width (list 'ch (nth column-index floors))
+                                              :width 'stretch
+                                              :overflow 'hidden
+                                              :wrap-mode 'word
+                                              :text-align (or align 'left)
+                                              :border-bottom (and (/= row-index last-row)
+                                                                  border)
+                                              :border-right (and (/= column-index
+                                                                     (1- columns))
+                                                                 border)
+                                              :background-color
+                                              (cond
+                                               ((zerop row-index)
+                                                (etaf-ui-markdown--env-color env :table-header))
+                                               ((zerop (% row-index 2))
+                                                (etaf-ui-markdown--env-color env :table-stripe))
+                                               (t nil)))
+                                        (etaf-ui-markdown--runs-view
+                                         inlines env
+                                         (when (zerop row-index) (list :bold t))))
+                             cells)))
     (etaf-node 'box
-               (list :width 'stretch :border border)
-               (nreverse grids))))
+               (list :width 'stretch
+                     :min-width (list 'ch (+ 2 (apply #'+ floors)))
+                     :border border)
+               (list (etaf-node 'grid
+                                (list :width 'stretch
+                                      :grid-template-columns tracks)
+                                (nreverse cells))))))
 
 (defun etaf-ui-markdown--thematic-break-node ()
   "Return the thematic break View."

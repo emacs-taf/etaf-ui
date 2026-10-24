@@ -76,6 +76,14 @@
 
 ### Fixed
 
+- A markdown table resolves its columns once for the whole table instead of
+  once per row, so every row's borders land in the same columns and a cell
+  that wraps no longer pushes its row out of line.  Each column keeps a floor
+  taken from its widest unbreakable token: a word, identifier or code span
+  stays whole, and a run of wide characters counts at a fixed cap because a
+  line may break between them; a container narrower than the floors lets the
+  table overflow rather than squeezing a column below its words.
+
 - The gallery reference scenario reads wrapped reference text across the
   panel's vertical borders, so phrases that cross a box glyph still match.
 
