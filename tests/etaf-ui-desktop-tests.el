@@ -524,4 +524,51 @@
                               (key-binding (kbd "<right>") t))))))
       (etaf-ui-desktop-test--cleanup buffer))))
 
+(ert-deftest etaf-ui-bars-namespace-their-own-host-references ()
+  "Two bars in one Runtime keep distinct controls through :ref-prefix.
+A host that embeds a whole application can mount several bars; without a
+prefix their tabs and trailing controls spell the same reference and shadow
+each other."
+  (let ((buffer (generate-new-buffer "*etaf-ui-desktop-prefixed-bars*"))
+        (outer-pressed 0) (inner-pressed 0))
+    (unwind-protect
+        (progn
+          (etaf-mount
+           buffer
+           (etaf-view
+            (column :width '(ch 70) :height '(lh 12)
+              (etaf-workspace-bar
+               :workspaces '(main)
+               :ref-prefix "outer-"
+               :layout-label "Floating"
+               :layout-action (lambda () (cl-incf outer-pressed))
+               :settings-label "Settings"
+               :settings-action (lambda () (cl-incf outer-pressed)))
+              (etaf-workspace-bar
+               :workspaces '(main)
+               :ref-prefix "inner-"
+               :layout-label "Floating"
+               :layout-action (lambda () (cl-incf inner-pressed))
+               :settings-label "Settings"
+               :settings-action (lambda () (cl-incf inner-pressed))))))
+          (let ((runtime (etaf-runtime-for-buffer buffer)))
+            (should (etaf-runtime-host-props-for
+                     runtime 'outer-etaf-workspace-layout))
+            (should (etaf-runtime-host-props-for
+                     runtime 'inner-etaf-workspace-layout))
+            (should-not (etaf-runtime-host-props-for
+                         runtime 'etaf-workspace-layout))
+            (etaf-dispatch-event runtime 'outer-etaf-workspace-settings 'press)
+            (should (= 1 outer-pressed))
+            (should (= 0 inner-pressed))
+            (etaf-dispatch-event runtime 'inner-etaf-workspace-layout 'press)
+            (should (= 1 outer-pressed))
+            (should (= 1 inner-pressed))
+            (should (= 2 (length (seq-filter
+                                  (lambda (entry)
+                                    (equal "Settings"
+                                           (plist-get (cdr entry) :aria-label)))
+                                  (etaf-runtime-host-props-entries runtime)))))))
+      (etaf-ui-desktop-test--cleanup buffer))))
+
 ;;; etaf-ui-desktop-tests.el ends here

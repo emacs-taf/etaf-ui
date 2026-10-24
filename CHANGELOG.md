@@ -4,6 +4,12 @@
 
 ### Added
 
+- `etaf-workspace-bar` and `etaf-taskbar` accept `:ref-prefix`. A host that
+  embeds a whole application can mount several bars in one ETAF Runtime; without
+  a prefix their tabs, the layout control, the settings control and the
+  launcher spell the same Host reference and shadow each other, so a press on
+  one bar reached the other bar's control.
+
 - `etaf-toggle-strip` returns a two-way or three-way choice as one row of
   equal-width boxes for a header line or a mode line, where a Component cannot
   mount.  The selected segment paints the accent, the others the row surface,

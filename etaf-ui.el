@@ -861,13 +861,14 @@
 ;; committed pixels and input remain available. Custom text may still select
 ;; fallback glyph fonts with different metrics even at an equal CSS font size.
 ;;
-;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label class)
+;; Component: etaf-taskbar (&key items active on-select on-launch launcher-label ref-prefix class)
 ;; Parameters:
 ;; :items — List of plists; default nil ("No windows"). Unique scalar :key and nonempty string :label; optional :state (active/minimized/error/nil or reactive) and boolean :disabled.
 ;; :active — Scalar key/ref/computed or nil; default nil. Matching item is highlighted; no window focus state is created.
 ;; :on-select — Optional function (key); default nil. Caller focuses/restores the chosen window.
 ;; :on-launch — Optional function (); default nil (no launcher control).
 ;; :launcher-label — String; default "Applications". Launcher caption and accessible name.
+;; :ref-prefix — String or nil; default nil. Prefixes the Host references the bar creates, so several bars can share one ETAF Runtime.
 ;; :class — Optional extra root classes; default nil.
 ;;
 ;; Render a controlled taskbar for window items.  ITEMS use scalar :key and
@@ -877,7 +878,7 @@
 ;; scalar key, nil, ref or computed; matching items show selection.  Colors
 ;; come from the Desktop Theme tokens below; provide a Theme to restyle.
 ;;
-;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action class)
+;; Component: etaf-workspace-bar (&key workspaces active on-select on-add on-close add-label brand status layout-label layout-action settings-label settings-action ref-prefix class)
 ;; Parameters:
 ;; :workspaces — List; default nil (empty). Scalar keys or plists with :key/:label and optional :description/:disabled; keep keys distinct.
 ;; :active — Scalar key/ref/computed or nil; default nil. Marks the selected workspace.
@@ -889,6 +890,7 @@
 ;; :layout-label — String/ref/computed or nil; default nil (no layout control). Fixed-width caption.
 ;; :layout-action — Optional function (); default nil. Caller changes layout mode.
 ;; :settings-label, :settings-action — Optional string and function (); defaults nil. Both are needed to show settings.
+;; :ref-prefix — String or nil; default nil. Prefixes the tabs' and trailing controls' Host references, so several bars can share one ETAF Runtime.
 ;; :class — Optional extra root classes; default nil.
 ;;
 ;; Render accessible workspace tabs.  WORKSPACES may be scalar keys or item

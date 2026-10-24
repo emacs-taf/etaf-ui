@@ -92,9 +92,19 @@ selection change and a Theme change stay retained paint updates."
        :font-weight 'normal
        (text (expr label))))
 
-(defun etaf-ui--desktop-bar-item-node (item active on-select taskbar)
+(defun etaf-ui--desktop-ref (ref-prefix name)
+  "Return the runtime Host reference NAME under REF-PREFIX.
+A desktop that embeds another application can mount several bars in one ETAF
+Runtime; a caller-supplied prefix keeps their Host references distinct."
+  (if (and (stringp ref-prefix) (not (string-empty-p ref-prefix)))
+      (intern (concat ref-prefix name))
+    (intern name)))
+
+(defun etaf-ui--desktop-bar-item-node (item active on-select taskbar
+                                            &optional ref-prefix)
   "Build ITEM's selection Host using ACTIVE and ON-SELECT.
-TASKBAR selects window-state presentation."
+TASKBAR selects window-state presentation.  REF-PREFIX namespaces the
+workspace-tab Host reference."
   (let* ((key (plist-get item :key))
          (disabled (plist-get item :disabled))
          (class (etaf-ui--class-value
@@ -105,7 +115,9 @@ TASKBAR selects window-state presentation."
      (append
       (list :key key :item-key key :label (plist-get item :label)
             :ref (or (plist-get item :ref)
-                     (unless taskbar (intern (format "etaf-workspace-%s" key))))
+                     (unless taskbar
+                       (etaf-ui--desktop-ref
+                        ref-prefix (format "etaf-workspace-%s" key))))
             :active active :disabled disabled
             :callback (and on-select (not disabled)
                            (lambda () (funcall on-select key)))
@@ -148,7 +160,7 @@ text instead of laying out the bar again."
 
 (etaf-define-component etaf-taskbar
     (&key items active on-select on-launch (launcher-label "Applications")
-          class)
+          ref-prefix class)
   "Render a controlled TASKBAR for desktop windows.
 
 ITEMS are plists with scalar :key and nonempty string :label.  Optional
@@ -156,8 +168,9 @@ ITEMS are plists with scalar :key and nonempty string :label.  Optional
 one, and :disabled suppresses activation.  ACTIVE may be a scalar key, nil,
 ref or computed and marks the focused item.  The caller owns all window
 state.  ON-SELECT receives an item key; ON-LAUNCH, when supplied, opens the
-caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
-`:ui-accent*' tokens."
+caller's launcher.  REF-PREFIX namespaces the Host references this bar creates,
+so a caller can mount several taskbars in one ETAF Runtime.  Colors come from
+the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
   :validate
   (progn
     (etaf-ui--desktop-items items 'etaf-taskbar)
@@ -182,7 +195,10 @@ caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
                      (or (null on-launch) (functionp on-launch))
                      "a function or nil" 'etaf-taskbar)
     (etaf-check-prop :launcher-label launcher-label (stringp launcher-label)
-                     "a string" 'etaf-taskbar))
+                     "a string" 'etaf-taskbar)
+    (etaf-check-prop :ref-prefix ref-prefix
+                     (or (null ref-prefix) (stringp ref-prefix))
+                     "a string or nil" 'etaf-taskbar))
   :render
   (let ((shell (etaf-ui--style-tokens :ui-shell-bg :ui-shell-fg
                                       :ui-shell-muted-fg)))
@@ -201,13 +217,14 @@ caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
                          (list :label (concat "⊞ " launcher-label)
                                :aria-label launcher-label :variant 'primary
                                :class "etaf-taskbar-launcher"
-                               :ref 'etaf-taskbar-launcher
+                               :ref (etaf-ui--desktop-ref ref-prefix
+                                                          "etaf-taskbar-launcher")
                                :on-press on-launch)
                          nil)))
       (or
        (mapcar
         (lambda (item)
-          (etaf-ui--desktop-bar-item-node item active on-select t))
+          (etaf-ui--desktop-bar-item-node item active on-select t ref-prefix))
         items)
        (list (etaf-node 'text
                         (list :color (plist-get shell :ui-shell-muted-fg))
@@ -216,7 +233,7 @@ caller's launcher.  Colors come from the inherited Theme's `:ui-shell-*' and
 (etaf-define-component etaf-workspace-bar
     (&key workspaces active on-select on-add on-close (add-label "New workspace")
           brand status layout-label layout-action settings-label settings-action
-          class)
+          ref-prefix class)
   "Render controlled WORKSPACES as an accessible workspace switcher bar.
 
 WORKSPACES may contain scalar keys or plists with :key, :label, optional
@@ -230,8 +247,11 @@ switches the workspace's window-management mode.  LAYOUT-LABEL is a string,
 ref or computed of one; the control keeps a fixed width so a changed label
 publishes as a retained Text update.  SETTINGS-LABEL and
 SETTINGS-ACTION optionally add a trailing caller-owned settings action.  No
-workspace is created, removed or persisted by this Component.  Colors come
-from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
+workspace is created, removed or persisted by this Component.  REF-PREFIX
+namespaces the Host references this bar creates, so a caller can mount several
+bars in one ETAF Runtime without their tabs and trailing controls shadowing
+each other.  Colors come from the inherited Theme's `:ui-shell-*' and
+`:ui-accent*' tokens."
   :validate
   (progn
     (etaf-check-prop :workspaces workspaces (proper-list-p workspaces)
@@ -273,7 +293,10 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                      "a string or nil" 'etaf-workspace-bar)
     (etaf-check-prop :settings-action settings-action
                      (or (null settings-action) (functionp settings-action))
-                     "a function or nil" 'etaf-workspace-bar))
+                     "a function or nil" 'etaf-workspace-bar)
+    (etaf-check-prop :ref-prefix ref-prefix
+                     (or (null ref-prefix) (stringp ref-prefix))
+                     "a string or nil" 'etaf-workspace-bar))
   :render
   (let ((items
          (mapcar
@@ -301,7 +324,7 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                          (list brand))))
       (mapcar
        (lambda (item)
-         (etaf-ui--desktop-bar-item-node item active on-select nil))
+         (etaf-ui--desktop-bar-item-node item active on-select nil ref-prefix))
        items)
       (when on-add
         (list (etaf-node 'etaf-button
@@ -323,7 +346,8 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
                                           layout-label "Window layout")
                                :aria-label (if (stringp layout-label)
                                                layout-label "Window layout")
-                               :ref 'etaf-workspace-layout
+                               :ref (etaf-ui--desktop-ref ref-prefix
+                                                          "etaf-workspace-layout")
                                :variant 'secondary
                                :class "etaf-workspace-layout"
                                ;; A fixed allocation keeps a reactive label
@@ -338,7 +362,8 @@ from the inherited Theme's `:ui-shell-*' and `:ui-accent*' tokens."
         (list (etaf-node 'etaf-button
                          (list :label settings-label
                                :aria-label settings-label
-                               :ref 'etaf-workspace-settings
+                               :ref (etaf-ui--desktop-ref ref-prefix
+                                                          "etaf-workspace-settings")
                                :variant 'ghost
                                :class "etaf-workspace-settings"
                                :flex-shrink 0 :min-width 'max-content
