@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+
+- The terminal icon set draws the transport controls with `⏮`, `❚❚` and `⏭`
+  instead of `«`, `||` and `»`.  A text terminal showed the previous and next
+  buttons as quotation marks beside the play pill, and the pause glyph as two
+  thin bars, so a player's transport read as text rather than controls.
+
 ### Added
 
 - `etaf-workspace-bar` and `etaf-taskbar` accept `:ref-prefix`. A host that

@@ -557,7 +557,7 @@ change stays a retained Host update rather than a Component rerender."
    'tty
    (list :kind 'font :family "monospace" :height 1.0
          :glyphs
-         '((play . "▶") (pause . "||") (next . "»") (previous . "«")
+         '((play . "▶") (pause . "❚❚") (next . "⏭") (previous . "⏮")
            (repeat . "↻") (repeat-one . "↻") (shuffle . "⇄")
            (heart . "♡") (heart-filled . "♥")
            (volume . "♪") (volume-mute . "×") (volume-low . "♪") (volume-high . "♪")
