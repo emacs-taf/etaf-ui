@@ -1024,6 +1024,11 @@
    "purpose": "A blockquote whose source has no blank line inside it ends on its last text line; the rendered box adds no empty row of its own before its bottom edge."
   },
   {
+   "name": "etaf-ui-markdown-quote-text-recedes-behind-its-surface",
+   "file": "tests/etaf-ui-markdown-tests.el",
+   "purpose": "A quote paints its own text in the muted color while a link inside it keeps the accent, and body text outside the quote keeps following the buffer face."
+  },
+  {
    "name": "etaf-ui-markdown-callbacks-replace-media-and-code",
    "file": "tests/etaf-ui-markdown-tests.el",
    "purpose": "The render-code-block and render-media callbacks own the rendered block and replace the default."

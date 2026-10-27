@@ -1324,16 +1324,20 @@
 ;; Keys and nonempty labels must be unique; CURRENT is a value/ref/computed
 ;; containing one of the keys. ON-CHANGE is optional and receives a selected key.
 ;;
-;; Component: etaf-list (&key items on-select)
+;; Component: etaf-list (&key items on-select checkbox selected)
 ;; Parameters:
-;; :items — List of plists; default nil (empty). Unique non-nil :key, nonempty string :title and optional string :description.
+;; :items — List of plists; default nil (empty). Unique non-nil :key, nonempty string :title, optional string :description, string :meta and boolean :checked.
 ;; :on-select — Optional function (key); default nil. Receives the key, not the whole item; caller owns selection/navigation.
+;; :checkbox — Optional flag; default nil. Draw a three-cell `[ ]`/`[x]` column fed by each item's :checked.
+;; :selected — Optional item :key; default nil. Paint one row with the selection colours.
 ;;
-;; Render a selectable list. ITEMS contain :key, :title and optional
-;; :description; selection is reported to ON-SELECT.
-;; Keys are unique and titles are nonempty strings; an empty list is allowed.
-;; Each row composes one Button with title/description content. ON-SELECT is
-;; optional; no selection state is created by the List.
+;; Render a selectable list of full-width rows. ITEMS contain :key, :title,
+;; optional :description shown after the title, optional :meta shown at the
+;; right edge and optional :checked read by the :checkbox column. Selection
+;; is reported to ON-SELECT and painted when SELECTED names a key; a checked
+;; row greys its title and strikes it through. Keys are unique and titles are
+;; nonempty strings; an empty list is allowed. The list owns no state: the
+;; caller supplies both CHECKED and SELECTED and updates them itself.
 ;;
 ;; Component: etaf-date-picker (&key value label placeholder on-change disabled bind)
 ;; Parameters:
@@ -1746,7 +1750,9 @@
 ;; `:accent-soft', `:panel', `:code-bg' (optional; inline code and code
 ;; blocks use it when present and fall back to `:panel'), `:border',
 ;; `:quote-bg', `:quote-bar',
-;; `:table-header', `:table-stripe', `:ok', `:ok-soft', `:warn',
+;; `:table-header', `:table-stripe', `:heading-rule' (optional; the rule
+;; under a level-1 and level-2 heading falls back to `:border'), `:ok',
+;; `:ok-soft', `:warn',
 ;; `:warn-soft', `:danger', `:danger-soft', `:important' and
 ;; `:important-soft'); every color is read through it, so a palette change
 ;; never leaks a half-updated set of colors, and an unknown key signals
@@ -1767,6 +1773,13 @@
 ;; headings and footnote references keep the body font size, a level-1
 ;; heading uses the accent color and a level-2 heading gains a left accent
 ;; bar, so scrolling never changes the height of the lines it reveals.
+;; Without `:line-grid' the top two heading levels draw a rule from
+;; `:heading-rule' under their text, a fenced block with a language opens
+;; with a header strip holding that language, a table draws horizontal rules
+;; only (its header row separated by a stronger one) and drops its zebra
+;; stripe when the palette gives the stripe and the header row one surface,
+;; and a quote paints its text in `:muted' while links and code keep their
+;; own colors.
 ;; Table columns share the width in proportion to their widest cell, keep a
 ;; short unbreakable run such as a CJK word whole, and wrap longer cells at
 ;; word boundaries.

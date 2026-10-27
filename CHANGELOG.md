@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Changed
+
+- Markdown headings read as a hierarchy in any theme. A level-1 and level-2
+  heading now draws a rule from the new optional `:heading-rule` palette color
+  (falling back to `:border`), and the heading ladder comes down a step
+  (1.42/1.26/1.10 of the body size instead of 1.55/1.32/1.14), so a heading
+  still fits a narrow window.
+- A fenced block with a language opens with a header strip that holds the
+  language and closes with a rule, instead of a tag floating over the first
+  line of code.
+- A markdown table draws horizontal rules only; its header row is closed by a
+  rule mixed toward the ink color, and the zebra stripe is dropped when the
+  palette gives the stripe and the header row the same surface.
+- A blockquote paints its own text in `:muted`, so it reads as secondary
+  content; a link keeps the accent and a code span keeps its panel.
+
 ### Fixed
 
 - A blockquote ends on its last line of text: the rendered quote box no longer

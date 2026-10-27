@@ -41,6 +41,14 @@ unknown key signals `etaf-ui-markdown-error'."
         (signal 'etaf-ui-markdown-error
                 (list (format "Unknown markdown color: %S" key))))))
 
+(defun etaf-ui-markdown--env-color-or (env key fallback-key)
+  "Return ENV's color for KEY, or its FALLBACK-KEY when KEY is absent.
+A palette may leave an optional key out; the fallback keeps the renderer from
+requiring every palette to name a color it never wanted to choose."
+  (let ((palette (plist-get env :palette)))
+    (or (and palette (cdr (assq key palette)))
+        (etaf-ui-markdown--env-color env fallback-key))))
+
 (defun etaf-ui-markdown--mono-family ()
   "Return the family of the frame's fixed-pitch font, or nil.
 A frame whose fixed-pitch face inherits the default family yields nil, and
@@ -59,9 +67,9 @@ code spans then use the frame's own font instead of guessing a family."
   "Return the heading font size for LEVEL."
   (let ((base (etaf-ui-markdown--base-pixels)))
     (round (pcase level
-             (1 (* base 1.55))
-             (2 (* base 1.32))
-             (3 (* base 1.14))
+             (1 (* base 1.42))
+             (2 (* base 1.26))
+             (3 (* base 1.10))
              (_ base)))))
 
 (defun etaf-ui-markdown--divider (&optional label)
@@ -269,7 +277,10 @@ A paragraph that contains only one image delegates to ENV's `:render-media'."
   "Return the heading View of BLOCK in ENV.
 With ENV's `:line-grid' the heading keeps the body font size, so its line
 has the standard height; the level then shows through color and, for level
-2, an accent bar drawn as a left border that occupies no line."
+2, an accent bar drawn as a left border that occupies no line.  Without
+`:line-grid' the top two levels draw a rule from `:heading-rule' under the
+text, which sets the level apart even in a theme whose heading color is its
+body color."
   (let* ((level (plist-get block :level))
          (grid (plist-get env :line-grid))
          (color (cond ((>= level 5) (etaf-ui-markdown--env-color env :muted))
@@ -286,15 +297,21 @@ has the standard height; the level then shows through color and, for level
                (append
                 (list :id (plist-get block :id)
                       :width 'stretch
-                      ;; Headings carry no margin or rule of their own: the
-                      ;; block flow separates every sibling with exactly one
-                      ;; blank line, including heading-to-heading.
+                      ;; The block flow separates every sibling with exactly
+                      ;; one blank line, including heading-to-heading, so a
+                      ;; heading carries no margin of its own.
                       :margin '((lh 0) (ch 0)))
                 (when (and grid (= level 2))
                   (list :border-left
                         (list '(px 3) 'solid
                               (etaf-ui-markdown--env-color env :accent))
-                        :padding-left '(ch 1))))
+                        :padding-left '(ch 1)))
+                (when (and (not grid) (<= level 2))
+                  (list :border-bottom
+                        (list '(px 1) 'solid
+                              (etaf-ui-markdown--env-color-or
+                               env :heading-rule :border))
+                        :padding-bottom '(lh 0.35))))
                children)))
 
 (defun etaf-ui-markdown--code-block-node (block env)
@@ -306,29 +323,35 @@ nil keeps the default fenced block."
       (etaf-ui-markdown--default-code-block-node block env)))
 
 (defun etaf-ui-markdown--default-code-block-node (block env)
-  "Return the default fenced code block View of BLOCK in ENV."
+  "Return the default fenced code block View of BLOCK in ENV.
+A block with a language opens with a header strip: the language sits on its
+own row, a rule closes it, and the code starts under that rule, so the label
+frames the block instead of floating over its first line."
   (let* ((mono (etaf-ui-markdown--mono-family))
          (lang (plist-get block :lang))
+         (border (etaf-ui-markdown--env-color env :border))
          (body (etaf-node 'box
                           (list :width 'stretch :wrap-mode 'char
                                 :font-family mono
+                                :padding (if lang '((lh 0.5) (ch 2))
+                                           '((lh 1) (ch 2)))
                                 :color (etaf-ui-markdown--env-color env :ink))
                           (list (etaf-node 'text nil
                                            (list (plist-get block :text))))))
          (header (when lang
-                   (etaf-node 'flex
-                              (list :width 'stretch :justify-content 'flex-end)
-                              (list (etaf-node 'etaf-tag
-                                               (list :text lang :variant 'neutral)
-                                               nil))))))
+                   (etaf-node 'box
+                              (list :width 'stretch
+                                    :border-bottom (list '(px 1) 'solid border)
+                                    :padding '((lh 0) (ch 2)))
+                              (list (etaf-node 'text
+                                               (list :font-family mono
+                                                     :color (etaf-ui-markdown--env-color
+                                                             env :muted))
+                                               (list lang)))))))
     (etaf-node 'box
                (list :width 'stretch
                      :background-color (etaf-ui-markdown--code-color env)
-                     :border (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border))
-                     :padding-top (if header '(lh 0) '(lh 1))
-                     :padding-bottom '(lh 1)
-                     :padding-left '(ch 2)
-                     :padding-right '(ch 2))
+                     :border (list '(px 1) 'solid border))
                (append (when header (list header)) (list body)))))
 
 (defun etaf-ui-markdown--blockquote-node (block env)
@@ -361,6 +384,10 @@ quote keeps the muted surface and the accent bar."
                        :background-color (etaf-ui-markdown--env-color env :quote-bg)
                        :border-left (list '(px 3) 'solid
                                           (etaf-ui-markdown--env-color env :quote-bar))
+                       ;; A quote recedes behind its own surface: its plain
+                       ;; text takes the muted color, while a link and a code
+                       ;; span keep the colors they set for themselves.
+                       :color (etaf-ui-markdown--env-color env :muted)
                        :padding-top '(lh 0)
                        :padding-bottom '(lh 0)
                        :padding-left '(ch 2)
@@ -480,6 +507,14 @@ column cannot starve the others."
            collect (list 'minmax (list 'ch floor)
                          (list 'fr (max 4 (min 32 weight))))))
 
+(defun etaf-ui-markdown--table-stripe (env)
+  "Return the body-row stripe surface of a table in ENV, or nil.
+A palette whose stripe and header row are the same surface gets no stripes:
+painting a row the color it already has costs a paint and shows nothing."
+  (let ((stripe (etaf-ui-markdown--env-color env :table-stripe))
+        (header (etaf-ui-markdown--env-color env :table-header)))
+    (unless (equal stripe header) stripe)))
+
 (defun etaf-ui-markdown--table-node (block env)
   "Return the table View of BLOCK in ENV.
 The table draws its own grid: an outer border, a row separator, a column
@@ -505,6 +540,13 @@ keeps a tight container from squeezing cells below their words."
          (tracks (etaf-ui-markdown--table-tracks floors weights))
          (last-row (1- (length rows)))
          (border (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border)))
+         ;; Ebox draws top and bottom borders at one pixel, so the header
+         ;; rule is set apart by color instead of width.
+         (header-rule (list '(px 1) 'solid
+                            (etaf-ui--color-mix
+                             (etaf-ui-markdown--env-color env :border)
+                             (etaf-ui-markdown--env-color env :ink) 0.35)))
+         (stripe (etaf-ui-markdown--table-stripe env))
          (cells nil))
     (cl-loop for row in rows
              for row-index from 0
@@ -519,17 +561,15 @@ keeps a tight container from squeezing cells below their words."
                                               :overflow 'hidden
                                               :wrap-mode 'word
                                               :text-align (or align 'left)
-                                              :border-bottom (and (/= row-index last-row)
-                                                                  border)
-                                              :border-right (and (/= column-index
-                                                                     (1- columns))
-                                                                 border)
+                                              :border-bottom
+                                              (cond ((zerop row-index) header-rule)
+                                                    ((/= row-index last-row) border))
                                               :background-color
                                               (cond
                                                ((zerop row-index)
                                                 (etaf-ui-markdown--env-color env :table-header))
-                                               ((zerop (% row-index 2))
-                                                (etaf-ui-markdown--env-color env :table-stripe))
+                                               ((and stripe (zerop (% row-index 2)))
+                                                stripe)
                                                (t nil)))
                                         (etaf-ui-markdown--runs-view
                                          inlines env

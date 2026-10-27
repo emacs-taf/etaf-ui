@@ -91,6 +91,31 @@ add one before its bottom edge."
       (should tail-line)
       (should (= 1 (- tail-line quote-line 1))))))
 
+(ert-deftest etaf-ui-markdown-quote-text-recedes-behind-its-surface ()
+  "A quote paints its own text in the muted color.
+The block keeps its surface and bar, and a link inside the quote keeps the
+accent it sets for itself, so a quote reads as secondary content instead of
+body text that somebody tinted."
+  (etaf-ui-markdown-test--with-mount
+      "Body text.\n\n> quoted line with [a link](https://example.com)\n\nAfter.\n"
+      (etaf-ui-markdown-test--env)
+    (with-current-buffer buffer-name
+      (let ((color-at
+             (lambda (needle)
+               (goto-char (point-min))
+               (search-forward needle)
+               (let ((face (get-text-property (match-beginning 0) 'face)))
+                 (cl-some (lambda (entry)
+                            (and (listp entry) (plist-get entry :foreground)))
+                          (if (keywordp (car-safe face)) (list face) face))))))
+        (should (equal (cdr (assq :muted etaf-ui-markdown-test--palette))
+                       (funcall color-at "quoted line")))
+        (should (equal (cdr (assq :accent etaf-ui-markdown-test--palette))
+                       (funcall color-at "a link")))
+        ;; Body text outside the quote keeps no color of its own, so it keeps
+        ;; following the buffer face.
+        (should-not (funcall color-at "Body text"))))))
+
 (ert-deftest etaf-ui-markdown-parse-dialect-gates-extensions ()
   "The `commonmark' dialect leaves GitHub extensions as literal text."
   (let ((gfm (etaf-ui-markdown-parse "| a | b |\n| --- | --- |\n| 1 | 2 |\n"))
