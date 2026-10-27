@@ -4,10 +4,12 @@
 
 ### Fixed
 
-- The terminal icon set draws the transport controls with `⏮`, `❚❚` and `⏭`
+- The terminal icon set draws the transport controls with `◀◀`, `❚❚` and `▶▶`
   instead of `«`, `||` and `»`.  A text terminal showed the previous and next
   buttons as quotation marks beside the play pill, and the pause glyph as two
-  thin bars, so a player's transport read as text rather than controls.
+  thin bars, so a player's transport read as text rather than controls.  The
+  geometric triangles keep the three buttons one width, where the media glyphs
+  `⏮` and `⏭` render small and uneven in the fonts terminals commonly use.
 
 ### Added
 
