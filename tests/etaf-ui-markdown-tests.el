@@ -75,6 +75,22 @@
                                   (plist-get document :footnotes))))
     (should (eq t (plist-get (plist-get document :features) :tables)))))
 
+(ert-deftest etaf-ui-markdown-quote-adds-no-blank-line-of-its-own ()
+  "A quote ends on the last line it was written with.
+The source had no blank line inside the quote, so the rendered box must not
+add one before its bottom edge."
+  (etaf-ui-markdown-test--with-mount
+      "Lead paragraph.\n\n> first quoted line\n> second quoted line\n\nTail.\n"
+      (etaf-ui-markdown-test--env)
+    (let* ((lines (split-string (etaf-ui-markdown-test--text buffer-name) "\n"))
+           (quote-line (cl-position-if (lambda (line) (string-match-p "second quoted" line))
+                                       lines))
+           (tail-line (cl-position-if (lambda (line) (string-match-p "Tail" line))
+                                      lines)))
+      (should quote-line)
+      (should tail-line)
+      (should (= 1 (- tail-line quote-line 1))))))
+
 (ert-deftest etaf-ui-markdown-parse-dialect-gates-extensions ()
   "The `commonmark' dialect leaves GitHub extensions as literal text."
   (let ((gfm (etaf-ui-markdown-parse "| a | b |\n| --- | --- |\n| 1 | 2 |\n"))

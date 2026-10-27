@@ -362,7 +362,7 @@ quote keeps the muted surface and the accent bar."
                        :border-left (list '(px 3) 'solid
                                           (etaf-ui-markdown--env-color env :quote-bar))
                        :padding-top '(lh 0)
-                       :padding-bottom '(lh 1)
+                       :padding-bottom '(lh 0)
                        :padding-left '(ch 2)
                        :padding-right '(ch 2))
                  (etaf-ui-markdown-view-blocks children env t)))))

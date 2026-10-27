@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- A blockquote ends on its last line of text: the rendered quote box no longer
+  keeps an empty padded row before its bottom edge, so a source without a blank
+  line inside the quote reads the same after rendering.
+
 - The terminal icon set draws the transport controls with `⏮`, `❚❚` and `⏭`
   instead of `«`, `||` and `»`.  A text terminal showed the previous and next
   buttons as quotation marks beside the play pill, and the pause glyph as two

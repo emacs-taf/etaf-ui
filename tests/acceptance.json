@@ -1019,6 +1019,11 @@
    "purpose": "Headings, inline emphasis and code, lists, fenced code, tables, quotes and callouts publish their content while HTML comments stay invisible."
   },
   {
+   "name": "etaf-ui-markdown-quote-adds-no-blank-line-of-its-own",
+   "file": "tests/etaf-ui-markdown-tests.el",
+   "purpose": "A blockquote whose source has no blank line inside it ends on its last text line; the rendered box adds no empty row of its own before its bottom edge."
+  },
+  {
    "name": "etaf-ui-markdown-callbacks-replace-media-and-code",
    "file": "tests/etaf-ui-markdown-tests.el",
    "purpose": "The render-code-block and render-media callbacks own the rendered block and replace the default."
