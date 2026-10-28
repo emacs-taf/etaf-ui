@@ -2,7 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- `etaf-ui-color-mix` is public: applications derive hover, selection and
+  surface steps from their own palette instead of carrying a second one. A
+  colour written in any spelling other than `#RRGGBB` comes back unchanged.
+
 ### Changed
+
+- A keycap is a soft chip again: one cell of inline padding, a filled rounded
+  block and no outline, and both levels keep the frame's own type size. The
+  region level is bold and fills with the accent while its region holds the
+  keyboard, so a header of hints reads as text instead of a row of boxes.
 
 - Markdown headings read as a hierarchy in any theme. A level-1 and level-2
   heading now draws a rule from the new optional `:heading-rule` palette color

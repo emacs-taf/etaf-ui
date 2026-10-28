@@ -543,7 +543,7 @@ keeps a tight container from squeezing cells below their words."
          ;; Ebox draws top and bottom borders at one pixel, so the header
          ;; rule is set apart by color instead of width.
          (header-rule (list '(px 1) 'solid
-                            (etaf-ui--color-mix
+                            (etaf-ui-color-mix
                              (etaf-ui-markdown--env-color env :border)
                              (etaf-ui-markdown--env-color env :ink) 0.35)))
          (stripe (etaf-ui-markdown--table-stripe env))

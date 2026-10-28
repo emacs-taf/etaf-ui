@@ -30,6 +30,14 @@
 ;; key scopes closed by Escape.  `?' opens read-only key help listing the
 ;; keys in scope.
 ;;
+;; Function: etaf-ui-color-mix (from to amount)
+;;;###autoload (autoload 'etaf-ui-color-mix "etaf-ui" nil nil)
+;; Return FROM mixed AMOUNT of the way toward TO, both #RRGGBB strings.
+;; AMOUNT is a fraction between 0 and 1.  A colour written in any other
+;; spelling is returned unchanged, so a Theme that names a colour stays
+;; usable.  Applications use it to derive hover, selection and surface steps
+;; from the frame's own colours instead of carrying a second palette.
+;;
 ;; Function: etaf-ui-theme-tokens (palette)
 ;;;###autoload (autoload 'etaf-ui-theme-tokens "etaf-ui" nil nil)
 ;; Return the catalog's color Theme tokens for application PALETTE, a plist

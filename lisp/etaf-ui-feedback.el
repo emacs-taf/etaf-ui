@@ -308,8 +308,8 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
                  (plist-get etaf-ui--style-palette :ui-panel-bg)))
          (fg (or (plist-get theme :ui-panel-fg)
                  (plist-get etaf-ui--style-palette :ui-panel-fg)))
-         (fill (etaf-ui--color-mix bg fg 0.06))
-         (edge (etaf-ui--color-mix bg fg 0.18)))
+         (fill (etaf-ui-color-mix bg fg 0.06))
+         (edge (etaf-ui-color-mix bg fg 0.18)))
     (etaf-view
      (row :class "etaf-kbd" :item-gap '(ch 1) :width 'max-content
        (expr (mapcar (lambda (key)
@@ -366,7 +366,13 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
 
 (etaf-define-component etaf-keycap
     (&key text (level 'action) label active disabled on-press aria-label help-echo)
-  "Render keycap TEXT at action or region LEVEL with an optional caption LABEL."
+  "Render keycap TEXT at action or region LEVEL with an optional caption LABEL.
+
+Both levels keep the frame's own type size.  A cap is a soft chip: a filled
+rounded block with one cell of inline padding and no outline, so a header full
+of hints reads as text rather than as a row of boxes.  The region level is the
+same chip, bold, and fills with the accent while its region holds the
+keyboard."
   :validate
   (progn
     (etaf-check-prop :text text (and (stringp text) (not (string-empty-p text)))
@@ -380,18 +386,19 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
   :render
   (let* ((theme (etaf-ui--feedback-theme 'neutral))
          (fg (nth 0 theme))
-         (edge (nth 2 theme))
+         (bg (nth 1 theme))
          (accent (etaf-theme-token :ui-accent
                                    (plist-get etaf-ui--style-palette :ui-accent)))
          (regionp (eq level 'region))
-         ;; Theme tokens stay tokens: mixing them here would need a frame and
-         ;; would answer for the wrong one.  A disabled key keeps its slot and
-         ;; loses only its ink.
-         (ink (cond (disabled (etaf-theme-token :ui-disabled-fg
-                                               (plist-get etaf-ui--style-palette :ui-disabled-fg)))
-                    ((and regionp active) (etaf-theme-token :ui-bg
-                                                            (plist-get etaf-ui--style-palette :ui-bg)))
-                    (t fg))))
+         (fill (cond (disabled (etaf-ui-color-mix bg fg 0.04))
+                     ((and regionp active) accent)
+                     (regionp (etaf-ui-color-mix bg fg 0.12))
+                     (t (etaf-ui-color-mix bg fg 0.08))))
+         (ink (cond (disabled (etaf-ui-color-mix fg bg 0.45))
+                    ((and regionp active) bg)
+                    (regionp fg)
+                    (t (etaf-theme-token :ui-muted-fg
+                                         (plist-get etaf-ui--style-palette :ui-muted-fg))))))
     (etaf-view
      (flex :flex-direction 'row :align-items 'center
            :class (etaf-ui--class-value
@@ -406,26 +413,19 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
            :tab-index (and on-press (if disabled -1 0))
            :on-press (and on-press (not disabled) on-press)
            :aria-label aria-label :help-echo help-echo
-       (expr
-        (if regionp
-            (etaf-view
-             (flex :flex-direction 'column :class "etaf-keycap-square"
-                   :width '(px 20) :min-height '(lh 1)
-                   :justify-content 'center :align-items 'center
-                   :background-color (and active accent)
-                   :border (etaf-ui--style-border (if active accent edge))
-               (text :font-size 10 :font-weight 'bold :color ink
-                     (expr text))))
-          (etaf-view
-           (box :class "etaf-keycap-action" :width 'max-content
-                :padding-inline '(px 4) :font-size 10 :text-align 'center
-                :color ink :border (etaf-ui--style-border edge)
-             (text (expr text))))))
+       (flex :flex-direction 'row :align-items 'center
+             :justify-content 'center
+             :width (if regionp '(ch 2) 'auto)
+             :min-height '(lh 1)
+             :padding-inline (unless regionp '(ch 1))
+             :background-color fill
+             :border-radius '(px 3)
+         (text :font-weight (if regionp 'bold 'normal) :color ink
+               (expr text)))
        (expr (when label
                (etaf-view
                 (text :color (if disabled
-                                 (etaf-theme-token :ui-disabled-fg
-                                                   (plist-get etaf-ui--style-palette :ui-disabled-fg))
+                                 (etaf-ui-color-mix fg bg 0.45)
                                (etaf-theme-token :ui-muted-fg
                                                  (plist-get etaf-ui--style-palette :ui-muted-fg)))
                       (expr label)))))))))

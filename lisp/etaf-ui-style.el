@@ -102,7 +102,7 @@
   "Return the deferred ETAF Theme value for private catalog token KEY."
   (etaf-theme-token key (plist-get etaf-ui--style-palette key)))
 
-(defun etaf-ui--color-mix (from to amount)
+(defun etaf-ui-color-mix (from to amount)
   "Return FROM mixed AMOUNT of the way toward TO.
 Both colors are #RRGGBB strings; a color in any other spelling is returned
 unchanged, which keeps a Theme that uses a named color usable."
@@ -171,12 +171,12 @@ role is supplied too."
          (dark (< (or (etaf-ui--color-luminance bg) 1.0) 0.5)))
     (funcall default :panel bg)
     (funcall default :track (funcall get :panel))
-    (funcall default :border (etaf-ui--color-mix bg fg 0.18))
-    (funcall default :muted (etaf-ui--color-mix fg bg 0.35))
+    (funcall default :border (etaf-ui-color-mix bg fg 0.18))
+    (funcall default :muted (etaf-ui-color-mix fg bg 0.35))
     (funcall default :dim (funcall get :muted))
     (funcall default :accent fg)
     (funcall default :accent-fg "#FFFFFF")
-    (funcall default :accent-soft (etaf-ui--color-mix bg (funcall get :accent) 0.16))
+    (funcall default :accent-soft (etaf-ui-color-mix bg (funcall get :accent) 0.16))
     (dolist (status etaf-ui--theme-status-colors)
       (funcall default (car status) (if dark (nth 2 status) (nth 1 status))))
     (funcall default :info (funcall get :accent))
@@ -184,9 +184,9 @@ role is supplied too."
       (let ((color (funcall get status))
             (name (substring (symbol-name status) 1)))
         (funcall default (intern (format ":%s-bg" name))
-                 (etaf-ui--color-mix bg color 0.12))
+                 (etaf-ui-color-mix bg color 0.12))
         (funcall default (intern (format ":%s-border" name))
-                 (etaf-ui--color-mix bg color 0.35))))
+                 (etaf-ui-color-mix bg color 0.35))))
     roles))
 
 (defun etaf-ui-theme-tokens (palette)
@@ -257,9 +257,9 @@ visible."
   (if-let* ((luminance (etaf-ui--color-luminance color)))
       (let* ((dark-p (< luminance 0.5))
              (away (if dark-p "#000000" "#FFFFFF"))
-             (fill (etaf-ui--color-mix color away amount)))
+             (fill (etaf-ui-color-mix color away amount)))
         (if (equal fill color)
-            (etaf-ui--color-mix color (if dark-p "#FFFFFF" "#000000") amount)
+            (etaf-ui-color-mix color (if dark-p "#FFFFFF" "#000000") amount)
           fill))
     color))
 
