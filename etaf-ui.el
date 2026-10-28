@@ -1313,6 +1313,33 @@
 ;; Compact rounded caps keep the normal line height; their subtle fill and
 ;; edge derive from the inherited panel background and foreground Theme tokens.
 ;;
+;; Component: etaf-keycap (&key text level label active disabled on-press aria-label help-echo)
+;; Parameters:
+;; :text — Required nonempty string drawn in the cap.
+;; :level — action or region; default action.
+;; :label — Optional caption drawn one column right of the cap; default nil.
+;; :active — Optional flag; default nil. A region key fills with the accent and draws its letter in the panel background.
+;; :disabled — Optional flag; default nil. Keeps the slot and the outline, drops the ink.
+;; :on-press — Optional function (); default nil. Makes the cap a focusable button.
+;; :aria-label, :help-echo — Optional accessible name and help; default nil.
+;;
+;; Render one key as a keycap.  An action key is one row high with a hairline
+;; border and no fill; a region key is a 20px right-angled square.  A cap is an
+;; inline control shorter than the standard row and takes no part in flex
+;; shrinking, so a cap at the right end of a row is never squeezed.  Colour
+;; comes from Theme tokens; ACTIVE and DISABLED change paint and ink only.
+;;
+;; Component: etaf-check-mark (&key state color glyph aria-label)
+;; Parameters:
+;; :state — empty (default), done, dropped or skipped.
+;; :color — Optional ink override; default nil (inherits the surrounding foreground).
+;; :glyph — Optional nonempty two-cell terminal spelling; default nil (the state's own word).
+;; :aria-label — Optional accessible name; default nil (the state's own word).
+;;
+;; Render a task's check state as one right-angled box whose check, cross or
+;; dash is a path, so all four states share one metric and a column of marks
+;; never shifts.  Without SVG the mark falls back to two cells of text.
+;;
 ;; Component: etaf-steps (&key items current on-change)
 ;; Parameters:
 ;; :items — Required nonempty list of plists with unique scalar :key and unique nonempty string :label.

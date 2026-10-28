@@ -305,6 +305,51 @@
             (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
               (etaf-unmount runtime))))))))
 
+(ert-deftest etaf-ui-keycap-and-check-mark-render-public-contracts ()
+  "Keycaps keep both levels and dispatch; check marks draw all four states."
+  (with-temp-buffer
+    (let ((pressed nil))
+      (unwind-protect
+          (progn
+            (etaf-mount
+             (current-buffer)
+             (etaf-view
+              ;; One control per row: a batch canvas is narrow at one cell per
+              ;; column, so a caption only survives in its own row.
+              (column :width '(ch 30)
+                (etaf-keycap :text "x" :label "Done" :aria-label "Done"
+                             :on-press (lambda () (setq pressed 'action)))
+                (etaf-keycap :text "B" :level 'region :label "Tasks" :active t)
+                (etaf-keycap :text "m" :label "Move" :disabled t)
+                (etaf-keycap :text "Esc" :label "Close")
+                (etaf-check-mark :state 'empty)
+                (etaf-check-mark :state 'done)
+                (etaf-check-mark :state 'dropped)
+                (etaf-check-mark :state 'skipped)
+                (etaf-check-mark :state 'done :glyph "OK"))))
+            (let ((runtime (etaf-runtime-for-buffer (current-buffer)))
+                  (text (buffer-substring-no-properties (point-min) (point-max))))
+              (should (etaf-runtime-mounted-p runtime))
+              ;; Captions are drawn beside the cap, not inside it.
+              (should (string-match-p "x" text))
+              (should (string-match-p "Done" text))
+              (should (string-match-p "Tasks" text))
+              (should (string-match-p "Move" text))
+              ;; A text frame spells each mark with its own word.
+              (should (string-match-p "待" text))
+              (should (string-match-p "完" text))
+              (should (string-match-p "弃" text))
+              (should (string-match-p "跳" text))
+              ;; An explicit glyph replaces the default spelling.
+              (should (string-match-p "OK" text))
+              (should-error (etaf-render (etaf-view (etaf-keycap :text ""))))
+              (should-error (etaf-render (etaf-view (etaf-keycap :text "x" :level 'huge))))
+              (should-error (etaf-render (etaf-view (etaf-check-mark :state 'maybe))))
+              (etaf-ui-modern-test-activate runtime "Done")
+              (should (eq pressed 'action))))
+        (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+          (etaf-unmount runtime))))))
+
 (ert-deftest etaf-ui-composition-components-render-public-contracts ()
   "Tag, Kbd, Steps and List compose with caller-owned selection callbacks."
   (with-temp-buffer
@@ -357,6 +402,34 @@
               (should closed)))
         (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
           (etaf-unmount runtime))))))
+
+(ert-deftest etaf-ui-list-draws-checkbox-selection-and-meta ()
+  "A list draws the checkbox column, the trailing meta and the selected row."
+  (with-temp-buffer
+    (let ((selected nil))
+      (etaf-mount
+       (current-buffer)
+       (etaf-view
+        (etaf-list
+         :checkbox t
+         :selected 'b
+         :items '((:key a :title "Alpha" :meta "09:00" :checked nil)
+                  (:key b :title "Beta" :meta "10:00" :checked t))
+         :on-select (lambda (key) (setq selected key))))
+       nil)
+      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+        (should (string-match-p "\\[ \\] +Alpha" text))
+        (should (string-match-p "\\[x\\] +Beta" text))
+        (should (string-match-p (regexp-quote "10:00") text)))
+      (let* ((runtime (etaf-runtime-for-buffer (current-buffer)))
+             (start (string-match "Beta" (buffer-substring-no-properties
+                                          (point-min) (point-max)))))
+        (should start)
+        (should (get-text-property (1+ start) 'face))
+        (etaf-ui-modern-test-activate runtime "Alpha")
+        (should (eq selected 'a)))
+      (when-let* ((runtime (etaf-runtime-for-buffer (current-buffer))))
+        (etaf-unmount runtime)))))
 
 (ert-deftest etaf-ui-composition-components-reject-invalid-props ()
   "Invalid shortcut keys, duplicate list identities and absent steps are rejected."
