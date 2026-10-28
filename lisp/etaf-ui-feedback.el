@@ -8,6 +8,8 @@
 ;;; Code:
 (require 'etaf-ui-basic)
 
+(declare-function etaf-ui-icon-lines "etaf-ui" (name &rest options))
+
 (defun etaf-ui--feedback-keys (variant)
   "Return foreground, background and border palette keys for VARIANT."
   (pcase variant
@@ -317,6 +319,116 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
                              :border (etaf-ui--style-border edge)
                           (text (expr key)))))
                      keys))))))
+
+(defconst etaf-check-mark-states
+  '((empty . "待") (done . "完") (dropped . "弃") (skipped . "跳"))
+  "States of `etaf-check-mark' and the glyph each draws without SVG.")
+
+(defun etaf-ui--check-mark-icon (state)
+  "Return the registered icon name drawing check-mark STATE."
+  (pcase state
+    ('empty 'checkbox)
+    ('done 'checkbox-checked)
+    ('dropped 'checkbox-crossed)
+    ('skipped 'checkbox-dashed)))
+
+(defun etaf-ui--check-mark-slot (state glyph)
+  "Return GLYPH text carrying STATE's drawn mark when SVG is available."
+  (let* ((slot (copy-sequence glyph))
+         (icon (car (etaf-ui-icon-lines (etaf-ui--check-mark-icon state)
+                                        :set 'svg :size 0.86 :lines 1)))
+         (image (plist-get (text-properties-at 0 icon) 'display)))
+    (when image
+      (add-text-properties 0 (length slot) (list 'display image) slot))
+    slot))
+
+(etaf-define-component etaf-check-mark (&key state color glyph aria-label)
+  "Render the drawn mark of a task STATE in one standard row."
+  :validate
+  (progn
+    (etaf-check-prop :state state (assq state etaf-check-mark-states)
+                     "empty, done, dropped or skipped" 'etaf-check-mark)
+    (etaf-check-prop :glyph glyph
+                     (or (null glyph) (and (stringp glyph)
+                                           (not (string-empty-p glyph))))
+                     "a nonempty string or nil" 'etaf-check-mark))
+  :render
+  (let ((slot (etaf-ui--check-mark-slot
+               state (or glyph (alist-get state etaf-check-mark-states)))))
+    (etaf-view
+     (box :class (etaf-ui--class-value "etaf-check-mark" state nil)
+          :role 'img :aria-label (or aria-label (alist-get state etaf-check-mark-states))
+          :color color :width 'max-content
+       (text (expr slot))))))
+
+(defconst etaf-keycap-levels '(action region)
+  "Keycap sizes: an action key is one row high, a region key is a square.")
+
+(etaf-define-component etaf-keycap
+    (&key text (level 'action) label active disabled on-press aria-label help-echo)
+  "Render keycap TEXT at action or region LEVEL with an optional caption LABEL."
+  :validate
+  (progn
+    (etaf-check-prop :text text (and (stringp text) (not (string-empty-p text)))
+                     "a nonempty string" 'etaf-keycap)
+    (etaf-check-prop :level level (memq level etaf-keycap-levels)
+                     "action or region" 'etaf-keycap)
+    (etaf-check-prop :label label (or (null label) (stringp label))
+                     "a string or nil" 'etaf-keycap)
+    (etaf-check-prop :on-press on-press (or (null on-press) (functionp on-press))
+                     "a function or nil" 'etaf-keycap))
+  :render
+  (let* ((theme (etaf-ui--feedback-theme 'neutral))
+         (fg (nth 0 theme))
+         (edge (nth 2 theme))
+         (accent (etaf-theme-token :ui-accent
+                                   (plist-get etaf-ui--style-palette :ui-accent)))
+         (regionp (eq level 'region))
+         ;; Theme tokens stay tokens: mixing them here would need a frame and
+         ;; would answer for the wrong one.  A disabled key keeps its slot and
+         ;; loses only its ink.
+         (ink (cond (disabled (etaf-theme-token :ui-disabled-fg
+                                               (plist-get etaf-ui--style-palette :ui-disabled-fg)))
+                    ((and regionp active) (etaf-theme-token :ui-bg
+                                                            (plist-get etaf-ui--style-palette :ui-bg)))
+                    (t fg))))
+    (etaf-view
+     (flex :flex-direction 'row :align-items 'center
+           :class (etaf-ui--class-value
+                   "etaf-keycap"
+                   (cond ((and regionp active) "region on")
+                         (regionp "region")
+                         (disabled "action off")
+                         (t "action"))
+                   nil)
+           :gap '((lh 0) (ch 1)) :flex-grow 0 :flex-shrink 0 :width 'auto
+           :role (and on-press 'button)
+           :tab-index (and on-press (if disabled -1 0))
+           :on-press (and on-press (not disabled) on-press)
+           :aria-label aria-label :help-echo help-echo
+       (expr
+        (if regionp
+            (etaf-view
+             (flex :flex-direction 'column :class "etaf-keycap-square"
+                   :width '(px 20) :min-height '(lh 1)
+                   :justify-content 'center :align-items 'center
+                   :background-color (and active accent)
+                   :border (etaf-ui--style-border (if active accent edge))
+               (text :font-size 10 :font-weight 'bold :color ink
+                     (expr text))))
+          (etaf-view
+           (box :class "etaf-keycap-action" :width 'max-content
+                :padding-inline '(px 4) :font-size 10 :text-align 'center
+                :color ink :border (etaf-ui--style-border edge)
+             (text (expr text))))))
+       (expr (when label
+               (etaf-view
+                (text :color (if disabled
+                                 (etaf-theme-token :ui-disabled-fg
+                                                   (plist-get etaf-ui--style-palette :ui-disabled-fg))
+                               (etaf-theme-token :ui-muted-fg
+                                                 (plist-get etaf-ui--style-palette :ui-muted-fg)))
+                      (expr label)))))))))
 
 (provide 'etaf-ui-feedback)
 ;;; etaf-ui-feedback.el ends here

@@ -502,7 +502,9 @@ change stays a retained Host update rather than a Component rerender."
                    (smile . ":)") (image . "[]") (video . "|>") (file . "=")
                    (paperclip . "&")
                    (info . "i") (menu . "=") (more-vertical . ":")
-                   (sidebar . "|]") (eye . "o")))
+                   (sidebar . "|]") (eye . "o")
+                   (checkbox . "[ ]") (checkbox-checked . "[x]")
+                   (checkbox-crossed . "[x]") (checkbox-dashed . "[-]")))
        (fonts
         `((nerd ("DroidSansMono Nerd Font" "DejaVuSansMono Nerd Font") 1.0 ,fa)
           (fa ("FontAwesome") 0.86 ,fa)
@@ -630,7 +632,11 @@ change stays a retained Host update rather than a Component rerender."
            (menu . "<path d='M2 3.5H12M2 7H12M2 10.5H12'/>")
            (more-vertical . "<circle cx='7' cy='3' r='1.2' fill='currentColor'/><circle cx='7' cy='7' r='1.2' fill='currentColor'/><circle cx='7' cy='11' r='1.2' fill='currentColor'/>")
            (sidebar . "<rect x='1.5' y='2' width='11' height='10' rx='2'/><path d='M8.5 2V12'/>")
-           (eye . "<path d='M1 7C3 3.3 11 3.3 13 7C11 10.7 3 10.7 1 7Z'/><circle cx='7' cy='7' r='1.8'/>")))))
+           (eye . "<path d='M1 7C3 3.3 11 3.3 13 7C11 10.7 3 10.7 1 7Z'/><circle cx='7' cy='7' r='1.8'/>")
+           (checkbox . "<rect x='1.2' y='1.2' width='11.6' height='11.6'/>")
+           (checkbox-checked . "<rect x='1.2' y='1.2' width='11.6' height='11.6'/><path d='M3.7 7.2L6.1 9.6L10.5 4.3'/>")
+           (checkbox-crossed . "<rect x='1.2' y='1.2' width='11.6' height='11.6'/><path d='M4.6 4.6L9.4 9.4M9.4 4.6L4.6 9.4'/>")
+           (checkbox-dashed . "<rect x='1.2' y='1.2' width='11.6' height='11.6'/><path d='M4.2 7H9.8'/>")))))
 
 (provide 'etaf-ui-icon)
 ;;; etaf-ui-icon.el ends here
