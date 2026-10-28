@@ -293,6 +293,22 @@ counts that width, and a plain character counts its own."
           (forward-line 1)))
       (nreverse rulers))))
 
+(ert-deftest etaf-ui-markdown-table-draws-a-separator-between-columns ()
+  "Every row of a table closes each column with a vertical rule.
+A grid of horizontal rules alone leaves the reader to guess where a column
+ends, so a table draws one hairline between every pair of columns."
+  (etaf-ui-markdown-test--with-mount
+      (concat "| Option | Meaning |\n"
+              "| --- | --- |\n"
+              "| :at | Where the panel sits |\n"
+              "| :width | Content columns |\n")
+      (etaf-ui-markdown-test--env)
+    (let ((rulers (etaf-ui-markdown-test--border-columns buffer-name)))
+      (should (= 3 (length rulers)))
+      (dolist (ruler rulers)
+        (should (= 3 (length ruler)))
+        (should (< (nth 0 ruler) (nth 1 ruler) (nth 2 ruler)))))))
+
 (ert-deftest etaf-ui-markdown-table-rows-share-one-column-grid ()
   "Every row of a table draws its borders in the same columns.
 A cell whose content is wider than its neighbours must not push that row's

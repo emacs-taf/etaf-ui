@@ -23,7 +23,8 @@
 - A fenced block with a language opens with a header strip that holds the
   language and closes with a rule, instead of a tag floating over the first
   line of code.
-- A markdown table draws horizontal rules only; its header row is closed by a
+- A markdown table draws its whole grid: an outer border, a rule between
+  every pair of columns and a rule between rows. Its header row is closed by a
   rule mixed toward the ink color, and the zebra stripe is dropped when the
   palette gives the stripe and the header row the same surface.
 - A blockquote paints its own text in `:muted`, so it reads as secondary

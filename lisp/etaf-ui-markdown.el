@@ -564,6 +564,9 @@ keeps a tight container from squeezing cells below their words."
                                               :border-bottom
                                               (cond ((zerop row-index) header-rule)
                                                     ((/= row-index last-row) border))
+                                              :border-right
+                                              (and (/= column-index (1- columns))
+                                                   border)
                                               :background-color
                                               (cond
                                                ((zerop row-index)

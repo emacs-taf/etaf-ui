@@ -1154,6 +1154,11 @@
       "purpose": "etaf-sheet-scroll pages by lines, shows later rows, and leaves the caller's cursor untouched."
     },
     {
+      "name": "etaf-ui-markdown-table-draws-a-separator-between-columns",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A rendered table draws a vertical rule between every pair of columns, so each column's edge is visible."
+    },
+    {
       "name": "etaf-ui-markdown-table-rows-share-one-column-grid",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "Every row of a rendered table draws its cell borders in the same display columns, including a row whose long cell wraps, so the table reads as one grid."

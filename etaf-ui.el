@@ -1810,8 +1810,9 @@
 ;; bar, so scrolling never changes the height of the lines it reveals.
 ;; Without `:line-grid' the top two heading levels draw a rule from
 ;; `:heading-rule' under their text, a fenced block with a language opens
-;; with a header strip holding that language, a table draws horizontal rules
-;; only (its header row separated by a stronger one) and drops its zebra
+;; with a header strip holding that language, a table draws its outer border,
+;; a rule between every pair of columns and a rule between rows (its header
+;; row separated by a stronger one), and drops its zebra
 ;; stripe when the palette gives the stripe and the header row one surface,
 ;; and a quote paints its text in `:muted' while links and code keep their
 ;; own colors.
