@@ -404,11 +404,37 @@ ITEM is (FIRST-LINE . LINES)."
 ;;; Block parser
 ;;; ---------------------------------------------------------------------------
 
-(defun etaf-ui-markdown--parse-blocks (lines)
-  "Parse LINES into a list of block nodes."
-  (let ((blocks nil))
+(defun etaf-ui-markdown--line-starts (lines shift limit)
+  "Return the character offsets where LINES start, plus one past the last line.
+SHIFT is added to every offset, and no offset exceeds LIMIT.  A caller that
+split one text into LINES uses the result to turn a line index into a range in
+that text."
+  (let ((starts (make-vector (1+ (length lines)) 0))
+        (position shift)
+        (index 0))
+    (dolist (line lines)
+      (aset starts index position)
+      (setq position (+ position (length line) 1)
+            index (1+ index)))
+    (aset starts index (min position limit))
+    starts))
+
+(defun etaf-ui-markdown--parse-blocks (lines &optional starts)
+  "Parse LINES into a list of block nodes.
+STARTS, when given, is the line offset vector from
+`etaf-ui-markdown--line-starts': every node this call creates then carries
+`:begin' and `:end', its half-open character range in the text LINES came from.
+`:end' is where the line after the block begins, so the range always covers
+whole lines and its slice ends with the block's own last newline.
+Recursive calls parse a snippet of another block and pass no vector, so nested
+nodes carry no range."
+  (let ((blocks nil)
+        (index 0)
+        (total (length lines)))
     (while lines
-      (let ((line (car lines)))
+      (let ((line (car lines))
+            (head blocks)
+            (start index))
         (cond
          ((etaf-ui-markdown--blank-line-p line)
           (setq lines (cdr lines)))
@@ -559,7 +585,13 @@ ITEM is (FIRST-LINE . LINES)."
                             :text text
                             :children (etaf-ui-markdown--parse-inlines text))
                       blocks)
-                (setq lines rest))))))))
+                (setq lines rest))))))
+        (setq index (- total (length lines)))
+        (when (and starts (not (eq head blocks)))
+          (setcar blocks (append (car blocks)
+                                 (list :begin (aref starts start)
+                                       :end (aref starts index)))))
+        ))
     (nreverse blocks)))
 
 (defun etaf-ui-markdown--fence-close-p (line char length)
@@ -1123,7 +1155,11 @@ matter alist), `:title', `:children' (top-level blocks with heading ids),
                            refs))))
             refs))
          (etaf-ui-markdown--footnotes nil)
-         (blocks (etaf-ui-markdown--parse-blocks (split-string body "\n"))))
+         (lines (split-string body "\n"))
+         (blocks (etaf-ui-markdown--parse-blocks
+                  lines
+                  (etaf-ui-markdown--line-starts
+                   lines (- (length text) (length body)) (length text)))))
     ;; Assign stable, unique heading anchors.
     (let ((seen (make-hash-table :test #'equal)))
       (dolist (block blocks)

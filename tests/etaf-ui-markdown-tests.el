@@ -243,6 +243,31 @@ body text that somebody tinted."
         (should (string-match-p "Title" published))
         (should (string-match-p "Part" published))))))
 
+(ert-deftest etaf-ui-markdown-blocks-carry-their-source-range ()
+  "Every top-level block carries the half-open range of its own source.
+A caller maps an edit to the block that holds it from that range instead of
+searching the document again, so the range must slice back to the block's text
+and the blocks must stay in document order."
+  (let* ((text (concat "# Title\n\n"
+                       "First paragraph\nspanning two lines.\n\n"
+                       "```elisp\n(+ 1 2)\n```\n\n"
+                       "| a | b |\n| --- | --- |\n| 1 | 2 |\n"))
+         (blocks (plist-get (etaf-ui-markdown-parse text) :children)))
+    (should (= 4 (length blocks)))
+    (let ((previous 0))
+      (dolist (block blocks)
+        (should (>= (plist-get block :begin) previous))
+        (should (> (plist-get block :end) (plist-get block :begin)))
+        (setq previous (plist-get block :end))))
+    (cl-flet ((source (block)
+                (string-trim-right
+                 (substring text (plist-get block :begin) (plist-get block :end))
+                 "\n")))
+      (should (equal "# Title" (source (nth 0 blocks))))
+      (should (equal "First paragraph\nspanning two lines." (source (nth 1 blocks))))
+      (should (equal "```elisp\n(+ 1 2)\n```" (source (nth 2 blocks))))
+      (should (equal "| a | b |\n| --- | --- |\n| 1 | 2 |" (source (nth 3 blocks)))))))
+
 (ert-deftest etaf-ui-markdown-table-columns-follow-content ()
   "Table columns take width in proportion to their content and wrap by word."
   (let ((long "alpha bravo charlie delta echo foxtrot"))

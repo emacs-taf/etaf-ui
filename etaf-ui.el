@@ -1765,7 +1765,10 @@
 ;; `:label', `:number' and `:children') and `:features' (the resolved
 ;; extension plist).  A block is a plist with `:type' one of `heading',
 ;; `paragraph', `code-block', `blockquote', `list', `table',
-;; `thematic-break', `html-block' and `footnote-def'.
+;; `thematic-break', `html-block' and `footnote-def'.  A top-level block also
+;; carries `:begin' and `:end', its half-open character range in TEXT, so a
+;; caller maps an edit back to the block that holds it; nested blocks carry no
+;; range because their offsets belong to the snippet their container parsed.
 ;;
 ;; Function: etaf-ui-markdown-view-block (block env)
 ;; Return BLOCK rendered as one ETAF View, or nil when nothing renders.

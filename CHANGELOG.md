@@ -4,6 +4,10 @@
 
 ### Added
 
+- A parsed top-level block carries `:begin` and `:end`, its character range in
+  the parsed text, and the parser exposes the line-offset helper behind it.
+  A caller that must map an edit back to the block holding it no longer
+  searches the document: the range slices out the block's own source.
 - `etaf-ui-color-mix` is public: applications derive hover, selection and
   surface steps from their own palette instead of carrying a second one. A
   colour written in any spelling other than `#RRGGBB` comes back unchanged.
