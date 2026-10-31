@@ -1192,6 +1192,11 @@
       "name": "etaf-ui-markdown-parse-costs-the-same-as-its-own-paragraphs",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "The same text costs no more as one long paragraph than as many paragraphs, so autolink detection stays linear in the text instead of scanning to the next prefix from every candidate character."
+    },
+    {
+      "name": "etaf-ui-markdown-task-list-marks-done-and-open-items",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A task list marks a done item with a filled square and an open one with a hollow square, both from the body font, so the mark keeps the line's weight and the words start in the same column."
     }
   ]
 }

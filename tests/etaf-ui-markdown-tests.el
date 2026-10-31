@@ -225,6 +225,30 @@ parsed as paragraphs keeps this check independent of machine speed."
         (should (string-match-p "Note" published))
         (should (string-match-p "alert body" published))))))
 
+(ert-deftest etaf-ui-markdown-task-list-marks-done-and-open-items ()
+  "A task list marks a done item and an open item with different glyphs.
+Ballot boxes come from a symbol fallback font on macOS and read lighter than
+the words around them; the geometric squares keep one outline weight in both
+states and show the state through the filled inner square."
+  (let ((text (concat "- [x] 已完成的一项\n"
+                      "- [ ] 未完成的一项\n"
+                      "- 普通条目\n")))
+    (etaf-ui-markdown-test--with-mount
+        text (etaf-ui-markdown-test--env)
+      (let ((published (etaf-ui-markdown-test--text buffer-name)))
+        (should (string-match-p "▣ 已完成的一项" published))
+        (should (string-match-p "▢ 未完成的一项" published))
+        (should (string-match-p "• 普通条目" published))
+        (should-not (string-match-p "\\[x\\]" published))
+        (should-not (string-match-p "\\[ \\]" published))
+        ;; The two marks sit in the same column, so the words line up.
+        (let* ((lines (split-string published "\n" t))
+               (done (cl-find-if (lambda (line) (string-match-p "已" line)) lines))
+               (todo (cl-find-if (lambda (line) (string-match-p "未" line)) lines)))
+          (should done)
+          (should todo)
+          (should (equal (string-match "已" done) (string-match "未" todo))))))))
+
 (ert-deftest etaf-ui-markdown-callbacks-replace-media-and-code ()
   "`:render-code-block' and `:render-media' own the rendered block."
   (setq etaf-ui-markdown-test--code-calls 0
