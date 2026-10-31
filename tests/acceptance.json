@@ -1177,6 +1177,21 @@
       "name": "etaf-ui-list-draws-checkbox-selection-and-meta",
       "file": "tests/etaf-ui-modern-tests.el",
       "purpose": "A list draws its checkbox column, its trailing meta and its selected row, and reports a press through the caller's callback."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-links-a-bare-url-in-a-long-paragraph",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A bare URL in a long prose paragraph yields exactly one link while every word around it keeps its text, because the autolink parser compares the characters at each `h' and `w' instead of searching for the next prefix."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-accepts-a-bare-www-url",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A `www.' address still resolves to an http link and the words around it stay outside the link, so the cheaper prefix comparison keeps the shorter GFM form."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-costs-the-same-as-its-own-paragraphs",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The same text costs no more as one long paragraph than as many paragraphs, so autolink detection stays linear in the text instead of scanning to the next prefix from every candidate character."
     }
   ]
 }

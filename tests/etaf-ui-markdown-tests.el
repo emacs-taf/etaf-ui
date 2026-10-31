@@ -124,6 +124,70 @@ body text that somebody tinted."
     (should (eq 'table (plist-get (car (plist-get gfm :children)) :type)))
     (should-not (eq 'table (plist-get (car (plist-get core :children)) :type)))))
 
+(ert-deftest etaf-ui-markdown-parse-links-a-bare-url-in-a-long-paragraph ()
+  "A bare URL inside a long paragraph becomes exactly one link.
+Every `h' and `w' the paragraph contains is a candidate position, so the
+parser has to reject them by comparing the text at that position.  A
+paragraph of ordinary prose keeps its words and gets its URL."
+  (let* ((prose (mapconcat (lambda (n) (format "word %d with h and w" n))
+                           (number-sequence 1 200) " "))
+         (blocks (plist-get (etaf-ui-markdown-parse
+                             (concat prose " see https://example.com/a-b for why."))
+                            :children))
+         (children (plist-get (car blocks) :children))
+         (links (cl-loop for node in children
+                         when (eq (plist-get node :type) 'link)
+                         collect (plist-get node :url)))
+         (words (mapconcat (lambda (node)
+                             (unless (eq (plist-get node :type) 'link)
+                               (or (plist-get node :text) "")))
+                           children "")))
+    (should (eq 'paragraph (plist-get (car blocks) :type)))
+    (should (equal '("https://example.com/a-b") links))
+    (should (equal (concat prose " see " " for why.") words))))
+
+(ert-deftest etaf-ui-markdown-parse-accepts-a-bare-www-url ()
+  "A `www.' address resolves to an http link and keeps its own words.
+The prefix check that rejects prose words must still accept the shorter
+`www.' form."
+  (let* ((blocks (plist-get (etaf-ui-markdown-parse "Visit www.example.org now.")
+                            :children))
+         (children (plist-get (car blocks) :children))
+         (link (cl-find-if (lambda (node) (eq (plist-get node :type) 'link))
+                           children))
+         (words (mapconcat (lambda (node)
+                             (unless (eq (plist-get node :type) 'link)
+                               (or (plist-get node :text) "")))
+                           children "")))
+    (should (equal "http://www.example.org" (plist-get link :url)))
+    (should (equal "Visit  now." words))))
+
+(ert-deftest etaf-ui-markdown-parse-costs-the-same-as-its-own-paragraphs ()
+  "One long paragraph costs no more than the same text as many paragraphs.
+Prose makes every `h' and `w' an autolink candidate, so a parser that looks
+for the next prefix from each candidate instead of comparing the characters
+at it turns the paragraph into quadratic work.  Comparing the same text
+parsed as paragraphs keeps this check independent of machine speed."
+  (let* ((unit (mapconcat (lambda (n) (format "word %d with h and w" n))
+                          (number-sequence 1 60) " "))
+         (one (mapconcat (lambda (n) (format "%s line %d" unit n))
+                         (number-sequence 1 120) "\n"))
+         (many (mapconcat (lambda (n) (format "%s line %d" unit n))
+                          (number-sequence 1 120) "\n\n"))
+         (time (lambda (text)
+                 (let ((start (float-time)))
+                   (etaf-ui-markdown-parse text)
+                   (- (float-time) start)))))
+    (should (eq 'paragraph (plist-get (car (plist-get (etaf-ui-markdown-parse one)
+                                                      :children))
+                                      :type)))
+    (should (= 120 (length (plist-get (etaf-ui-markdown-parse many) :children))))
+    ;; The fastest of three runs each way; a garbage collection slows a run
+    ;; instead of faking a quadratic one.
+    (let ((single (apply #'min (cl-loop repeat 3 collect (funcall time one))))
+          (split (apply #'min (cl-loop repeat 3 collect (funcall time many)))))
+      (should (< single (* 8 (max split 0.001)))))))
+
 (ert-deftest etaf-ui-markdown-parse-rejects-unknown-flavor ()
   "An unknown dialect name signals the documented error."
   (should-error (etaf-ui-markdown-parse "# x\n" 'markdown-extras)

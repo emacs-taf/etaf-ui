@@ -849,34 +849,48 @@ Return (NODE . NEXT) or nil."
           (setq code (substring code 1 -1)))
         (cons (list :type 'code :text code) (+ found run))))))
 
-(defun etaf-ui-markdown--try-bare-url (text position _end)
-  "Parse a GFM bare URL at POSITION in TEXT.
+(defconst etaf-ui-markdown--bare-url-prefixes
+  '("https://" "http://" "www.")
+  "Prefixes that begin a GFM bare URL, longest first per length.")
+
+(defun etaf-ui-markdown--bare-url-prefix-p (text position end)
+  "Return non-nil when a bare URL prefix starts at POSITION in TEXT.
+Only the characters at POSITION are compared, so one candidate character
+costs a bounded comparison: searching for the next prefix instead would scan
+the rest of the inline text for every `h' and `w' it contains."
+  (cl-some (lambda (prefix)
+             (let ((finish (+ position (length prefix))))
+               (and (<= finish end)
+                    (eq t (compare-strings prefix nil nil text position finish)))))
+           etaf-ui-markdown--bare-url-prefixes))
+
+(defun etaf-ui-markdown--try-bare-url (text position end)
+  "Parse a GFM bare URL at POSITION in TEXT up to END.
 Return (NODE . NEXT) or nil.  Trailing punctuation and unbalanced closing
 parentheses stay outside the link, as the extension specifies."
-  (when (string-match "\\(https?://\\|www\\.\\)" text position)
-    (when (= (match-beginning 0) position)
-      (when (string-match "[^ \t\n<>]+" text position)
-        (when (= (match-beginning 0) position)
-          (let* ((matched (match-string 0 text))
-                 (url matched)
-                 (start (match-beginning 0))
-                 (finish (match-end 0)))
-            (while (and (> (length matched) 1)
-                        (string-match-p "[.,:;!?]\\'" matched))
-              (setq matched (substring matched 0 -1)
-                    finish (1- finish)))
-            (while (and (> (length matched) 1)
-                        (string-suffix-p ")" matched)
-                        (> (cl-count ?\) matched) (cl-count ?\( matched)))
-              (setq matched (substring matched 0 -1)
-                    finish (1- finish)))
-            (setq url (if (string-prefix-p "www." matched)
-                          (concat "http://" matched)
-                        matched))
-            (when (and (> (length matched) 3) (> start 0))
-              (cons (list :type 'link :url url :title nil
-                          :children (list (list :type 'text :text matched)))
-                    finish))))))))
+  (when (and (etaf-ui-markdown--bare-url-prefix-p text position end)
+             (string-match "[^ \t\n<>]+" text position)
+             (= (match-beginning 0) position))
+    (let* ((matched (match-string 0 text))
+           (start (match-beginning 0))
+           (finish (match-end 0)))
+      (while (and (> (length matched) 1)
+                  (string-match-p "[.,:;!?]\\'" matched))
+        (setq matched (substring matched 0 -1)
+              finish (1- finish)))
+      (while (and (> (length matched) 1)
+                  (string-suffix-p ")" matched)
+                  (> (cl-count ?\) matched) (cl-count ?\( matched)))
+        (setq matched (substring matched 0 -1)
+              finish (1- finish)))
+      (when (and (> (length matched) 3) (> start 0))
+        (cons (list :type 'link
+                    :url (if (string-prefix-p "www." matched)
+                             (concat "http://" matched)
+                           matched)
+                    :title nil
+                    :children (list (list :type 'text :text matched)))
+              finish)))))
 
 (defun etaf-ui-markdown--try-strike (text position end)
   "Parse strikethrough at POSITION in TEXT up to END.
