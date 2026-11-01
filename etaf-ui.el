@@ -1321,10 +1321,11 @@
 ;; Compact rounded caps keep the normal line height; their subtle fill and
 ;; edge derive from the inherited panel background and foreground Theme tokens.
 ;;
-;; Component: etaf-keycap (&key text level label active disabled on-press aria-label help-echo)
+;; Component: etaf-keycap (&key text level label active disabled on-press aria-label help-echo variant)
 ;; Parameters:
 ;; :text — Required nonempty string drawn in the cap.
 ;; :level — action or region; default action.
+;; :variant — outline or filled; default outline. `outline' draws a hairline box with no fill; `filled' a soft chip.
 ;; :label — Optional caption drawn one column right of the cap; default nil.
 ;; :active — Optional flag; default nil. A region key fills with the accent and draws its letter in the panel background.
 ;; :disabled — Optional flag; default nil. Keeps the slot and the outline, drops the ink.
@@ -1757,18 +1758,33 @@
 ;;
 ;; Function: etaf-ui-markdown-parse (text &optional flavor)
 ;; Parse markdown TEXT into a document plist, or signal `etaf-ui-markdown-error'.
-;; FLAVOR is a dialect name from `etaf-ui-markdown-flavors' (`gfm' is the
-;; default), a feature plist overriding individual extension flags, or nil
-;; for `etaf-ui-markdown-flavor'.  Keys are `:meta' (front matter alist),
+;; FLAVOR is a dialect name from `etaf-ui-markdown-flavors' (`etaf' is the
+;; default), a feature plist overriding individual flags and extensions, or
+;; nil for `etaf-ui-markdown-flavor'.  Keys are `:meta' (front matter alist),
 ;; `:title', `:children' (top-level blocks with heading ids), `:outline'
 ;; (`(LEVEL TEXT ID)' in document order), `:footnotes' (definitions with
 ;; `:label', `:number' and `:children') and `:features' (the resolved
-;; extension plist).  A block is a plist with `:type' one of `heading',
-;; `paragraph', `code-block', `blockquote', `list', `table',
-;; `thematic-break', `html-block' and `footnote-def'.  A top-level block also
+;; extension plist, `:extensions' naming the syntax this module adds).  A
+;; block is a plist with `:type' one of `heading', `paragraph', `code-block',
+;; `blockquote', `list', `table', `thematic-break', `html-block',
+;; `footnote-def', `definition-list' (items with `:term', `:children' and
+;; `:definitions') and `math' (`:text' as written, `:display' for a `$$'
+;; block).  An inline is a plist with `:type' one of `text', `code', `emph',
+;; `strong', `strike', `link', `image', `autolink', `footnote-ref', `html',
+;; `break', `subscript' and `superscript' (both carry `:rendered', the script
+;; characters to paint), `abbreviation' (`:text' and its `:title') and `math'.  A top-level block also
 ;; carries `:begin' and `:end', its half-open character range in TEXT, so a
 ;; caller maps an edit back to the block that holds it; nested blocks carry no
 ;; range because their offsets belong to the snippet their container parsed.
+;;
+;; Function: etaf-ui-markdown-math-text (source)
+;; Return SOURCE, a TeX formula, written as plain text; never signals.
+;; The page paints a formula as text rather than an image: command names get
+;; their symbols, `\frac{a}{b}' becomes `a/b', `\sqrt{x}' becomes `√(x)',
+;; and `^{}' and `_{}' become the Unicode letters of that position.  Anything
+;; the mapping does not know keeps its own characters, so a formula never
+;; turns into noise.  Callers that want real typesetting render the block
+;; themselves through `:render-code-block' instead.
 ;;
 ;; Function: etaf-ui-markdown-view-block (block env)
 ;; Return BLOCK rendered as one ETAF View, or nil when nothing renders.
@@ -1824,17 +1840,21 @@
 ;; word boundaries.
 ;;
 ;; Variable: etaf-ui-markdown-flavor
-;; Default markdown dialect of `etaf-ui-markdown-parse'.
-;; A FLAVOR argument overrides it. `gfm' enables the GitHub extensions and
-;; front matter, `commonmark' parses the core specification only, and a
-;; feature plist toggles individual extensions.
+;; Default markdown dialect of `etaf-ui-markdown-parse', `etaf' unless set.
+;; A FLAVOR argument overrides it.  `etaf' is the widest preset and what a
+;; reader gets by opening a document; `gfm' and `commonmark' name the narrower
+;; ones to use when a document has to parse exactly as those specifications
+;; say, and a feature plist toggles individual flags and extensions.
 ;;
 ;; Variable: etaf-ui-markdown-flavors
-;; Named markdown dialects and the extension flags they enable.
-;; `commonmark' is the CommonMark core; `gfm' adds the GitHub extensions the
-;; renderer also treats as its default: tables, task lists, strikethrough,
-;; bare autolinks, footnotes and alert blocks, plus front matter, which is a
-;; document convention rather than a markdown extension.
+;; Named markdown dialects and the syntax each one enables.
+;; `commonmark' is the CommonMark core; `gfm' adds GitHub's extensions there
+;; as well: tables, task lists, strikethrough, bare autolinks, footnotes,
+;; alert blocks and front matter; `etaf' adds definition lists, sub- and
+;; superscript, abbreviations and `$' math on top of `gfm'.  A preset is only
+;; a set of switches over one parser, so a document written for one of them
+;; still parses under another, with the syntax it did not enable showing as
+;; literal text.  None of the added syntax needs an external program.
 ;;
 ;; Error: etaf-ui-markdown-error
 ;; Markdown document error

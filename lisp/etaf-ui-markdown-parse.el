@@ -36,51 +36,126 @@
 (defvar etaf-ui-markdown--features nil
   "Extension feature flags of the document being parsed.
 A plist of booleans: `:front-matter', `:tables', `:task-lists',
-`:strikethrough', `:autolinks' and `:footnotes'.  Recognizers gated off render
-their syntax as literal text instead of failing.")
+`:strikethrough', `:autolinks', `:footnotes', `:alerts' and `:extensions',
+the names of the extensions this module adds on top of the flags.  A
+recognizer gated off leaves its syntax as literal text instead of failing.")
+
+(defconst etaf-ui-markdown-gfm-features
+  '(:front-matter t :tables t :task-lists t
+    :strikethrough t :autolinks t :footnotes t :alerts t)
+  "The feature flags GitHub Flavored Markdown enables as a whole.
+A preset spells its own flags out so a later change to GFM does not silently
+change what an older preset meant.")
 
 (defconst etaf-ui-markdown-flavors
-  '((commonmark . (:front-matter nil :tables nil :task-lists nil
-                   :strikethrough nil :autolinks nil :footnotes nil :alerts nil))
-    (gfm . (:front-matter t :tables t :task-lists t
-            :strikethrough t :autolinks t :footnotes t :alerts t)))
-  "Named markdown dialects and the extension flags they enable.
-`commonmark' is the CommonMark core; `gfm' adds the GitHub extensions the
-renderer also treats as its default: tables, task lists, strikethrough, bare
-autolinks, footnotes and alert blocks, plus front matter, which is a document
-convention rather than a markdown extension.")
+  `((commonmark . (:front-matter nil :tables nil :task-lists nil
+                    :strikethrough nil :autolinks nil :footnotes nil
+                    :alerts nil :extensions nil))
+    (gfm . ,etaf-ui-markdown-gfm-features)
+    ;; The renderer's own daily dialect: GitHub's extensions plus the ones a
+    ;; reader expects from a notes tool, all of them pure parsing.  Nothing
+    ;; here needs an external program, so a plain checkout renders them.
+    (etaf . ,(append etaf-ui-markdown-gfm-features
+                     '(:extensions (definition-list subscript superscript
+                                    abbreviation math)))))
+  "Named markdown dialects and the syntax each one enables.
+`commonmark' is the CommonMark core; `gfm' adds GitHub's extensions there as
+well: tables, task lists, strikethrough, bare autolinks, footnotes, alert
+blocks and front matter; `etaf' adds definition lists, sub- and superscript,
+abbreviations and `$' math on top of `gfm'.  A preset is only a set of
+switches over one parser, so a document written for one of them still parses
+under another, with the syntax it did not enable showing as literal text.")
 
-(defcustom etaf-ui-markdown-flavor 'gfm
+(defcustom etaf-ui-markdown-flavor 'etaf
   "Default Markdown dialect of `etaf-ui-markdown-parse'.
-A FLAVOR argument overrides it.  `gfm' enables the GitHub extensions and
-front matter, `commonmark' parses the core specification only, and a feature
-plist toggles individual extensions."
-  :type '(choice (const :tag "GitHub Flavored Markdown" gfm)
+A FLAVOR argument overrides it.  `etaf' is the widest preset and what a
+reader gets by opening a document; `gfm' and `commonmark' are the narrower
+ones to name when a document has to parse exactly as those specifications
+say."
+  :type '(choice (const :tag "ETAF dialect" etaf)
+                 (const :tag "GitHub Flavored Markdown" gfm)
                  (const :tag "CommonMark only" commonmark)
                  (sexp :tag "Feature plist"))
   :group 'text)
 
 (defun etaf-ui-markdown--features-for (flavor)
   "Return the feature plist for FLAVOR.
-FLAVOR is a named dialect, nil for the default `gfm', or a plist overriding
-the default flags.  Unknown names signal `etaf-ui-markdown-error'."
-  (cond
-   ((null flavor) (cdr (assq 'gfm etaf-ui-markdown-flavors)))
-   ((assq flavor etaf-ui-markdown-flavors)
-    (cdr (assq flavor etaf-ui-markdown-flavors)))
-   ((listp flavor)
-    ;; A plist may release or add individual extensions.
-    (let ((base (copy-sequence (cdr (assq 'gfm etaf-ui-markdown-flavors))))
-          (tail flavor))
-      (while tail
-        (setq base (plist-put base (pop tail) (pop tail))))
-      base))
-   (t (signal 'etaf-ui-markdown-error
-              (list (format "Unknown markdown flavor: %S" flavor))))))
+FLAVOR is a named dialect, nil for `etaf-ui-markdown-flavor', or a plist
+overriding the default preset: a flag key replaces that flag and `:extensions'
+replaces the extension list.  Unknown names signal
+`etaf-ui-markdown-error'."
+  (let* ((fallback (or etaf-ui-markdown-flavor 'etaf))
+         (base (cdr (assq fallback etaf-ui-markdown-flavors))))
+    (cond
+     ((null flavor) (copy-sequence base))
+     ((and (symbolp flavor) (assq flavor etaf-ui-markdown-flavors))
+      (copy-sequence (cdr (assq flavor etaf-ui-markdown-flavors))))
+     ((listp flavor)
+      ;; A plist may release or add individual flags and extensions.
+      (let ((merged (copy-sequence base))
+            (tail flavor))
+        (while tail
+          (setq merged (plist-put merged (pop tail) (pop tail))))
+        merged))
+     (t (signal 'etaf-ui-markdown-error
+                (list (format "Unknown markdown flavor: %S" flavor)))))))
 
 (defun etaf-ui-markdown--feature-p (key)
-  "Return non-nil when the document being parsed enables extension KEY."
+  "Return non-nil when the document being parsed enables feature KEY."
   (plist-get etaf-ui-markdown--features key))
+
+(defun etaf-ui-markdown-extension-p (name)
+  "Return non-nil when the document being parsed enables extension NAME.
+NAME is a symbol from `etaf-ui-markdown-flavors' `:extensions' list."
+  (and (memq name (plist-get etaf-ui-markdown--features :extensions)) t))
+
+(defconst etaf-ui-markdown-block-extensions
+  '((definition-list etaf-ui-markdown--definition-list-at)
+    (math etaf-ui-markdown--math-block-at))
+  "Block syntax this module adds, as (NAME RECOGNIZER).
+RECOGNIZER takes the remaining lines and returns (BLOCK . REST) when it claims
+them.  A preset enables NAME, and a disabled extension never runs, so its
+syntax stays literal text exactly as CommonMark reads it.")
+
+(defconst etaf-ui-markdown-inline-extensions
+  '((math ?$ etaf-ui-markdown--try-math)
+    (subscript ?~ etaf-ui-markdown--try-subscript)
+    (superscript ?^ etaf-ui-markdown--try-superscript)
+    (abbreviation nil etaf-ui-markdown--try-abbreviation))
+  "Inline syntax this module adds, as (NAME TRIGGER-CHAR RECOGNIZER).
+TRIGGER-CHAR is the character that can open the syntax, or nil for a
+recognizer that starts at a word character.  RECOGNIZER takes (TEXT POSITION
+END) and returns (NODE . NEXT) when it claims the text there.")
+
+(defun etaf-ui-markdown--block-extension (lines)
+  "Return (BLOCK . REST) when an enabled extension claims LINES."
+  (let (claimed)
+    (dolist (entry etaf-ui-markdown-block-extensions)
+      (unless claimed
+        (when (etaf-ui-markdown-extension-p (car entry))
+          (setq claimed (funcall (nth 1 entry) lines)))))
+    claimed))
+
+(defun etaf-ui-markdown--inline-extension (text position end)
+  "Return (NODE . NEXT) when an enabled extension claims POSITION in TEXT."
+  (let* ((char (aref text position))
+         (word-start (or (>= char 128)
+                         (and (>= char ?A) (<= char ?Z))
+                         (and (>= char ?a) (<= char ?z))))
+         (entry (seq-find (lambda (candidate)
+                            (and (etaf-ui-markdown-extension-p (car candidate))
+                                 (if (nth 1 candidate)
+                                     (eq char (nth 1 candidate))
+                                   ;; A recognizer without a trigger character
+                                   ;; starts on a word character, which is
+                                   ;; where a word can begin.
+                                   word-start)))
+                          etaf-ui-markdown-inline-extensions)))
+    (when entry
+      (funcall (nth 2 entry) text position end))))
+
+(defvar etaf-ui-markdown--abbreviations nil
+  "Abbreviation definitions of the document being parsed, newest first.")
 
 (defvar etaf-ui-markdown--footnotes nil
   "Footnote definitions of the document being parsed, newest first.")
@@ -223,6 +298,12 @@ Only markers indented by less than four columns are list markers."
       (etaf-ui-markdown--footnote-definition line)
       (etaf-ui-markdown--reference-definition line)
       (etaf-ui-markdown--html-block-start-p line)
+      (and (etaf-ui-markdown-extension-p 'definition-list)
+           (etaf-ui-markdown--definition-marker line))
+      (and (etaf-ui-markdown-extension-p 'math)
+           (etaf-ui-markdown--math-block-start-p line))
+      (and (etaf-ui-markdown-extension-p 'abbreviation)
+           (etaf-ui-markdown--abbreviation-definition line))
       (>= (etaf-ui-markdown--indent line) 4)))
 
 (defun etaf-ui-markdown--split-table-row (line)
@@ -507,6 +588,13 @@ nodes carry no range."
                   (cons (nth 1 definition) (nth 2 definition))))
           (setq lines (cdr lines)))
 
+         ((and (etaf-ui-markdown-extension-p 'abbreviation)
+               (etaf-ui-markdown--abbreviation-definition line))
+          ;; An abbreviation definition names a word and its title; the word's
+          ;; occurrences carry it, so the line paints nothing, exactly as a
+          ;; link reference definition does.
+          (setq lines (cdr lines)))
+
          ((etaf-ui-markdown--html-block-start-p line)
           (let ((rest lines)
                 (content nil)
@@ -560,6 +648,17 @@ nodes carry no range."
             (push (car table) blocks)
             (setq lines (cdr table))))
 
+         ((let ((claim (etaf-ui-markdown--block-extension lines)))
+            ;; A block extension claims its lines whole, so the loop needs no
+            ;; branch of its own for each one.  The clause has to end with a
+            ;; true value: a claim that consumes the rest of the document sets
+            ;; LINES to nil, and a nil clause value would let the paragraph
+            ;; branch handle the same line again.
+            (when claim
+              (push (car claim) blocks)
+              (setq lines (cdr claim))
+              t)))
+
          (t
           ;; Paragraph, possibly a Setext heading.
           (let ((rest (cdr lines))
@@ -570,22 +669,42 @@ nodes carry no range."
                         (not (etaf-ui-markdown--setext-level (car rest))))
               (push (car rest) texts)
               (setq rest (cdr rest)))
-            (let ((text (mapconcat #'identity (nreverse texts) "\n"))
-                  (level (and rest (etaf-ui-markdown--setext-level (car rest)))))
-              (if level
-                  (progn
-                    (push (list :type 'heading
-                                :level level
-                                :text (string-trim text)
-                                :children (etaf-ui-markdown--parse-inlines
-                                           (string-trim text)))
-                          blocks)
-                    (setq lines (cdr rest)))
+            (let* ((ordered (nreverse texts))
+                   (text (mapconcat #'identity ordered "\n"))
+                   (level (and rest (etaf-ui-markdown--setext-level (car rest)))))
+              (cond
+               (level
+                (push (list :type 'heading
+                            :level level
+                            :text (string-trim text)
+                            :children (etaf-ui-markdown--parse-inlines
+                                       (string-trim text)))
+                      blocks)
+                (setq lines (cdr rest)))
+               ((and (etaf-ui-markdown-extension-p 'definition-list)
+                     rest
+                     (etaf-ui-markdown--definition-marker (car rest)))
+                ;; The paragraph's last line is a term and the marker line
+                ;; opens its definition, which is how a definition list is
+                ;; written under the paragraph it belongs to.
+                (let* ((term (car (last ordered)))
+                       (body (butlast ordered))
+                       (claimed (etaf-ui-markdown--definition-list-at
+                                 (cons term rest))))
+                  (when body
+                    (let ((before (mapconcat #'identity body "\n")))
+                      (push (list :type 'paragraph
+                                  :text before
+                                  :children (etaf-ui-markdown--parse-inlines before))
+                            blocks)))
+                  (push (car claimed) blocks)
+                  (setq lines (cdr claimed))))
+               (t
                 (push (list :type 'paragraph
                             :text text
                             :children (etaf-ui-markdown--parse-inlines text))
                       blocks)
-                (setq lines rest))))))
+                (setq lines rest)))))))
         (setq index (- total (length lines)))
         (when (and starts (not (eq head blocks)))
           (setcar blocks (append (car blocks)
@@ -979,21 +1098,22 @@ Return (STRING . NEXT) or nil."
       (while (< position end)
         (let* ((char (aref text position))
                (result
-                (pcase char
-                  (?` (etaf-ui-markdown--try-code-span text position end))
-                  (?\[ (etaf-ui-markdown--try-bracket text position end))
-                  (?! (and (< (1+ position) end)
-                           (eq (aref text (1+ position)) ?\[)
-                           (etaf-ui-markdown--try-bracket text (1+ position) end)))
-                  (?< (etaf-ui-markdown--try-angle text position end))
-                  (?& (etaf-ui-markdown--try-entity text position end))
-                  ((or ?h ?w)
-                   (and (etaf-ui-markdown--feature-p :autolinks)
-                        (etaf-ui-markdown--try-bare-url text position end)))
-                  (?~ (and (etaf-ui-markdown--feature-p :strikethrough)
-                           (etaf-ui-markdown--try-strike text position end)))
-                  ((or ?* ?_) (etaf-ui-markdown--try-emphasis text position end))
-                  (_ nil))))
+                (or (etaf-ui-markdown--inline-extension text position end)
+                    (pcase char
+                      (?` (etaf-ui-markdown--try-code-span text position end))
+                      (?\[ (etaf-ui-markdown--try-bracket text position end))
+                      (?! (and (< (1+ position) end)
+                               (eq (aref text (1+ position)) ?\[)
+                               (etaf-ui-markdown--try-bracket text (1+ position) end)))
+                      (?< (etaf-ui-markdown--try-angle text position end))
+                      (?& (etaf-ui-markdown--try-entity text position end))
+                      ((or ?h ?w)
+                       (and (etaf-ui-markdown--feature-p :autolinks)
+                            (etaf-ui-markdown--try-bare-url text position end)))
+                      (?~ (and (etaf-ui-markdown--feature-p :strikethrough)
+                               (etaf-ui-markdown--try-strike text position end)))
+                      ((or ?* ?_) (etaf-ui-markdown--try-emphasis text position end))
+                      (_ nil)))))
           (cond
            (result
             (flush)
@@ -1169,6 +1289,17 @@ matter alist), `:title', `:children' (top-level blocks with heading ids),
                            refs))))
             refs))
          (etaf-ui-markdown--footnotes nil)
+         (etaf-ui-markdown--abbreviations
+          ;; An abbreviation can be used before it is defined, so every
+          ;; definition is collected before any inline parsing, exactly as
+          ;; link reference definitions are.
+          (let ((table (make-hash-table :test #'equal)))
+            (when (etaf-ui-markdown-extension-p 'abbreviation)
+              (dolist (line (split-string body "\n"))
+                (let ((definition (etaf-ui-markdown--abbreviation-definition line)))
+                  (when definition
+                    (puthash (car definition) (cdr definition) table)))))
+            table))
          (lines (split-string body "\n"))
          (blocks (etaf-ui-markdown--parse-blocks
                   lines
@@ -1208,6 +1339,306 @@ matter alist), `:title', `:children' (top-level blocks with heading ids),
             :children blocks
             :outline (etaf-ui-markdown--outline blocks)
             :footnotes footnote-nodes))))
+
+
+;;; ---------------------------------------------------------------------------
+;;; Extensions: definition lists, sub- and superscript, abbreviations, math
+;;; ---------------------------------------------------------------------------
+
+(defconst etaf-ui-markdown-subscript-table
+  '((?0 . ?₀) (?1 . ?₁) (?2 . ?₂) (?3 . ?₃) (?4 . ?₄) (?5 . ?₅) (?6 . ?₆)
+    (?7 . ?₇) (?8 . ?₈) (?9 . ?₉) (?+ . ?₊) (?- . ?₋) (?= . ?₌)
+    (?\( . ?₍) (?\) . ?₎)
+    (?a . ?ₐ) (?e . ?ₑ) (?h . ?ₕ) (?i . ?ᵢ) (?j . ?ⱼ) (?k . ?ₖ) (?l . ?ₗ)
+    (?m . ?ₘ) (?n . ?ₙ) (?o . ?ₒ) (?p . ?ₚ) (?r . ?ᵣ) (?s . ?ₛ) (?t . ?ₜ)
+    (?u . ?ᵤ) (?v . ?ᵥ) (?x . ?ₓ))
+  "Characters a subscript run can be written with, as (CHAR . SCRIPT).")
+
+(defconst etaf-ui-markdown-superscript-table
+  '((?0 . ?⁰) (?1 . ?¹) (?2 . ?²) (?3 . ?³) (?4 . ?⁴) (?5 . ?⁵) (?6 . ?⁶)
+    (?7 . ?⁷) (?8 . ?⁸) (?9 . ?⁹) (?+ . ?⁺) (?- . ?⁻) (?= . ?⁼)
+    (?\( . ?⁽) (?\) . ?⁾)
+    (?a . ?ᵃ) (?b . ?ᵇ) (?c . ?ᶜ) (?d . ?ᵈ) (?e . ?ᵉ) (?f . ?ᶠ) (?g . ?ᵍ)
+    (?h . ?ʰ) (?i . ?ⁱ) (?j . ?ʲ) (?k . ?ᵏ) (?l . ?ˡ) (?m . ?ᵐ) (?n . ?ⁿ)
+    (?o . ?ᵒ) (?p . ?ᵖ) (?r . ?ʳ) (?s . ?ˢ) (?t . ?ᵗ) (?u . ?ᵘ) (?v . ?ᵛ)
+    (?w . ?ʷ) (?x . ?ˣ) (?y . ?ʸ) (?z . ?ᶻ))
+  "Characters a superscript run can be written with, as (CHAR . SCRIPT).")
+
+(defun etaf-ui-markdown--script-text (text table)
+  "Return TEXT written in TABLE's script characters, or nil when one has none.
+A run this renderer cannot raise or lower is left as the source wrote it: a
+page that dropped the markers would silently change what the text says."
+  (let ((result nil))
+    (catch 'unmapped
+      (dotimes (index (length text))
+        (let ((mapped (alist-get (aref text index) table)))
+          (unless mapped (throw 'unmapped nil))
+          (push mapped result)))
+      (apply #'string (nreverse result)))))
+
+(defun etaf-ui-markdown--script-at (text position end marker table type)
+  "Return (NODE . NEXT) for a TYPE run marked by MARKER at POSITION.
+TEXT, END and MARKET name the text being parsed and the character that opens
+the run; TABLE maps a character to its script form."
+  (let ((start (1+ position)))
+    (when (and (< start end)
+               ;; A space right after the marker is ordinary text, not a run.
+               (not (memq (aref text start) '(?\s ?\t ?\n)))
+               ;; The marker written twice is the other syntax on that
+               ;; character, such as `~~' for strikethrough.
+               (not (eq (aref text start) marker)))
+      (let ((index start)
+            (close nil))
+        (while (and (< index end) (not close))
+          (let ((char (aref text index)))
+            (cond
+             ((eq char ?\n) (setq index end))
+             ((and (eq char marker)
+                   (> index start)
+                   (not (memq (aref text (1- index)) '(?\s ?\t)))
+                   (or (>= (1+ index) end)
+                       (not (eq (aref text (1+ index)) marker))))
+              (setq close index))
+             (t (setq index (1+ index))))))
+        (when close
+          (let ((content (substring text start close)))
+            (when-let* ((rendered (etaf-ui-markdown--script-text content table)))
+              ;; The script form is decided while parsing, so the view needs no
+              ;; table of its own and the claim and the drawing agree.
+              (cons (list :type type :text content :rendered rendered)
+                    (1+ close)))))))))
+
+(defun etaf-ui-markdown--try-subscript (text position end)
+  "Return (NODE . NEXT) for a `~text~' subscript at POSITION."
+  (etaf-ui-markdown--script-at text position end ?~
+                               etaf-ui-markdown-subscript-table 'subscript))
+
+(defun etaf-ui-markdown--try-superscript (text position end)
+  "Return (NODE . NEXT) for a `^text^' superscript at POSITION."
+  (etaf-ui-markdown--script-at text position end ?^
+                               etaf-ui-markdown-superscript-table 'superscript))
+
+(defun etaf-ui-markdown--definition-marker (line)
+  "Return (TEXT INDENT) when LINE opens a definition, else nil.
+TEXT is what follows the `:' or `~' marker and INDENT the column it starts at,
+which is where the definition's continuation lines line up."
+  (when (string-match "\\` ? ? ?[:~][ \t]+\\(.*\\)\\'" line)
+    (list (match-string 1 line) (match-beginning 1))))
+
+(defun etaf-ui-markdown--definition-list-at (lines)
+  "Return (BLOCK . REST) when LINES open a definition list.
+A term line followed by a line that starts with `:' or `~' is a definition
+list.  Another term right after a definition continues the list, so one list
+holds as many terms as the document writes under it."
+  (let ((term (car lines))
+        (rest (cdr lines))
+        (term-lines nil)
+        (items nil))
+    (when (and term rest
+               (not (etaf-ui-markdown--blank-line-p term))
+               (< (etaf-ui-markdown--indent term) 4)
+               (not (etaf-ui-markdown--starts-block-p term))
+               (etaf-ui-markdown--definition-marker (car rest)))
+      (setq term-lines (list term))
+      (while (and rest (etaf-ui-markdown--definition-marker (car rest)))
+        (let ((definitions nil))
+          (while (and rest (etaf-ui-markdown--definition-marker (car rest)))
+            (let* ((marker (etaf-ui-markdown--definition-marker (car rest)))
+                   (indent (nth 1 marker))
+                   (content (list (car marker))))
+              (setq rest (cdr rest))
+              (while (and rest
+                          (or (etaf-ui-markdown--blank-line-p (car rest))
+                              (>= (etaf-ui-markdown--indent (car rest)) indent)))
+                (push (if (etaf-ui-markdown--blank-line-p (car rest))
+                          ""
+                        (etaf-ui-markdown--strip-indent (car rest) indent))
+                      content)
+                (setq rest (cdr rest)))
+              (while (and rest (etaf-ui-markdown--blank-line-p (car rest)))
+                (setq rest (cdr rest)))
+              (push (list :type 'definition
+                          :children (etaf-ui-markdown--parse-blocks
+                                     (nreverse content)))
+                    definitions)))
+          (push (list :type 'definition-item
+                      :term (string-trim (mapconcat #'identity term-lines "\n"))
+                      :children (etaf-ui-markdown--parse-inlines
+                                 (string-trim (mapconcat #'identity term-lines "\n")))
+                      :definitions (nreverse definitions))
+                items))
+        ;; A further term with a definition under it belongs to this list.
+        (when (and rest
+                   (not (etaf-ui-markdown--blank-line-p (car rest)))
+                   (etaf-ui-markdown--definition-marker (cadr rest)))
+          (setq term-lines (list (car rest)))
+          (setq rest (cdr rest))))
+      (cons (list :type 'definition-list :items (nreverse items)) rest))))
+
+(defun etaf-ui-markdown--math-block-start-p (line)
+  "Return non-nil when LINE opens a display formula."
+  (and line (string-match-p "\\` ? ? ?\\$\\$" line)))
+
+(defun etaf-ui-markdown--math-block-at (lines)
+  "Return (BLOCK . REST) when LINES open a display formula.
+`$$text$$' on one line is a formula by itself; a bare `$$' opens one that the
+next bare `$$' closes, and the lines between are its body."
+  (let ((line (car lines)))
+    (when (etaf-ui-markdown--math-block-start-p line)
+      (if (string-match "\\` ? ? ?\\$\\$\\(.*?\\)\\$\\$[ \t]*\\'" line)
+          (cons (list :type 'math :display t :text (string-trim (match-string 1 line)))
+                (cdr lines))
+        (let ((rest (cdr lines))
+              (content nil)
+              (closed nil))
+          (while (and rest (not closed))
+            (if (string-match-p "\\` ? ? ?\\$\\$[ \t]*\\'" (car rest))
+                (setq closed t)
+              (push (car rest) content))
+            (setq rest (cdr rest)))
+          (when closed
+            (cons (list :type 'math :display t
+                        :text (string-trim (mapconcat #'identity (nreverse content) "\n")
+                                           "\n" "\n"))
+                  rest)))))))
+
+(defun etaf-ui-markdown--math-close (text from end)
+  "Return the index of the `$' closing a formula whose text starts at FROM.
+A closing `$' is neither preceded by a space nor followed by a digit, which is
+what keeps `$5' and `$5.00' money instead of a formula."
+  (let ((index from)
+        (close nil))
+    (while (and (< index end) (not close))
+      (let ((char (aref text index)))
+        (cond
+         ((eq char ?\n) (setq index end))
+         ((and (eq char ?$)
+               (> index from)
+               (not (memq (aref text (1- index)) '(?\s ?\t)))
+               (or (>= (1+ index) end)
+                   (not (and (>= (aref text (1+ index)) ?0)
+                             (<= (aref text (1+ index)) ?9)))))
+          (setq close index))
+         (t (setq index (1+ index))))))
+    close))
+
+(defun etaf-ui-markdown--try-math (text position end)
+  "Return (NODE . NEXT) for a `$...$' formula at POSITION."
+  (let ((start (1+ position)))
+    (when (and (< start end)
+               (not (memq (aref text start) '(?\s ?\t ?\n ?$))))
+      (when-let* ((close (etaf-ui-markdown--math-close text start end)))
+        (cons (list :type 'math :display nil :text (substring text start close))
+              (1+ close))))))
+
+(defun etaf-ui-markdown--abbreviation-definition (line)
+  "Return (WORD . TITLE) when LINE defines an abbreviation.
+`*[WORD]: TITLE' is the syntax; the definition paints nothing itself."
+  (when (string-match "\\` ? ? ?\\*\\[\\([^]]+\\)\\]:[ \t]+\\(.*\\)\\'" line)
+    (cons (match-string 1 line) (string-trim (match-string 2 line)))))
+
+(defun etaf-ui-markdown--word-char-p (char)
+  "Return non-nil when CHAR belongs to a word."
+  (or (and (>= char ?0) (<= char ?9))
+      (and (>= char ?A) (<= char ?Z))
+      (and (>= char ?a) (<= char ?z))
+      (>= char 128)))
+
+(defun etaf-ui-markdown--try-abbreviation (text position end)
+  "Return (NODE . NEXT) for a defined abbreviation starting at POSITION.
+The longest defined word wins, and only a whole word matches: `HTML' inside
+`HTML5' is not the abbreviation."
+  (let ((table etaf-ui-markdown--abbreviations)
+        (best nil))
+    (when (and (hash-table-p table)
+               (> (hash-table-count table) 0)
+               (or (= position 0)
+                   (not (etaf-ui-markdown--word-char-p
+                         (aref text (1- position))))))
+      (maphash (lambda (word title)
+                 (let ((stop (+ position (length word))))
+                   (when (and (<= stop end)
+                              (or (null best)
+                                  (> (length word) (length (car best))))
+                              (string-prefix-p word (substring text position stop))
+                              (or (= stop end)
+                                  (not (etaf-ui-markdown--word-char-p
+                                        (aref text stop)))))
+                     (setq best (cons word title)))))
+               table))
+    (when best
+      (cons (list :type 'abbreviation :text (car best) :title (cdr best))
+            (+ position (length (car best)))))))
+
+(defconst etaf-ui-markdown--math-symbols
+  '(("\\Alpha" . "Α") ("\\Beta" . "Β") ("\\Gamma" . "Γ") ("\\Delta" . "Δ")
+    ("\\Theta" . "Θ") ("\\Lambda" . "Λ") ("\\Pi" . "Π") ("\\Sigma" . "Σ")
+    ("\\Phi" . "Φ") ("\\Psi" . "Ψ") ("\\Omega" . "Ω")
+    ("\\alpha" . "α") ("\\beta" . "β") ("\\gamma" . "γ") ("\\delta" . "δ")
+    ("\\epsilon" . "ε") ("\\zeta" . "ζ") ("\\eta" . "η") ("\\theta" . "θ")
+    ("\\iota" . "ι") ("\\kappa" . "κ") ("\\lambda" . "λ") ("\\mu" . "μ")
+    ("\\nu" . "ν") ("\\xi" . "ξ") ("\\pi" . "π") ("\\rho" . "ρ")
+    ("\\sigma" . "σ") ("\\tau" . "τ") ("\\phi" . "φ") ("\\chi" . "χ")
+    ("\\psi" . "ψ") ("\\omega" . "ω")
+    ("\\times" . "×") ("\\cdot" . "·") ("\\div" . "÷") ("\\pm" . "±")
+    ("\\mp" . "∓") ("\\le" . "≤") ("\\leq" . "≤") ("\\ge" . "≥")
+    ("\\geq" . "≥") ("\\ne" . "≠") ("\\neq" . "≠") ("\\approx" . "≈")
+    ("\\equiv" . "≡") ("\\propto" . "∝") ("\\sim" . "∼")
+    ("\\to" . "→") ("\\rightarrow" . "→") ("\\leftarrow" . "←")
+    ("\\Rightarrow" . "⇒") ("\\Leftarrow" . "⇐") ("\\leftrightarrow" . "↔")
+    ("\\infty" . "∞") ("\\partial" . "∂") ("\\nabla" . "∇")
+    ("\\sum" . "∑") ("\\prod" . "∏") ("\\int" . "∫") ("\\oint" . "∮")
+    ("\\in" . "∈") ("\\notin" . "∉") ("\\subset" . "⊂") ("\\supset" . "⊃")
+    ("\\cup" . "∪") ("\\cap" . "∩") ("\\forall" . "∀") ("\\exists" . "∃")
+    ("\\emptyset" . "∅") ("\\angle" . "∠") ("\\perp" . "⊥")
+    ("\\parallel" . "∥") ("\\therefore" . "∴") ("\\ldots" . "…")
+    ("\\cdots" . "⋯") ("\\degree" . "°") ("\\circ" . "∘")
+    ("\\left" . "") ("\\right" . "") ("\\," . " ") ("\\;" . " ")
+    ("\\!" . "") ("\\quad" . "  ") ("\\qquad" . "    "))
+  "TeX command names a plain-text rendering spells as a symbol.
+Ordered with the long names first, so `\\leftarrow' wins over `\\le'.")
+
+(defun etaf-ui-markdown--math-replace-fraction (text)
+  "Return TEXT with every `\\frac{A}{B}' written as `A/B'."
+  (let ((previous nil))
+    (while (not (equal previous text))
+      (setq previous text)
+      (setq text (replace-regexp-in-string
+                  "\\\\frac ?{\\([^{}]*\\)} ?{\\([^{}]*\\)}"
+                  "\\1/\\2" text)))
+    text))
+
+(defun etaf-ui-markdown-math-text (source)
+  "Return SOURCE, a TeX formula, written as plain text.
+This is a typographic approximation rather than a typesetter: command names
+become their symbols, `\\frac{a}{b}' becomes `a/b', `\\sqrt{x}' becomes
+`√(x)', and `^{}' and `_{}' become the Unicode letters of that position.
+Anything it does not know keeps its own characters, so a formula can never
+turn into a row of noise."
+  (let ((text (or source "")))
+    (setq text (etaf-ui-markdown--math-replace-fraction text))
+    (setq text (replace-regexp-in-string
+                "\\\\sqrt ?{\\([^{}]*\\)}" "√(\\1)" text))
+    (dolist (pair '((superscript . "\\^\\(?:{\\([^{}]*\\)}\\|\\(.\\)\\)")
+                    (subscript . "_\\(?:{\\([^{}]*\\)}\\|\\(.\\)\\)")))
+      (let ((table (if (eq (car pair) 'superscript)
+                       etaf-ui-markdown-superscript-table
+                     etaf-ui-markdown-subscript-table))
+            (regexp (cdr pair)))
+        (setq text
+              (replace-regexp-in-string
+               regexp
+               (lambda (match)
+                 (save-match-data
+                   (let* ((body (or (match-string 1 match) (match-string 2 match)))
+                          (script (etaf-ui-markdown--script-text body table)))
+                     (or script (format "(%s)" body)))))
+               text))))
+    (dolist (pair etaf-ui-markdown--math-symbols)
+      (setq text (replace-regexp-in-string (regexp-quote (car pair))
+                                           (cdr pair) text t t)))
+    (setq text (replace-regexp-in-string "[{}]" "" text))
+    (string-trim (replace-regexp-in-string "[ \t]+" " " text))))
 
 (provide 'etaf-ui-markdown-parse)
 ;;; etaf-ui-markdown-parse.el ends here

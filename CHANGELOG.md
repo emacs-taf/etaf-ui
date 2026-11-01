@@ -11,13 +11,37 @@
 - `etaf-ui-color-mix` is public: applications derive hover, selection and
   surface steps from their own palette instead of carrying a second one. A
   colour written in any spelling other than `#RRGGBB` comes back unchanged.
+- `etaf' is a markdown preset, and the default one: GitHub's extensions plus
+  definition lists, sub- and superscript, abbreviations and `$' math.  All of
+  it is pure parsing, so a plain checkout renders it.  A preset is only a set
+  of switches over one parser, so a document written for a narrower preset
+  still parses here, with the syntax it did not enable left as literal text.
+- `etaf-ui-markdown-math-text` renders a TeX formula as plain text: command
+  names get their symbols, `\frac{a}{b}' becomes `a/b', `\sqrt{x}' becomes
+  `√(x)', and `^{}' and `_{}' become the Unicode letters of that position.
+  A formula therefore paints without an image, a program or a font.
+- The parser dispatches added syntax through two tables,
+  `etaf-ui-markdown-block-extensions' and
+  `etaf-ui-markdown-inline-extensions', and a preset enables a syntax by name.
+  A disabled extension never runs, so its markers stay literal text.
 
 ### Changed
 
-- A keycap is a soft chip again: one cell of inline padding, a filled rounded
-  block and no outline, and both levels keep the frame's own type size. The
-  region level is bold and fills with the accent while its region holds the
-  keyboard, so a header of hints reads as text instead of a row of boxes.
+- `etaf-ui-markdown-flavor` now defaults to `etaf` instead of `gfm`, so opening
+  a document shows every syntax the renderer knows.  `gfm` and `commonmark`
+  remain as the narrower presets to name when a document has to parse exactly
+  as those specifications say, and a feature plist still toggles one flag or
+  one extension.
+- A task list marks a done item with `■` and an open one with `□`.  The ballot
+  boxes it drew at first come from a symbol fallback font on macOS: thin, small,
+  and a different box size for each state, so the marks did not line up.  Both
+  squares now come from the text's own font, which gives the two states one box
+  geometry; the fill shows the state.
+
+- A keycap draws the documented hairline box with no fill by default, and the
+  new optional `:variant` picks `filled` for a soft chip. Both levels keep the
+  frame's own type size, and the region level fills with the accent while its
+  region holds the keyboard.
 
 - Markdown headings read as a hierarchy in any theme. A level-1 and level-2
   heading now draws a rule from the new optional `:heading-rule` palette color

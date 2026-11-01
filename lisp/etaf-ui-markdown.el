@@ -106,6 +106,13 @@ The palette may provide `:code-bg'; without it code uses `:panel'."
       (setq props (plist-put props :text-decoration-line '(underline))))
     (when (plist-get run :muted)
       (setq props (plist-put props :color (etaf-ui-markdown--env-color env :muted))))
+    (when (plist-get run :math)
+      ;; A formula is not code: italic sets it apart and keeps the reader's
+      ;; line height, which a raised or lowered glyph would not.
+      (setq props (plist-put props :font-style 'italic)))
+    (when-let* ((title (plist-get run :abbreviation)))
+      (setq props (plist-put props :text-decoration-line '(underline)))
+      (setq props (plist-put props :help-echo title)))
     props))
 
 (defun etaf-ui-markdown--flatten-inlines (nodes inherited env)
@@ -127,6 +134,24 @@ Entries are (:text STRING :props PLIST) or (:view VIEW)."
         ('code
          (push (list :text (or (plist-get node :text) "")
                      :props (plist-put (copy-sequence inherited) :code t))
+               result))
+        ((or 'subscript 'superscript)
+         ;; The parser wrote the script form, so the page shows `H₂O' without
+         ;; shrinking anything: the line keeps the reader's own type size.
+         (push (list :text (or (plist-get node :rendered)
+                               (plist-get node :text)
+                               "")
+                     :props inherited)
+               result))
+        ('abbreviation
+         (push (list :text (or (plist-get node :text) "")
+                     :props (plist-put (copy-sequence inherited)
+                                       :abbreviation (plist-get node :title)))
+               result))
+        ('math
+         (push (list :text (etaf-ui-markdown-math-text
+                            (or (plist-get node :text) ""))
+                     :props (plist-put (copy-sequence inherited) :math t))
                result))
         ((or 'emph 'strong 'strike)
          (let ((child (copy-sequence inherited)))
@@ -712,6 +737,64 @@ silently drops content it cannot render."
                                  nil))
                env nil))))
 
+(defun etaf-ui-markdown--definition-list-node (block env)
+  "Return the definition list View of BLOCK in ENV.
+A term is bold on its own line and each definition sits behind a quiet rule,
+indented by two columns, the way a printed glossary reads.  The marker the
+source writes before a definition is not repeated: the rule and the indent
+already say what the line is, and a `:' there would compete with the text."
+  (let ((rule (etaf-ui-markdown--env-color env :border))
+        (items nil))
+    (dolist (item (plist-get block :items))
+      (let ((rows nil))
+        (push (etaf-node 'box
+                         (list :width 'stretch :wrap-mode 'word)
+                         ;; Bold is a run attribute, not a box one: the text
+                         ;; nodes carry the weight, so a term reads heavier
+                         ;; than its definitions without changing size.
+                         (etaf-ui-markdown--runs-view (plist-get item :children)
+                                                      env (list :bold t)))
+              rows)
+        (dolist (definition (plist-get item :definitions))
+          (let* ((children (plist-get definition :children))
+                 (first (car children))
+                 (rest (cdr children)))
+            (push (etaf-node 'box
+                             (list :width 'stretch :wrap-mode 'word
+                                   :border-left (list '(px 2) 'solid rule)
+                                   :padding-left '(ch 2))
+                             (append
+                              (when (and first
+                                         (eq (plist-get first :type) 'paragraph))
+                                (etaf-ui-markdown--runs-view
+                                 (plist-get first :children) env nil))
+                              (mapcan (lambda (child)
+                                        (etaf-ui-markdown--view-block child env))
+                                      rest)))
+                  rows)))
+        (push (etaf-node 'column
+                         (list :width 'stretch :item-gap '(lh 0))
+                         (nreverse rows))
+              items)))
+    (etaf-node 'column
+               ;; One blank row between a definition and the next term: the
+               ;; list is several entries, not one block of lines.
+               (list :width 'stretch :item-gap '(lh 1))
+               (nreverse items))))
+
+(defun etaf-ui-markdown--math-node (block env)
+  "Return the display formula View of BLOCK in ENV.
+This is `etaf-ui-markdown-math-text' drawn as one centered line: no image and
+no program behind it, so a formula shows even where nothing else is installed."
+  (etaf-node 'box
+             (list :width 'stretch :text-align 'center
+                   :padding '((lh 0.5) (ch 0)))
+             (list (etaf-node 'text
+                              (list :font-style 'italic
+                                    :color (etaf-ui-markdown--env-color env :ink))
+                              (list (etaf-ui-markdown-math-text
+                                     (or (plist-get block :text) "")))))))
+
 (defun etaf-ui-markdown--view-block (block env)
   "Return the list of Views for one BLOCK in ENV."
   (pcase (plist-get block :type)
@@ -726,6 +809,8 @@ silently drops content it cannot render."
      (when-let* ((node (etaf-ui-markdown--html-block-node block env)))
        (list node)))
     ('footnote-def (list (etaf-ui-markdown--footnote-def-node block env)))
+    ('definition-list (list (etaf-ui-markdown--definition-list-node block env)))
+    ('math (list (etaf-ui-markdown--math-node block env)))
     (_ nil)))
 
 (defun etaf-ui-markdown-view-block (block env)

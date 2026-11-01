@@ -135,6 +135,79 @@ body text that somebody tinted."
         ;; following the buffer face.
         (should-not (funcall color-at "Body text"))))))
 
+(ert-deftest etaf-ui-markdown-parse-etaf-preset-defines-terms ()
+  "A term and the lines under it that start with `:' form one definition list."
+  (let* ((document (etaf-ui-markdown-parse
+                    "Term\n: first\n: second\n\nOther\n: third\n"))
+         (block (car (plist-get document :children))))
+    (should (eq 'definition-list (plist-get block :type)))
+    (should (equal '("Term" "Other")
+                   (mapcar (lambda (item) (plist-get item :term))
+                           (plist-get block :items))))
+    (should (= 2 (length (plist-get (car (plist-get block :items)) :definitions))))
+    (should (= 1 (length (plist-get (cadr (plist-get block :items)) :definitions))))))
+
+(ert-deftest etaf-ui-markdown-parse-scripts-and-math ()
+  "Sub- and superscript become script characters; `$' math stays a formula.
+A run the renderer cannot raise or lower keeps its source, and a price stays
+money."
+  (let* ((document (etaf-ui-markdown-parse
+                    "H~2~O and x^2^ and $\\frac{a}{b}$ and $5\n"))
+         (nodes (plist-get (car (plist-get document :children)) :children))
+         (types (mapcar (lambda (node) (plist-get node :type)) nodes))
+         (subscript (cl-find 'subscript nodes :key (lambda (n) (plist-get n :type))))
+         (superscript (cl-find 'superscript nodes :key (lambda (n) (plist-get n :type))))
+         (math (cl-find 'math nodes :key (lambda (n) (plist-get n :type)))))
+    (should (equal '(subscript superscript math) (delq 'text types)))
+    (should (equal "₂" (plist-get subscript :rendered)))
+    (should (equal "²" (plist-get superscript :rendered)))
+    (should (equal "\\frac{a}{b}" (plist-get math :text)))))
+
+(ert-deftest etaf-ui-markdown-parse-a-display-formula-is-one-block ()
+  "A `$$' fence holds a formula that the page draws as one centered line."
+  (let* ((document (etaf-ui-markdown-parse "$$\n\\sqrt{c} \\le \\infty\n$$\n"))
+         (block (car (plist-get document :children))))
+    (should (eq 'math (plist-get block :type)))
+    (should (plist-get block :display))
+    (should (equal "√(c) ≤ ∞" (etaf-ui-markdown-math-text (plist-get block :text))))))
+
+(ert-deftest etaf-ui-markdown-parse-an-abbreviation-carries-its-title ()
+  "A defined abbreviation marks whole words only, and its definition paints nothing.
+`HTML5' is not the abbreviation `HTML', so the title belongs to the word the
+definition named."
+  (let* ((document (etaf-ui-markdown-parse
+                    "*[HTML]: HyperText Markup Language\n\nHTML and HTML5\n"))
+         (blocks (plist-get document :children))
+         (nodes (plist-get (car blocks) :children))
+         (abbreviation (cl-find 'abbreviation nodes :key (lambda (n) (plist-get n :type)))))
+    (should (= 1 (length blocks)))
+    (should (equal "HTML" (plist-get abbreviation :text)))
+    (should (equal "HyperText Markup Language" (plist-get abbreviation :title)))))
+
+(ert-deftest etaf-ui-markdown-parse-a-narrower-preset-leaves-new-syntax-literal ()
+  "`gfm' reads the added syntax as the text CommonMark sees.
+A preset is a set of switches over one parser, so a document written for the
+wide preset still parses here, with its syntax shown literally."
+  (let* ((gfm (etaf-ui-markdown-parse "H~2~O\n" 'gfm))
+         (nodes (plist-get (car (plist-get gfm :children)) :children)))
+    (should (equal '((:type text :text "H~2~O"))
+                   (mapcar (lambda (node) (list :type (plist-get node :type)
+                                                :text (plist-get node :text)))
+                           nodes)))))
+
+(ert-deftest etaf-ui-markdown-etaf-syntax-paints-its-own-shapes ()
+  "The added syntax paints: a term with its definition, a subscript, a formula."
+  (etaf-ui-markdown-test--with-mount
+      "Term\n: second\n\nH~2~O and $a/b$\n"
+      (etaf-ui-markdown-test--env)
+    (let ((text (etaf-ui-markdown-test--text buffer-name)))
+      ;; The term is bold on its own line, and its definition sits behind a
+      ;; quiet rule: the source's `:' marker is not repeated in the painter.
+      (should (string-match-p "Term" text))
+      (should (string-match-p "│  second" text))
+      (should (string-match-p "H₂O" text))
+      (should (string-match-p "a/b" text)))))
+
 (ert-deftest etaf-ui-markdown-parse-dialect-gates-extensions ()
   "The `commonmark' dialect leaves GitHub extensions as literal text."
   (let ((gfm (etaf-ui-markdown-parse "| a | b |\n| --- | --- |\n| 1 | 2 |\n"))

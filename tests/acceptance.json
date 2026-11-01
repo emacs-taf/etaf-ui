@@ -999,6 +999,36 @@
       "purpose": "Parsing exposes the title, outline, block types, footnote definitions and resolved feature flags."
     },
     {
+      "name": "etaf-ui-markdown-parse-etaf-preset-defines-terms",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "etaf 预设下，一行术语加下面以 : 或 ~ 开头的行组成一个定义列表，连续术语归入同一个列表。"
+    },
+    {
+      "name": "etaf-ui-markdown-parse-scripts-and-math",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "H~2~O 与 x^2^ 变成上下标字符，$..$ 变成公式节点，$5 仍是钱；解析时就把可否排版定下来。"
+    },
+    {
+      "name": "etaf-ui-markdown-parse-a-display-formula-is-one-block",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "$$ 围起来的公式是一个显示块，纯文本近似把 \\sqrt 与 \\le 写成 √ 与 ≤。"
+    },
+    {
+      "name": "etaf-ui-markdown-parse-an-abbreviation-carries-its-title",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "*[HTML]: … 这一行本身不画，正文里的整词 HTML 带上标题，HTML5 不算。"
+    },
+    {
+      "name": "etaf-ui-markdown-parse-a-narrower-preset-leaves-new-syntax-literal",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "gfm 预设不启用新语法，H~2~O 按 CommonMark 读成原文，不报错。"
+    },
+    {
+      "name": "etaf-ui-markdown-etaf-syntax-paints-its-own-shapes",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "定义列表、上下标、行内公式在页面上分别画出术语行、₂ 与公式文本。"
+    },
+    {
       "name": "etaf-ui-markdown-parse-dialect-gates-extensions",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "The commonmark dialect leaves GitHub extension syntax as literal text while gfm parses it."
