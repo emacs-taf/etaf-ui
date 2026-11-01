@@ -50,6 +50,13 @@
   (with-current-buffer buffer-name
     (substring-no-properties (buffer-string))))
 
+(defun etaf-ui-markdown-test--help (position)
+  "Return the help text painted at POSITION, through any hover probe."
+  (let ((help (get-text-property position 'help-echo)))
+    (if (functionp help)
+        (funcall help (selected-window) (current-buffer) position)
+      help)))
+
 (defmacro etaf-ui-markdown-test--with-mount (text env &rest body)
   "Mount TEXT rendered with ENV, evaluate BODY, then release the runtime."
   (declare (indent 2))
@@ -471,7 +478,7 @@ columns out of line: the table resolves one set of tracks for all rows."
         (should position)
         (with-current-buffer buffer-name
           (should (equal "Go to target"
-                         (get-text-property (1+ position) 'help-echo)))
+                         (etaf-ui-markdown-test--help (1+ position))))
           (should (get-text-property (1+ position) 'face))
           (should-not (get-text-property (1+ untouched) 'help-echo))
           ;; Activation needs a live text window; RET over the span runs the
@@ -494,7 +501,7 @@ columns out of line: the table resolves one set of tracks for all rows."
       (should position)
       (with-current-buffer buffer-name
         (should (equal "Go to target"
-                       (get-text-property (1+ position) 'help-echo)))))))
+                       (etaf-ui-markdown-test--help (1+ position))))))))
 
 (ert-deftest etaf-ui-markdown-code-bg-colors-code-spans ()
   "A `:code-bg' palette entry colors inline code; without it code uses `:panel'."
