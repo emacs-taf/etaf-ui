@@ -1197,6 +1197,11 @@
       "name": "etaf-ui-markdown-task-list-marks-done-and-open-items",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A task list marks a done item with a filled square and an open one with a hollow square, both from the body font, so the mark keeps the line's weight and the words start in the same column."
+    },
+    {
+      "name": "etaf-ui-markdown-keeps-a-source-line-break-inside-a-paragraph",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A newline inside a paragraph paints as a line break, so an editor over the page shows the line RET created instead of folding it into the paragraph above."
     }
   ]
 }

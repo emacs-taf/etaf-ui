@@ -68,6 +68,18 @@
        (when-let* ((buffer (get-buffer buffer-name)))
          (kill-buffer buffer)))))
 
+(ert-deftest etaf-ui-markdown-keeps-a-source-line-break-inside-a-paragraph ()
+  "A newline inside a paragraph paints as a line break, not as a space.
+The source holds two lines and the page shows two: folding them into one would
+hide a line a reader editing the page has to see, because `RET' would move the
+source without giving them a row to type on."
+  (etaf-ui-markdown-test--with-mount "alpha\nbeta\n" (etaf-ui-markdown-test--env)
+    (let ((rows (split-string (string-trim-right
+                               (etaf-ui-markdown-test--text buffer-name))
+                              "\n")))
+      (should (equal '("alpha" "beta")
+                     (mapcar #'string-trim rows))))))
+
 (ert-deftest etaf-ui-markdown-parse-reports-document-structure ()
   "Parsing exposes the title, outline, blocks, footnotes and features."
   (let* ((document (etaf-ui-markdown-parse
