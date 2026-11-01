@@ -234,17 +234,16 @@ parsed as paragraphs keeps this check independent of machine speed."
 
 (ert-deftest etaf-ui-markdown-task-list-marks-done-and-open-items ()
   "A task list marks a done item and an open item with different glyphs.
-Ballot boxes come from a symbol fallback font on macOS and read lighter than
-the words around them; the geometric squares keep one outline weight in both
-states and show the state through the filled inner square."
+Both marks come from the text's own font, so the done and open items share
+one box geometry and the column stays even; the fill shows the state."
   (let ((text (concat "- [x] 已完成的一项\n"
                       "- [ ] 未完成的一项\n"
                       "- 普通条目\n")))
     (etaf-ui-markdown-test--with-mount
         text (etaf-ui-markdown-test--env)
       (let ((published (etaf-ui-markdown-test--text buffer-name)))
-        (should (string-match-p "▣ 已完成的一项" published))
-        (should (string-match-p "▢ 未完成的一项" published))
+        (should (string-match-p "■ 已完成的一项" published))
+        (should (string-match-p "□ 未完成的一项" published))
         (should (string-match-p "• 普通条目" published))
         (should-not (string-match-p "\\[x\\]" published))
         (should-not (string-match-p "\\[ \\]" published))

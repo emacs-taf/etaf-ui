@@ -659,16 +659,16 @@ silently drops content it cannot render."
              (task (plist-get item :task))
              (marker
               (cond
-               ;; Ballot boxes (U+2610/U+2611) come from a symbol fallback
-               ;; font on macOS: thin, small and a different weight from the
-               ;; words.  The geometric squares keep one outline weight in
-               ;; both states, and the filled inner square shows the state,
-               ;; so the mark reads as one control drawn in the body font.
+               ;; Both squares come from the text's own font, so the two
+               ;; states have one box geometry and the column stays even; a
+               ;; ballot box or a boxed inner square is drawn by another font
+               ;; on macOS and shifts or resizes the mark.  Fill shows the
+               ;; state without relying on the words' colour alone.
                (task (etaf-node 'text
                                 (list :color (if checked
                                                  (etaf-ui-markdown--env-color env :accent)
                                                (etaf-ui-markdown--env-color env :muted)))
-                                (list (if checked "▣" "▢"))))
+                                (list (if checked "■" "□"))))
                (ordered (etaf-node 'text
                                    (list :color (etaf-ui-markdown--env-color env :muted))
                                    (list (format "%d." (+ start (1- index))))))
