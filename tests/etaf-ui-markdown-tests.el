@@ -582,6 +582,21 @@ and the blocks must stay in document order."
       (should (equal "```elisp\n(+ 1 2)\n```" (source (nth 2 blocks))))
       (should (equal "| a | b |\n| --- | --- |\n| 1 | 2 |" (source (nth 3 blocks)))))))
 
+(ert-deftest etaf-ui-markdown-a-definition-list-splits-the-paragraph-range ()
+  "A paragraph read with its definition list gives each block its own range.
+One clause pushes both blocks, so each must be sliced on its own: a caller
+that splices an edited document on these ranges cannot tell the two apart
+when the paragraph ends where the list begins."
+  (let* ((text "前言一行\n术语行\n: 定义一行\n\n后面的段落。\n")
+         (blocks (plist-get (etaf-ui-markdown-parse text) :children)))
+    (should (equal '(paragraph definition-list paragraph)
+                   (mapcar (lambda (block) (plist-get block :type)) blocks)))
+    (should (equal '("前言一行\n" "术语行\n: 定义一行\n" "后面的段落。\n")
+                   (mapcar (lambda (block)
+                             (substring text (plist-get block :begin)
+                                        (plist-get block :end)))
+                           blocks)))))
+
 (ert-deftest etaf-ui-markdown-table-columns-follow-content ()
   "Table columns take width in proportion to their content and wrap by word."
   (let ((long "alpha bravo charlie delta echo foxtrot"))

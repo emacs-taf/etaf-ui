@@ -85,6 +85,10 @@
 
 ### Fixed
 
+- The paragraph above a definition list carries its own `:begin` and `:end`:
+  one clause reads both blocks, and only the list was given a range.  A caller
+  that splices an edited document on those ranges used to fail on the
+  rangeless paragraph, which stopped the preview from following an edit.
 - A definition list ends on its last definition line: it no longer claims the
   blank line that separates it from the next block, so a renderer that paints
   a document's blank lines keeps the page's own spacing.

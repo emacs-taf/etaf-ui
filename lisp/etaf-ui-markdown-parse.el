@@ -698,11 +698,17 @@ nodes carry no range."
                                  (cons term rest))))
                   (when body
                     (let ((before (mapconcat #'identity body "\n")))
-                      (push (list :type 'paragraph
-                                  :text before
-                                  :children (etaf-ui-markdown--parse-inlines before))
+                      (push (etaf-ui-markdown--block-with-range
+                             (list :type 'paragraph
+                                   :text before
+                                   :children (etaf-ui-markdown--parse-inlines before))
+                             starts start (+ start (length body)))
                             blocks)))
-                  (push (car claimed) blocks)
+                  (push (etaf-ui-markdown--block-with-range
+                         (car claimed) starts
+                         (+ start (length body))
+                         (- total (length (cdr claimed))))
+                        blocks)
                   (setq lines (cdr claimed))))
                (t
                 (push (list :type 'paragraph
@@ -711,12 +717,23 @@ nodes carry no range."
                       blocks)
                 (setq lines rest)))))))
         (setq index (- total (length lines)))
-        (when (and starts (not (eq head blocks)))
-          (setcar blocks (append (car blocks)
-                                 (list :begin (aref starts start)
-                                       :end (aref starts index)))))
+        (when (and starts (not (eq head blocks))
+                   (not (plist-member (car blocks) :begin)))
+          (setcar blocks (etaf-ui-markdown--block-with-range
+                          (car blocks) starts start index)))
         ))
     (nreverse blocks)))
+
+(defun etaf-ui-markdown--block-with-range (block starts begin end)
+  "Return BLOCK carrying the character range STARTS gives from BEGIN to END.
+STARTS is a line offset vector, or nil for a recursive parse of a snippet,
+where no block carries a range and BLOCK comes back unchanged.  A clause that
+pushes two blocks calls this for each one, so the earlier block ends where the
+later one begins instead of taking the whole clause's range."
+  (if starts
+      (append block (list :begin (aref starts begin)
+                          :end (aref starts end)))
+    block))
 
 (defun etaf-ui-markdown--fence-close-p (line char length)
   "Return non-nil when LINE closes a fence of CHAR repeated LENGTH times."
