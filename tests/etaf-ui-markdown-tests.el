@@ -179,6 +179,26 @@ money."
     (should (plist-get block :display))
     (should (equal "√(c) ≤ ∞" (etaf-ui-markdown-math-text (plist-get block :text))))))
 
+(ert-deftest etaf-ui-markdown-math-text-survives-a-backslash-in-a-script ()
+  "A script body holding a TeX command keeps the page instead of signalling.
+A command inside `^{}' reaches the replacement as raw TeX, and a replacement
+string reads a lone backslash as a back-reference; the text rendering escapes
+it and keeps the rest of the formula."
+  (let ((integral (etaf-ui-markdown-math-text
+                   "\\int_{0}^{\\infty} e^{-x^2} \\, dx = \\frac{\\sqrt{\\pi}}{2}")))
+    (should (string-match-p (regexp-quote "√(π)/2") integral))
+    (should (string-match-p "∫" integral))
+    (should (equal "e(∞)" (etaf-ui-markdown-math-text "e^{\\infty}")))
+    (should (equal "x(\\unknown)" (etaf-ui-markdown-math-text "x^{\\unknown}")))))
+
+(ert-deftest etaf-ui-markdown-math-text-keeps-command-case ()
+  "`\\pi' and `\\Pi' are different symbols, and a root goes before its fraction.
+The symbol table holds both cases, so replacing case-insensitively would paint
+every pi as a capital; a fraction of a root must also read as the root's value."
+  (should (equal "π" (etaf-ui-markdown-math-text "\\pi")))
+  (should (equal "Π" (etaf-ui-markdown-math-text "\\Pi")))
+  (should (equal "√(x)/2" (etaf-ui-markdown-math-text "\\frac{\\sqrt{x}}{2}"))))
+
 (ert-deftest etaf-ui-markdown-parse-an-abbreviation-carries-its-title ()
   "A defined abbreviation marks whole words only, and its definition paints nothing.
 `HTML5' is not the abbreviation `HTML', so the title belongs to the word the

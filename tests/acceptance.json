@@ -1257,6 +1257,16 @@
       "name": "etaf-ui-markdown-render-math-draws-the-formula",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A caller's :render-math owns a display formula and paints what it drew; without it the block keeps the plain-text approximation."
+    },
+    {
+      "name": "etaf-ui-markdown-math-text-survives-a-backslash-in-a-script",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A formula whose script body holds a TeX command renders as text instead of signalling on the backslash, and the rest of the formula keeps its symbols."
+    },
+    {
+      "name": "etaf-ui-markdown-math-text-keeps-command-case",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The plain-text rendering keeps TeX command case (pi versus Pi) and renders a root inside a fraction as its value."
     }
   ]
 }

@@ -1702,9 +1702,17 @@ become their symbols, `\\frac{a}{b}' becomes `a/b', `\\sqrt{x}' becomes
 Anything it does not know keeps its own characters, so a formula can never
 turn into a row of noise."
   (let ((text (or source "")))
-    (setq text (etaf-ui-markdown--math-replace-fraction text))
+    ;; Symbols first: a script body such as `\infty' then reaches the script
+    ;; pass as its character, and an unknown command keeps its own name.
+    (dolist (pair etaf-ui-markdown--math-symbols)
+      ;; A literal replacement: `replace-regexp-in-string' with FIXEDCASE folds
+      ;; case, which turned `\pi' into `\Pi'.
+      (setq text (string-replace (car pair) (cdr pair) text)))
+    ;; A root is written before the fraction holding it, so `\frac{\sqrt{x}}{2}'
+    ;; is a fraction of plain characters when the fraction pass reads it.
     (setq text (replace-regexp-in-string
                 "\\\\sqrt ?{\\([^{}]*\\)}" "√(\\1)" text))
+    (setq text (etaf-ui-markdown--math-replace-fraction text))
     (dolist (pair '((superscript . "\\^\\(?:{\\([^{}]*\\)}\\|\\(.\\)\\)")
                     (subscript . "_\\(?:{\\([^{}]*\\)}\\|\\(.\\)\\)")))
       (let ((table (if (eq (car pair) 'superscript)
@@ -1717,12 +1725,12 @@ turn into a row of noise."
                (lambda (match)
                  (save-match-data
                    (let* ((body (or (match-string 1 match) (match-string 2 match)))
-                          (script (etaf-ui-markdown--script-text body table)))
-                     (or script (format "(%s)" body)))))
+                          (script (etaf-ui-markdown--script-text body table))
+                          ;; A replacement string reads `\' as a back-reference,
+                          ;; so an unknown command's own backslash is doubled.
+                          (replacement (or script (format "(%s)" body))))
+                     (string-replace "\\" "\\\\" replacement))))
                text))))
-    (dolist (pair etaf-ui-markdown--math-symbols)
-      (setq text (replace-regexp-in-string (regexp-quote (car pair))
-                                           (cdr pair) text t t)))
     (setq text (replace-regexp-in-string "[{}]" "" text))
     (string-trim (replace-regexp-in-string "[ \t]+" " " text))))
 
