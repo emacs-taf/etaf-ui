@@ -81,6 +81,10 @@
 
 ### Fixed
 
+- A definition list ends on its last definition line: it no longer claims the
+  blank line that separates it from the next block, so a renderer that paints
+  a document's blank lines keeps the page's own spacing.
+
 - A blockquote ends on its last line of text: the rendered quote box no longer
   keeps an empty padded row before its bottom edge, so a source without a blank
   line inside the quote reads the same after rendering.
