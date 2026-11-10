@@ -31,6 +31,10 @@
   mode keeps one plain colour.  `etaf-ui-markdown-code-renderers' is where a
   language that needs a program (a diagram, a typesetter) plugs in a View, and
   the block shows its source until one is registered.
+- A display formula can be drawn by a caller instead of as text: the
+  rendering environment's `:render-math (block env)' returns a View for the
+  block, and nil keeps the text rendering, the same way `:render-code-block'
+  lets a diagram language be drawn by a program.
 - Emoji shortcodes such as `:tada:' and `:rocket:' paint their character; a
   name outside `etaf-ui-markdown-emoji' keeps its colons.  A Han character on
   either side of a shortcode does not block it, so Chinese prose can write

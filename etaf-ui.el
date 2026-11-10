@@ -1809,8 +1809,8 @@
 ;; their symbols, `\frac{a}{b}' becomes `a/b', `\sqrt{x}' becomes `√(x)',
 ;; and `^{}' and `_{}' become the Unicode letters of that position.  Anything
 ;; the mapping does not know keeps its own characters, so a formula never
-;; turns into noise.  Callers that want real typesetting render the block
-;; themselves through `:render-code-block' instead.
+;; turns into noise.  Callers that want real typesetting return a View from
+;; `:render-math' instead, which leaves this function as the fallback.
 ;;
 ;; Function: etaf-ui-markdown-view-block (block env)
 ;; Return BLOCK rendered as one ETAF View, or nil when nothing renders.
@@ -1841,7 +1841,10 @@
 ;; returns the View for media, where KIND is `image', `video', `inline-image'
 ;; or `html-media' (without it media renders as its alt text or URL);
 ;; `:render-code-block (block env)' may return a View for a code block and
-;; nil keeps the default fenced block; `:code-link (text)' is called with
+;; nil keeps the default fenced block, so a diagram language can be drawn by a
+;; program without teaching the renderer about it; `:render-math (block env)'
+;; does the same for a display formula, whose block carries `:display' and its
+;; TeX source, and nil keeps the text rendering; `:code-link (text)' is called with
 ;; the text of every code span and may return a URL or a (URL . HELP) cons
 ;; to make that span a focusable link, which keeps the code style, gains an
 ;; underline and calls `:open-link' with URL on activation, its help echo

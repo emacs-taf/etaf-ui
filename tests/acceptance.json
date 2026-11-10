@@ -1252,6 +1252,11 @@
       "name": "etaf-ui-markdown-keeps-a-source-line-break-inside-a-paragraph",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A newline inside a paragraph paints as a line break, so an editor over the page shows the line RET created instead of folding it into the paragraph above."
+    },
+    {
+      "name": "etaf-ui-markdown-render-math-draws-the-formula",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A caller's :render-math owns a display formula and paints what it drew; without it the block keeps the plain-text approximation."
     }
   ]
 }

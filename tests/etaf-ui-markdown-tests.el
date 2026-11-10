@@ -305,6 +305,24 @@ knowing about it; a language without an entry keeps the fenced block."
         (etaf-ui-markdown-test--env)
       (should (string-match-p "plain words" (etaf-ui-markdown-test--text buffer-name))))))
 
+(ert-deftest etaf-ui-markdown-render-math-draws-the-formula ()
+  "`:render-math' owns a display formula, and its absence keeps the text.
+A caller that can typeset returns a View, so the block paints what that caller
+drew instead of the plain-text approximation."
+  (let ((env (etaf-ui-markdown-test--env
+              :render-math
+              (lambda (block env)
+                (ignore env)
+                (etaf-node 'text nil (list (format "TYPESET:%s"
+                                                  (plist-get block :text))))))))
+    (etaf-ui-markdown-test--with-mount "$$\\frac{a}{b}$$\n" env
+      (let ((published (etaf-ui-markdown-test--text buffer-name)))
+        (should (string-match-p (regexp-quote "TYPESET:\\frac{a}{b}") published))
+        (should-not (string-match-p "a/b" published)))))
+  (etaf-ui-markdown-test--with-mount "$$\\frac{a}{b}$$\n"
+      (etaf-ui-markdown-test--env)
+    (should (string-match-p "a/b" (etaf-ui-markdown-test--text buffer-name)))))
+
 (ert-deftest etaf-ui-markdown-parse-dialect-gates-extensions ()
   "The `commonmark' dialect leaves GitHub extensions as literal text."
   (let ((gfm (etaf-ui-markdown-parse "| a | b |\n| --- | --- |\n| 1 | 2 |\n"))

@@ -827,16 +827,19 @@ already say what the line is, and a `:' there would compete with the text."
 
 (defun etaf-ui-markdown--math-node (block env)
   "Return the display formula View of BLOCK in ENV.
-This is `etaf-ui-markdown-math-text' drawn as one centered line: no image and
-no program behind it, so a formula shows even where nothing else is installed."
-  (etaf-node 'box
-             (list :width 'stretch :text-align 'center
-                   :padding '((lh 0.5) (ch 0)))
-             (list (etaf-node 'text
-                              (list :font-style 'italic
-                                    :color (etaf-ui-markdown--env-color env :ink))
-                              (list (etaf-ui-markdown-math-text
-                                     (or (plist-get block :text) "")))))))
+ENV's `:render-math', when present, may return a View for the formula and nil
+to keep the text; without it this is `etaf-ui-markdown-math-text' drawn as one
+centered line, so a formula shows even where nothing else is installed."
+  (or (when-let* ((renderer (plist-get env :render-math)))
+        (funcall renderer block env))
+      (etaf-node 'box
+                 (list :width 'stretch :text-align 'center
+                       :padding '((lh 0.5) (ch 0)))
+                 (list (etaf-node 'text
+                                  (list :font-style 'italic
+                                        :color (etaf-ui-markdown--env-color env :ink))
+                                  (list (etaf-ui-markdown-math-text
+                                         (or (plist-get block :text) ""))))))))
 
 (defun etaf-ui-markdown--view-block (block env)
   "Return the list of Views for one BLOCK in ENV."
