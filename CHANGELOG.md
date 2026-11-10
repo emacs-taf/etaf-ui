@@ -24,6 +24,27 @@
   `etaf-ui-markdown-block-extensions' and
   `etaf-ui-markdown-inline-extensions', and a preset enables a syntax by name.
   A disabled extension never runs, so its markers stay literal text.
+- A fenced block with a language paints its code in that language's colours.
+  `etaf-ui-markdown-highlight-code' runs the language's own major mode over
+  the text and turns the faces `font-lock' produced into coloured runs, cached
+  by language and text, so a repaint costs one lookup and a language without a
+  mode keeps one plain colour.  `etaf-ui-markdown-code-renderers' is where a
+  language that needs a program (a diagram, a typesetter) plugs in a View, and
+  the block shows its source until one is registered.
+- Emoji shortcodes such as `:tada:' and `:rocket:' paint their character; a
+  name outside `etaf-ui-markdown-emoji' keeps its colons.  A Han character on
+  either side of a shortcode does not block it, so Chinese prose can write
+  `表情：:tada:很棒'; a time like `12:30:45' is still a time.
+- A footnote label defined twice shows its first definition, as CommonMark
+  and GitHub read it; a reference to a label that was never defined adds no
+  note.
+
+### Changed
+
+- A code block's colours come from the runs, not from the block: the fenced
+  body no longer paints one colour over every token, so highlighting shows
+  what the language's mode decided.  A block without highlight keeps the page
+  ink, and each run that has no colour of its own gets it.
 
 ### Changed
 

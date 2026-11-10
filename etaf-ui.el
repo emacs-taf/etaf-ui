@@ -1772,10 +1772,36 @@
 ;; block).  An inline is a plist with `:type' one of `text', `code', `emph',
 ;; `strong', `strike', `link', `image', `autolink', `footnote-ref', `html',
 ;; `break', `subscript' and `superscript' (both carry `:rendered', the script
-;; characters to paint), `abbreviation' (`:text' and its `:title') and `math'.  A top-level block also
+;; characters to paint), `abbreviation' (`:text' and its `:title'), `emoji'
+;; (`:text' as written and `:char' to paint) and `math'.  A top-level block also
 ;; carries `:begin' and `:end', its half-open character range in TEXT, so a
 ;; caller maps an edit back to the block that holds it; nested blocks carry no
 ;; range because their offsets belong to the snippet their container parsed.
+;;
+;; Variable: etaf-ui-markdown-code-renderers
+;; Renderers for one fenced language, as an alist of (LANGUAGE . FUNCTION).
+;; FUNCTION receives the block and the rendering environment and returns a
+;; View, or nil to keep the default.  This is where a language that needs a
+;; program belongs -- a diagram language, a typesetter -- so the parser stays
+;; pure Elisp and a missing program only means that block shows its source.
+;; The environment's `:render-code-block' is consulted first and overrides the
+;; table for one caller.
+;;
+;; Function: etaf-ui-markdown-highlight-code (language text)
+;; Return runs colouring TEXT as LANGUAGE, or nil to paint it in one colour.
+;; Emacs already knows how to read the language: this runs its major mode over
+;; the text in a scratch buffer and turns the faces `font-lock' produced into
+;; runs of `(:text STRING :props PLIST)'.  Only what a text run can express is
+;; kept (colour, weight, slant, underline, strike-through), so a page of code
+;; shows the colours the source buffer shows.  The answer is a pure function of
+;; (LANGUAGE . TEXT) and is cached, so a repaint costs one lookup; a language
+;; with no available mode, or a block over `etaf-ui-markdown-highlight--max-lines'
+;; or `--max-chars', returns nil instead of fontifying.  Never signals.
+;;
+;; Variable: etaf-ui-markdown-highlight-languages
+;; Fence language names and the major mode that reads each one, as an alist of
+;; (NAME . MODE).  A mode whose library cannot be loaded is skipped, so adding a
+;; name never makes a document fail to render.
 ;;
 ;; Function: etaf-ui-markdown-math-text (source)
 ;; Return SOURCE, a TeX formula, written as plain text; never signals.
@@ -1855,6 +1881,49 @@
 ;; a set of switches over one parser, so a document written for one of them
 ;; still parses under another, with the syntax it did not enable showing as
 ;; literal text.  None of the added syntax needs an external program.
+;;
+;; Variable: etaf-ui-markdown-gfm-features
+;; The feature plist GitHub Flavored Markdown enables: front matter, tables,
+;; task lists, strikethrough, autolinks, footnotes and alert blocks.
+;; A preset spells its own flags out, so extending this list never changes what
+;; an older preset meant; use it to start a plist of your own.
+;;
+;; Function: etaf-ui-markdown-extension-p (name)
+;; Return non-nil when the document being parsed enables extension NAME.
+;; NAME is one of the symbols in a preset's `:extensions' list, such as
+;; `emoji' or `definition-list'.  A parser extension calls this to decide
+;; whether its syntax runs at all; disabled syntax stays literal text.
+;;
+;; Variable: etaf-ui-markdown-block-extensions
+;; Block syntax the parser adds, as an alist of (NAME RECOGNIZER).
+;; RECOGNIZER takes the remaining source lines and returns (BLOCK . REST) when
+;; it claims them; `etaf-ui-markdown-extension-p' decides whether it runs.
+;; Adding a block syntax means adding its recognizer here and its name to a
+;; preset, which keeps one parser instead of forking it per dialect.
+;;
+;; Variable: etaf-ui-markdown-inline-extensions
+;; Inline syntax the parser adds, as (NAME TRIGGER-CHAR RECOGNIZER).
+;; TRIGGER-CHAR opens the syntax, or is nil for a recognizer that starts at a
+;; word character such as an abbreviation.  RECOGNIZER takes (TEXT POSITION
+;; END) and returns (NODE . NEXT) when it claims the text there.  The same
+;; gating by `etaf-ui-markdown-extension-p' applies, so an inline extension a
+;; preset does not enable never runs and its text stays as written.
+;;
+;; Variable: etaf-ui-markdown-emoji
+;; Emoji shortcodes this renderer paints, as an alist of (NAME . CHARACTER).
+;; A document writes `:tada:' and the page shows the character; a name outside
+;; this table keeps its colons, and a time such as `12:30:45' is never a
+;; shortcode.  Add entries here to teach the renderer more of them.
+;;
+;; Variable: etaf-ui-markdown-subscript-table
+;; Characters a `~subscript~' run can be written with, as (CHAR . SCRIPT).
+;; A character missing from the table keeps the source spelling, so the
+;; construct paints what Unicode can express and never invents glyphs.
+;;
+;; Variable: etaf-ui-markdown-superscript-table
+;; Characters a `^superscript^' run can be written with, as (CHAR . SCRIPT).
+;; A character missing from the table keeps the source spelling, so the
+;; construct paints what Unicode can express and never invents glyphs.
 ;;
 ;; Error: etaf-ui-markdown-error
 ;; Markdown document error

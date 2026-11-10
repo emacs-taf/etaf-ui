@@ -57,7 +57,7 @@ change what an older preset meant.")
     ;; here needs an external program, so a plain checkout renders them.
     (etaf . ,(append etaf-ui-markdown-gfm-features
                      '(:extensions (definition-list subscript superscript
-                                    abbreviation math)))))
+                                    abbreviation math emoji)))))
   "Named markdown dialects and the syntax each one enables.
 `commonmark' is the CommonMark core; `gfm' adds GitHub's extensions there as
 well: tables, task lists, strikethrough, bare autolinks, footnotes, alert
@@ -121,7 +121,8 @@ syntax stays literal text exactly as CommonMark reads it.")
   '((math ?$ etaf-ui-markdown--try-math)
     (subscript ?~ etaf-ui-markdown--try-subscript)
     (superscript ?^ etaf-ui-markdown--try-superscript)
-    (abbreviation nil etaf-ui-markdown--try-abbreviation))
+    (abbreviation nil etaf-ui-markdown--try-abbreviation)
+    (emoji ?: etaf-ui-markdown--try-emoji))
   "Inline syntax this module adds, as (NAME TRIGGER-CHAR RECOGNIZER).
 TRIGGER-CHAR is the character that can open the syntax, or nil for a
 recognizer that starts at a word character.  RECOGNIZER takes (TEXT POSITION
@@ -577,9 +578,13 @@ nodes carry no range."
               (setq rest (cdr rest)))
             (let ((definition-blocks
                    (etaf-ui-markdown--parse-blocks (nreverse content))))
-              (setf (alist-get (car definition) etaf-ui-markdown--footnotes
-                               nil nil #'equal)
-                    definition-blocks))
+              ;; The first definition of a label is the one that counts: a
+              ;; document that repeats it has a mistake, and the reader should
+              ;; see the note the reference was written against.
+              (unless (assoc (car definition) etaf-ui-markdown--footnotes)
+                (setf (alist-get (car definition) etaf-ui-markdown--footnotes
+                                 nil nil #'equal)
+                      definition-blocks)))
             (setq lines rest)))
 
          ((etaf-ui-markdown--reference-definition line)
@@ -1321,8 +1326,9 @@ matter alist), `:title', `:children' (top-level blocks with heading ids),
                             collect (cons label index)))
            (footnote-nodes
             (cl-loop for label in ordered
-                     append (let ((definition (alist-get label etaf-ui-markdown--footnotes
-                                                         nil nil #'equal)))
+                     append (when-let* ((definition
+                                         (alist-get label etaf-ui-markdown--footnotes
+                                                    nil nil #'equal)))
                               (list (list :type 'footnote-def
                                           :label label
                                           :number (cdr (assq label labels))
@@ -1537,12 +1543,84 @@ what keeps `$5' and `$5.00' money instead of a formula."
   (when (string-match "\\` ? ? ?\\*\\[\\([^]]+\\)\\]:[ \t]+\\(.*\\)\\'" line)
     (cons (match-string 1 line) (string-trim (match-string 2 line)))))
 
+(defconst etaf-ui-markdown-emoji
+  '(("smile" . "😄") ("grin" . "😁") ("joy" . "😂") ("laughing" . "😆")
+    ("wink" . "😉") ("blush" . "😊") ("heart_eyes" . "😍") ("thinking" . "🤔")
+    ("sob" . "😭") ("cry" . "😢") ("sunglasses" . "😎") ("sweat_smile" . "😅")
+    ("thumbsup" . "👍") ("+1" . "👍") ("thumbsdown" . "👎") ("-1" . "👎")
+    ("clap" . "👏") ("wave" . "👋") ("muscle" . "💪") ("pray" . "🙏")
+    ("ok_hand" . "👌") ("point_right" . "👉") ("eyes" . "👀") ("brain" . "🧠")
+    ("heart" . "❤️") ("broken_heart" . "💔") ("sparkling_heart" . "💖")
+    ("fire" . "🔥") ("star" . "⭐") ("star2" . "🌟") ("sparkles" . "✨")
+    ("zap" . "⚡") ("boom" . "💥") ("tada" . "🎉") ("rocket" . "🚀")
+    ("bug" . "🐛") ("wrench" . "🔧") ("hammer" . "🔨") ("gear" . "⚙️")
+    ("package" . "📦") ("truck" . "🚚") ("globe_with_meridians" . "🌐")
+    ("lock" . "🔒") ("key" . "🔑") ("bell" . "🔔") ("calendar" . "📅")
+    ("clock1" . "🕐") ("hourglass" . "⌛") ("chart_with_upwards_trend" . "📈")
+    ("bar_chart" . "📊") ("clipboard" . "📋") ("memo" . "📝")
+    ("book" . "📖") ("books" . "📚") ("bulb" . "💡") ("pushpin" . "📌")
+    ("paperclip" . "📎") ("scissors" . "✂️") ("mag" . "🔍") ("link" . "🔗")
+    ("computer" . "💻") ("keyboard" . "⌨️") ("phone" . "☎️") ("email" . "✉️")
+    ("inbox_tray" . "📥") ("outbox_tray" . "📤") ("floppy_disk" . "💾")
+    ("battery" . "🔋") ("sunny" . "☀️") ("cloud" . "☁️") ("umbrella" . "☔")
+    ("snowflake" . "❄️") ("droplet" . "💧") ("rainbow" . "🌈") ("moon" . "🌙")
+    ("apple" . "🍎") ("coffee" . "☕") ("beer" . "🍺") ("pizza" . "🍕")
+    ("cake" . "🍰") ("gift" . "🎁") ("trophy" . "🏆") ("medal_sports" . "🏅")
+    ("crown" . "👑") ("gem" . "💎") ("money_with_wings" . "💸")
+    ("credit_card" . "💳") ("moneybag" . "💰") ("white_check_mark" . "✅")
+    ("heavy_check_mark" . "✔️") ("x" . "❌") ("warning" . "⚠️")
+    ("no_entry" . "⛔") ("information_source" . "ℹ️") ("question" . "❓")
+    ("exclamation" . "❗") ("construction" . "🚧") ("art" . "🎨")
+    ("musical_note" . "🎵") ("headphones" . "🎧") ("microphone" . "🎤")
+    ("video_camera" . "📹") ("camera" . "📷") ("pencil2" . "✏️")
+    ("mega" . "📣") ("speech_balloon" . "💬") ("thought_balloon" . "💭")
+    ("zzz" . "💤") ("100" . "💯") ("see_no_evil" . "🙈") ("cat" . "🐱")
+    ("dog" . "🐶") ("penguin" . "🐧") ("snake" . "🐍") ("unicorn" . "🦄"))
+  "Emoji shortcodes this renderer knows, as (NAME . CHARACTER).
+A name outside this table stays literal text, so a document that writes
+`:notanemoji:' keeps its colons instead of losing them to a guess.")
+
+(defun etaf-ui-markdown--try-emoji (text position end)
+  "Return (NODE . NEXT) for a `:name:' shortcode at POSITION in TEXT.
+Only a known name matches, and only as a whole token: `12:30:45' is a time and
+`a:b:' is prose, so the two colons need a word boundary on the outside."
+  (let ((start (1+ position)))
+    (when (and (< start end)
+               (or (= position 0)
+                   (not (etaf-ui-markdown--word-char-p (aref text (1- position)))))
+               (let ((char (aref text start)))
+                 (or (and (>= char ?a) (<= char ?z))
+                     (and (>= char ?A) (<= char ?Z))
+                     (and (>= char ?0) (<= char ?9)))))
+      (let ((index start))
+        (while (and (< index end)
+                    (let ((char (aref text index)))
+                      (or (and (>= char ?a) (<= char ?z))
+                          (and (>= char ?A) (<= char ?Z))
+                          (and (>= char ?0) (<= char ?9))
+                          (memq char '(?_ ?- ?+)))))
+          (setq index (1+ index)))
+        (when (and (< index end)
+                   (eq (aref text index) ?:)
+                   (> index start)
+                   (or (= (1+ index) end)
+                       (not (etaf-ui-markdown--word-char-p (aref text (1+ index))))))
+          (let* ((name (downcase (substring text start index)))
+                 (char (cdr (assoc name etaf-ui-markdown-emoji))))
+            (when char
+              (cons (list :type 'emoji :text (substring text position (1+ index))
+                          :char char)
+                    (1+ index)))))))))
+
 (defun etaf-ui-markdown--word-char-p (char)
-  "Return non-nil when CHAR belongs to a word."
+  "Return non-nil when CHAR belongs to a Latin word or number.
+CJK text is not a word boundary for the ASCII tokens this decides about: a
+Chinese sentence writes `表情：:tada:' and `:tada:很棒', so a Han character on
+either side of a shortcode or abbreviation neither joins nor blocks it."
   (or (and (>= char ?0) (<= char ?9))
       (and (>= char ?A) (<= char ?Z))
       (and (>= char ?a) (<= char ?z))
-      (>= char 128)))
+      (eq char ?_)))
 
 (defun etaf-ui-markdown--try-abbreviation (text position end)
   "Return (NODE . NEXT) for a defined abbreviation starting at POSITION.

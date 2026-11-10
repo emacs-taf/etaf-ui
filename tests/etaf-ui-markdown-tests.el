@@ -208,6 +208,95 @@ wide preset still parses here, with its syntax shown literally."
       (should (string-match-p "H₂O" text))
       (should (string-match-p "a/b" text)))))
 
+(ert-deftest etaf-ui-markdown-parse-a-shortcode-paints-its-emoji ()
+  "A known `:name:' shortcode paints its character; anything else stays text.
+A time, an unknown name and a document on the `gfm' preset all keep their
+colons, so the syntax can never eat prose."
+  (let* ((nodes (lambda (text &optional flavor)
+                  (plist-get (car (plist-get (etaf-ui-markdown-parse text flavor)
+                                             :children))
+                             :children)))
+         (emoji (funcall nodes "nice :tada: and :rocket:\n"))
+         (time (funcall nodes "at 12:30:45 sharp\n"))
+         (unknown (funcall nodes "keep :notanemoji: here\n"))
+         ;; Chinese prose touches the shortcode on both sides: a Han character
+         ;; is not a Latin word, so the shortcode still paints.
+         (after-colon (funcall nodes "表情：:tada: 完成\n"))
+         (before-han (funcall nodes ":rocket: 起飞\n"))
+         (prose (funcall nodes "a:b: is prose\n"))
+         (narrow (funcall nodes "nice :tada:\n" 'gfm)))
+    (should (equal '("🎉" "🚀")
+                   (mapcar (lambda (node) (plist-get node :char))
+                           (seq-filter (lambda (node) (eq (plist-get node :type) 'emoji))
+                                       emoji))))
+    (should (equal "at 12:30:45 sharp"
+                   (mapconcat (lambda (node) (or (plist-get node :char)
+                                                 (plist-get node :text)))
+                              time "")))
+    (should (equal "keep :notanemoji: here"
+                   (mapconcat (lambda (node) (or (plist-get node :char)
+                                                 (plist-get node :text)))
+                              unknown "")))
+    (should (equal "表情：🎉 完成"
+                   (mapconcat (lambda (node) (or (plist-get node :char)
+                                                 (plist-get node :text)))
+                              after-colon "")))
+    (should (equal "🚀 起飞"
+                   (mapconcat (lambda (node) (or (plist-get node :char)
+                                                 (plist-get node :text)))
+                              before-han "")))
+    (should (equal "a:b: is prose"
+                   (mapconcat (lambda (node) (or (plist-get node :char)
+                                                 (plist-get node :text)))
+                              prose "")))
+    (should-not (seq-find (lambda (node) (eq (plist-get node :type) 'emoji)) narrow))))
+
+(ert-deftest etaf-ui-markdown-parse-a-repeated-footnote-uses-its-first-definition ()
+  "A label defined twice shows the first definition, and a reference to a label
+that was never defined has no note to show."
+  (let* ((duplicate (etaf-ui-markdown-parse
+                     "a[^x] b[^y]\n\n[^x]: first\n\n[^x]: second\n\n[^y]: other\n"))
+         (notes (plist-get duplicate :footnotes))
+         (missing (plist-get (etaf-ui-markdown-parse "a[^nope]\n") :footnotes)))
+    (should (equal '(("x" 1 "first") ("y" 2 "other"))
+                   (mapcar (lambda (note)
+                             (list (plist-get note :label) (plist-get note :number)
+                                   (plist-get (car (plist-get note :children)) :text)))
+                           notes)))
+    (should-not missing)))
+
+(ert-deftest etaf-ui-markdown-highlight-uses-the-modes-own-faces ()
+  "Code is coloured by running its language's mode, not by a pattern of ours.
+The assertion reads the weight a face sets, which is theme independent: a
+language with no mode, or a block too large to fontify, stays one run."
+  (let* ((runs (etaf-ui-markdown-highlight-code "elisp" "(defun f (x) (+ x 1))\n"))
+         (plain (etaf-ui-markdown-highlight-code "no-such-language" "(defun f ())\n"))
+         (weights (delq nil (mapcar (lambda (run) (plist-get (plist-get run :props)
+                                                             :font-weight))
+                                    runs))))
+    (should (> (length runs) 1))
+    (should (equal (apply #'concat (mapcar (lambda (run) (plist-get run :text)) runs))
+                   "(defun f (x) (+ x 1))\n"))
+    (should (memq 'bold weights))
+    (should-not plain)))
+
+(ert-deftest etaf-ui-markdown-code-renderers-draw-their-language ()
+  "A language with a registered renderer stops being painted as code.
+The table is how a diagram language or a typesetter joins in without the parser
+knowing about it; a language without an entry keeps the fenced block."
+  (let ((etaf-ui-markdown-code-renderers
+         (list (cons "mermaid"
+                     (lambda (block env)
+                       (declare (ignore env))
+                       (etaf-node 'text nil (list (format "DIAGRAM:%s"
+                                                          (plist-get block :text)))))))))
+    (etaf-ui-markdown-test--with-mount "```mermaid\ngraph TD; A-->B\n```\n"
+        (etaf-ui-markdown-test--env)
+      (should (string-match-p "DIAGRAM:graph TD" (etaf-ui-markdown-test--text buffer-name))))
+    (etaf-ui-markdown-test--with-mount "```text\nplain words\n```\n"
+        (etaf-ui-markdown-test--env)
+      (should (string-match-p "plain words" (etaf-ui-markdown-test--text buffer-name))))))
+
 (ert-deftest etaf-ui-markdown-parse-dialect-gates-extensions ()
   "The `commonmark' dialect leaves GitHub extensions as literal text."
   (let ((gfm (etaf-ui-markdown-parse "| a | b |\n| --- | --- |\n| 1 | 2 |\n"))

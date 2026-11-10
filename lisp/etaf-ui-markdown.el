@@ -25,6 +25,7 @@
 (require 'etaf-ui-basic)
 (require 'etaf-ui-feedback)
 (require 'etaf-ui-markdown-parse)
+(require 'etaf-ui-markdown-highlight)
 
 
 ;;; ---------------------------------------------------------------------------
@@ -147,6 +148,12 @@ Entries are (:text STRING :props PLIST) or (:view VIEW)."
          (push (list :text (or (plist-get node :text) "")
                      :props (plist-put (copy-sequence inherited)
                                        :abbreviation (plist-get node :title)))
+               result))
+        ('emoji
+         ;; A shortcode paints as its character; the source keeps the name, so
+         ;; the page shows a picture and the file stays readable text.
+         (push (list :text (or (plist-get node :char) (plist-get node :text) "")
+                     :props inherited)
                result))
         ('math
          (push (list :text (etaf-ui-markdown-math-text
@@ -343,12 +350,31 @@ body color."
                         :padding-bottom '(lh 0.35))))
                children)))
 
+(defcustom etaf-ui-markdown-code-renderers nil
+  "Renderers for one fenced language, as an alist of (LANGUAGE . FUNCTION).
+FUNCTION receives the block and ENV and returns a View, or nil to keep the
+default.  A language that needs a program -- a diagram language, a typesetter
+-- belongs here, so the parser stays pure and a missing program only means that
+block shows its source.  ENV's `:render-code-block' is consulted first, which
+lets one caller override the table without changing it."
+  :type '(alist :key-type string :value-type function)
+  :group 'text)
+
+(defun etaf-ui-markdown--code-block-renderer (block env)
+  "Return the View ENV's renderer for BLOCK's language draws, or nil."
+  (let* ((lang (plist-get block :lang))
+         (entry (and lang (assoc (downcase lang) etaf-ui-markdown-code-renderers))))
+    (or (when-let* ((renderer (plist-get env :render-code-block)))
+          (funcall renderer block env))
+        (when-let* ((renderer (cdr entry)))
+          (funcall renderer block env)))))
+
 (defun etaf-ui-markdown--code-block-node (block env)
   "Return the code block View of BLOCK in ENV.
 ENV's `:render-code-block', when present, may return a View for the block;
-nil keeps the default fenced block."
-  (or (when-let* ((renderer (plist-get env :render-code-block)))
-        (funcall renderer block env))
+nil falls back to `etaf-ui-markdown-code-renderers', and then to the default
+fenced block."
+  (or (etaf-ui-markdown--code-block-renderer block env)
       (etaf-ui-markdown--default-code-block-node block env)))
 
 (defun etaf-ui-markdown--default-code-block-node (block env)
@@ -359,14 +385,31 @@ frames the block instead of floating over its first line."
   (let* ((mono (etaf-ui-markdown--mono-family))
          (lang (plist-get block :lang))
          (border (etaf-ui-markdown--env-color env :border))
+         (text (or (plist-get block :text) ""))
+         (runs (unless (and (plist-member env :highlight-code)
+                            (null (plist-get env :highlight-code)))
+                 (etaf-ui-markdown-highlight-code lang text)))
+         (ink (etaf-ui-markdown--env-color env :ink))
          (body (etaf-node 'box
                           (list :width 'stretch :wrap-mode 'char
                                 :font-family mono
                                 :padding (if lang '((lh 0.5) (ch 2))
-                                           '((lh 1) (ch 2)))
-                                :color (etaf-ui-markdown--env-color env :ink))
-                          (list (etaf-node 'text nil
-                                           (list (plist-get block :text))))))
+                                           '((lh 1) (ch 2))))
+                          (if runs
+                              ;; Each run carries its own colour.  The box sets
+                              ;; none, because a colour on the box is painted
+                              ;; over every token the language coloured.
+                              (mapcar (lambda (run)
+                                        (let ((props (plist-get run :props)))
+                                          (etaf-node 'text
+                                                     (plist-put (copy-sequence props)
+                                                                :color
+                                                                (or (plist-get props :color)
+                                                                    ink))
+                                                     (list (plist-get run :text)))))
+                                      runs)
+                            (list (etaf-node 'text (list :color ink)
+                                             (list text))))))
          (header (when lang
                    (etaf-node 'box
                               (list :width 'stretch

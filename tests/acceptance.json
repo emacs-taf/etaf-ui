@@ -1029,6 +1029,26 @@
       "purpose": "定义列表、上下标、行内公式在页面上分别画出术语行、₂ 与公式文本。"
     },
     {
+      "name": "etaf-ui-markdown-parse-a-shortcode-paints-its-emoji",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "已知的 :name: 短码换成对应字符；时间、未知名与 gfm 预设下都保持原文，语法不会吃掉普通文字。"
+    },
+    {
+      "name": "etaf-ui-markdown-parse-a-repeated-footnote-uses-its-first-definition",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "同一标签定义两次时用第一次的定义；引用了从未定义的标签时不产生脚注条目。"
+    },
+    {
+      "name": "etaf-ui-markdown-highlight-uses-the-modes-own-faces",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "代码高亮读的是语言自己 mode 的 face：段落被切成带样式的 run，重组后文本一字不差；没有 mode 的语言返回 nil 按单色画。"
+    },
+    {
+      "name": "etaf-ui-markdown-code-renderers-draw-their-language",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "为某个围栏语言注册渲染器后，该语言交给渲染器画；没有注册项的仍按默认代码块画。"
+    },
+    {
       "name": "etaf-ui-markdown-parse-dialect-gates-extensions",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "The commonmark dialect leaves GitHub extension syntax as literal text while gfm parses it."
