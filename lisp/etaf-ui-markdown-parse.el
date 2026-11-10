@@ -1453,15 +1453,22 @@ holds as many terms as the document writes under it."
                    (indent (nth 1 marker))
                    (content (list (car marker))))
               (setq rest (cdr rest))
-              (while (and rest
-                          (or (etaf-ui-markdown--blank-line-p (car rest))
-                              (>= (etaf-ui-markdown--indent (car rest)) indent)))
+              ;; A definition keeps the blank lines inside it, but the blank
+              ;; line that separates the list from what follows stays in REST:
+              ;; a document's blank lines are lines the page paints, so eating
+              ;; one here would pull the next block against the list.
+              (while
+                  (and rest
+                       (if (etaf-ui-markdown--blank-line-p (car rest))
+                           (let ((next (cadr rest)))
+                             (and next
+                                  (or (etaf-ui-markdown--definition-marker next)
+                                      (>= (etaf-ui-markdown--indent next) indent))))
+                         (>= (etaf-ui-markdown--indent (car rest)) indent)))
                 (push (if (etaf-ui-markdown--blank-line-p (car rest))
                           ""
                         (etaf-ui-markdown--strip-indent (car rest) indent))
                       content)
-                (setq rest (cdr rest)))
-              (while (and rest (etaf-ui-markdown--blank-line-p (car rest)))
                 (setq rest (cdr rest)))
               (push (list :type 'definition
                           :children (etaf-ui-markdown--parse-blocks
@@ -1474,11 +1481,12 @@ holds as many terms as the document writes under it."
                       :definitions (nreverse definitions))
                 items))
         ;; A further term with a definition under it belongs to this list.
-        (when (and rest
-                   (not (etaf-ui-markdown--blank-line-p (car rest)))
-                   (etaf-ui-markdown--definition-marker (cadr rest)))
-          (setq term-lines (list (car rest)))
-          (setq rest (cdr rest))))
+        (let ((gap rest))
+          (while (and gap (etaf-ui-markdown--blank-line-p (car gap)))
+            (setq gap (cdr gap)))
+          (when (and gap (etaf-ui-markdown--definition-marker (cadr gap)))
+            (setq term-lines (list (car gap)))
+            (setq rest (cdr gap)))))
       (cons (list :type 'definition-list :items (nreverse items)) rest))))
 
 (defun etaf-ui-markdown--math-block-start-p (line)

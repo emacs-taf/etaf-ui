@@ -145,7 +145,15 @@ body text that somebody tinted."
                    (mapcar (lambda (item) (plist-get item :term))
                            (plist-get block :items))))
     (should (= 2 (length (plist-get (car (plist-get block :items)) :definitions))))
-    (should (= 1 (length (plist-get (cadr (plist-get block :items)) :definitions))))))
+    (should (= 1 (length (plist-get (cadr (plist-get block :items)) :definitions))))
+    ;; The list claims its own lines only: the blank line that separates it
+    ;; from the next block stays outside its range, so a renderer can paint it.
+    (let* ((source "Term\n: first\n\n## 下一节\n")
+           (next (etaf-ui-markdown-parse source))
+           (paragraph (car (plist-get next :children))))
+      (should (eq 'heading (plist-get (cadr (plist-get next :children)) :type)))
+      (should (equal "\n" (substring source (plist-get paragraph :end)
+                                      (1+ (plist-get paragraph :end))))))))
 
 (ert-deftest etaf-ui-markdown-parse-scripts-and-math ()
   "Sub- and superscript become script characters; `$' math stays a formula.
