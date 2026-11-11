@@ -491,12 +491,14 @@ quote keeps the muted surface and the accent bar."
       (let ((kind (downcase (match-string 1 text))))
         (and (etaf-ui-markdown--alert-spec kind env) kind)))))
 (defconst etaf-ui-markdown--alert-defaults
-  '((note "Note" :accent :accent-soft "ℹ")
+  '((note "Note" :accent :accent-soft "i")
     (tip "Tip" :ok :ok-soft "✔")
     (important "Important" :important :important-soft "★")
     (warning "Warning" :warn :warn-soft "⚠")
     (caution "Caution" :danger :danger-soft "⛔"))
-  "GitHub alert kinds with their default label, color keys and icon.")
+  "GitHub alert kinds with their default label, color keys and icon.
+The note's mark is the plain `i': the information sign is missing from common
+monospace fonts and renders as a box or a stray bar.")
 
 (defun etaf-ui-markdown--alert-spec (kind env)
   "Return (LABEL COLOR-KEY SOFT-KEY ICON) for alert KIND in ENV, or nil.

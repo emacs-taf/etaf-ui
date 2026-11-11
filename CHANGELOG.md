@@ -96,6 +96,8 @@
 
 ### Fixed
 
+- An alert's note mark is the plain `i`: the information sign is missing from
+  common monospace fonts and rendered as a box or a stray bar.
 - An alert paints its text on the row under its label: the marker line's break
   stayed at the head of the paragraph after the marker was removed, so every
   callout opened with an empty row.
