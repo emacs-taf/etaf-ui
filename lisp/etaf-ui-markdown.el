@@ -88,6 +88,15 @@ introduces, and their muted colour tells them apart instead."
   (etaf-node 'box (list :height (list 'lh (or lines 1))) nil))
 
 
+(defun etaf-ui-markdown--dark-page-p (env)
+  "Return non-nil when ENV paints a dark page.
+A page with a background of its own is judged by that surface; `auto' paints
+none and follows the frame the reader is looking at."
+  (let ((background (plist-get env :background)))
+    (if (and background (stringp background))
+        (<= (etaf-ui-color-contrast background "#000000") 1.5)
+      (eq (etaf-appearance) 'dark))))
+
 (defun etaf-ui-markdown--code-color (env)
   "Return ENV's background for code surfaces.
 The palette may provide `:code-bg'; without it code uses `:panel'."
@@ -398,6 +407,7 @@ frames the block instead of floating over its first line."
                             (null (plist-get env :highlight-code)))
                  (etaf-ui-markdown-highlight-code lang text)))
          (ink (etaf-ui-markdown--env-color env :ink))
+         (dark (etaf-ui-markdown--dark-page-p env))
          (body (etaf-node 'box
                           (list :width 'stretch :wrap-mode 'char
                                 :font-family mono
@@ -411,12 +421,18 @@ frames the block instead of floating over its first line."
                               ;; readable on the page's own code surface.
                               (mapcar (lambda (run)
                                         (let* ((props (plist-get run :props))
-                                               (color (or (plist-get props :color) ink)))
+                                               ;; A token with a role takes the
+                                               ;; page's own syntax colour;
+                                               ;; one without keeps the face's
+                                               ;; colour, made readable.
+                                               (color (or (etaf-ui-markdown-highlight-color
+                                                           props dark)
+                                                          (etaf-ui-color-legible
+                                                           (or (plist-get props :color) ink)
+                                                           code-bg))))
                                           (etaf-node 'text
                                                      (plist-put (copy-sequence props)
-                                                                :color
-                                                                (etaf-ui-color-legible
-                                                                 color code-bg))
+                                                                :color color)
                                                      (list (plist-get run :text)))))
                                       runs)
                             (list (etaf-node 'text (list :color ink)

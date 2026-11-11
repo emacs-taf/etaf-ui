@@ -81,6 +81,49 @@ loaded is accepted, while a language with no mode costs one failed `require'."
                 (require library nil t))
         (and (fboundp mode) mode)))))
 
+(defconst etaf-ui-markdown-highlight-roles
+  '((font-lock-keyword-face . keyword)
+    (font-lock-builtin-face . builtin)
+    (font-lock-string-face . string)
+    (font-lock-doc-face . string)
+    (font-lock-comment-face . comment)
+    (font-lock-comment-delimiter-face . comment)
+    (font-lock-function-name-face . function)
+    (font-lock-variable-name-face . variable)
+    (font-lock-type-face . type)
+    (font-lock-constant-face . constant)
+    (font-lock-preprocessor-face . preprocessor)
+    (font-lock-warning-face . warning))
+  "The token role each font-lock face paints.
+The highlighter reads the source of a fence with the language's own mode, so
+the tokens are the faces font-lock already found; a role names what a token is,
+which is what lets the page colour it from its own palette instead of copying
+whatever the reader's theme happened to choose.")
+
+(defconst etaf-ui-markdown-highlight-palettes
+  '((light . ((keyword . "#cf222e") (builtin . "#0550ae") (string . "#0a3069")
+              (comment . "#6e7781") (function . "#8250df") (variable . "#953800")
+              (type . "#953800") (constant . "#0550ae") (preprocessor . "#953800")
+              (warning . "#9a6700")))
+    (dark . ((keyword . "#ff7b72") (builtin . "#79c0ff") (string . "#a5d6ff")
+             (comment . "#8b949e") (function . "#d2a8ff") (variable . "#ffa657")
+             (type . "#ffa657") (constant . "#79c0ff") (preprocessor . "#ffa657")
+             (warning . "#e3b341"))))
+  "Syntax colours a code block takes on a light and on a dark page.
+They are the pairs a reader of GitHub's code view already knows, so a block sits
+on the page the way a block sits in a browser: saturated enough to read on a
+white surface and light enough on a dark one.  A face with no role keeps its
+own colour, adjusted to the page's contrast.")
+
+(defun etaf-ui-markdown-highlight-color (props dark)
+  "Return the colour the run PROPS takes on a page of DARK appearance, or nil.
+PROPS comes from `etaf-ui-markdown-highlight--face-props'; a run whose face has
+no role answers nil, and its caller decides what to paint."
+  (when-let* ((role (plist-get props :role))
+              (palette (alist-get (if dark 'dark 'light)
+                                  etaf-ui-markdown-highlight-palettes)))
+    (alist-get role palette)))
+
 (defun etaf-ui-markdown-highlight--face-props (face)
   "Return the drawing props of FACE as an Ebox style plist.
 Only what a text run can express is kept: colour, weight, slant, underline and
@@ -88,6 +131,11 @@ strike-through.  An inherited attribute is resolved through the face itself, so
 a mode that only sets a foreground still renders."
   (let ((props nil))
     (when (and face (facep face))
+      ;; The face's own name is the only handle on what the token is; a mode
+      ;; that inherits from a font-lock face is resolved to the role too.
+      (let ((role (cdr (assq (or (and (symbolp face) face) (car (ensure-list face)))
+                             etaf-ui-markdown-highlight-roles))))
+        (when role (setq props (plist-put props :role role))))
       ;; INHERIT is t, not nil: a mode's face usually sets one attribute and
       ;; inherits the rest, and only an inherited value is the colour the
       ;; source buffer actually shows.

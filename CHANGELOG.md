@@ -97,6 +97,12 @@
 - A blockquote paints its own text in `:muted`, so it reads as secondary
   content; a link keeps the accent and a code span keeps its panel.
 
+- A code block's tokens take their colours from the page's own palette: the
+  highlighter reads the tokens with the language's mode, so what a word is comes
+  from font-lock, and the colour comes from `etaf-ui-markdown-highlight-palettes`
+  — a saturated set for a light page and a light one for a dark page.  A token
+  whose face names no role keeps its own colour, adjusted to the page.
+
 ### Fixed
 
 - An alert's note mark is the plain `i`: the information sign is missing from
