@@ -751,36 +751,41 @@ counts that width, and a plain character counts its own."
           (forward-line 1)))
       (nreverse rulers))))
 
-(ert-deftest etaf-ui-markdown-table-draws-a-separator-between-columns ()
-  "Every row of a table closes each column with a vertical rule.
-A grid of horizontal rules alone leaves the reader to guess where a column
-ends, so a table draws one hairline between every pair of columns."
+(ert-deftest etaf-ui-markdown-table-rules-the-columns-not-the-rows ()
+  "A table rules its columns and closes only its header.
+One hairline under the header and one between each pair of cells keeps every
+alignment visible; a rule between body rows and a frame around the table made
+the page read like a spreadsheet."
   (etaf-ui-markdown-test--with-mount
       (concat "| Option | Meaning |\n"
               "| --- | --- |\n"
               "| :at | Where the panel sits |\n"
               "| :width | Content columns |\n")
       (etaf-ui-markdown-test--env)
-    (let ((rulers (etaf-ui-markdown-test--border-columns buffer-name)))
-      (should (= 3 (length rulers)))
-      (dolist (ruler rulers)
-        (should (= 3 (length ruler)))
-        (should (< (nth 0 ruler) (nth 1 ruler) (nth 2 ruler)))))))
+    (let* ((text (etaf-ui-markdown-test--text buffer-name))
+           (rows (cl-remove-if-not (lambda (line) (string-match-p "│" line))
+                                   (split-string text "\n"))))
+      ;; Every row is ruled between its cells, and no row is framed: the outer
+      ;; rules the table used to draw would show as a corner glyph.  The rule
+      ;; under the header is a graphical border the batch renderer does not
+      ;; paint, so the GUI capture is its evidence.
+      (should (= 3 (length rows)))
+      (should-not (string-match-p "┌\|┐\|└\|┘" text)))))
 
 (ert-deftest etaf-ui-markdown-table-rows-share-one-column-grid ()
-  "Every row of a table draws its borders in the same columns.
+  "Every row of a table rules its cells in the same display columns.
 A cell whose content is wider than its neighbours must not push that row's
 columns out of line: the table resolves one set of tracks for all rows."
   (etaf-ui-markdown-test--with-mount
       (concat "| Option | Value | Default | Meaning |\n"
               "| --- | --- | --- | --- |\n"
               "| :at | placement | point | Where the panel sits |\n"
-              "| :focus-on-open | t, nil | the value of :focusable | Select it on open |\n"
-              "| :width | columns, fraction | 56 | Content columns |\n")
+              "| :focus-on-open | t, nil | :focusable | Select it on open |\n"
+              "| :width | columns | 56 | Content columns |\n")
       (etaf-ui-markdown-test--env)
     (let ((rulers (etaf-ui-markdown-test--border-columns buffer-name)))
       (should (>= (length rulers) 4))
-      (should (cl-every (lambda (ruler) (equal ruler (car rulers))) rulers)))))
+      (should (cl-every (lambda (row) (equal row (car rulers))) rulers)))))
 
 (ert-deftest etaf-ui-markdown-table-keeps-unbroken-columns ()
   "A column is never narrower than the widest unbreakable cell text."

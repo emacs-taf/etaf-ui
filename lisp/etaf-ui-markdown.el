@@ -632,11 +632,13 @@ painting a row the color it already has costs a paint and shows nothing."
 
 (defun etaf-ui-markdown--table-node (block env)
   "Return the table View of BLOCK in ENV.
-The table draws its own grid: an outer border, a row separator, a column
-separator, a tinted header row and zebra striping, so every column and
-alignment stays visible at a glance.  Columns share the width in proportion
-to their content and never go narrower than their widest unbreakable token
-plus the cell padding, and cells wrap at word boundaries.
+The table draws one hairline under its header and one between each pair of
+cells, and no rule between body rows or around the table: a full grid of
+rules reads like a spreadsheet, while a header tint with the columns ruled
+keeps every alignment visible.  A palette that names a `:table-stripe'
+different from its header tints every other body row.  Columns share the width
+in proportion to their content and never go narrower than their widest
+unbreakable token plus the cell padding, and cells wrap at word boundaries.
 
 The whole table is one grid, and its floors are the column maximums over
 every row.  A grid per row gave each row its own track resolution, so a row
@@ -653,15 +655,13 @@ keeps a tight container from squeezing cells below their words."
                                             maximize (etaf-ui-markdown--inline-width
                                                       (nth column row)))))
          (tracks (etaf-ui-markdown--table-tracks floors weights))
-         (last-row (1- (length rows)))
-         (border (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border)))
-         ;; Ebox draws top and bottom borders at one pixel, so the header
-         ;; rule is set apart by color instead of width.
-         (header-rule (list '(px 1) 'solid
-                            (etaf-ui-color-mix
-                             (etaf-ui-markdown--env-color env :border)
-                             (etaf-ui-markdown--env-color env :ink) 0.35)))
-         (stripe (etaf-ui-markdown--table-stripe env))
+         ;; One hairline under the header keeps the heading apart from its
+         ;; rows, and a hairline between cells keeps the columns apart; there is
+         ;; no outer frame and no rule between body rows, which is what made
+         ;; the table read as a spreadsheet.  Every line carries the same
+         ;; border colour at one pixel, so no edge is heavier than another.
+         (rule (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border)))
+         (header-fill (etaf-ui-markdown--env-color env :table-header))
          (cells nil))
     (cl-loop for row in rows
              for row-index from 0
@@ -676,27 +676,24 @@ keeps a tight container from squeezing cells below their words."
                                               :overflow 'hidden
                                               :wrap-mode 'word
                                               :text-align (or align 'left)
+                                              ;; Only the header closes with a
+                                              ;; rule: the body rows stay open, so
+                                              ;; the page reads as columns rather
+                                              ;; than as cells in a box.
                                               :border-bottom
-                                              (cond ((zerop row-index) header-rule)
-                                                    ((/= row-index last-row) border))
+                                              (and (zerop row-index) rule)
                                               :border-right
                                               (and (/= column-index (1- columns))
-                                                   border)
+                                                   rule)
                                               :background-color
-                                              (cond
-                                               ((zerop row-index)
-                                                (etaf-ui-markdown--env-color env :table-header))
-                                               ((and stripe (zerop (% row-index 2)))
-                                                stripe)
-                                               (t nil)))
+                                              (and (zerop row-index) header-fill))
                                         (etaf-ui-markdown--runs-view
                                          inlines env
                                          (when (zerop row-index) (list :bold t))))
                              cells)))
     (etaf-node 'box
                (list :width 'stretch
-                     :min-width (list 'ch (+ 2 (apply #'+ floors)))
-                     :border border)
+                     :min-width (list 'ch (+ 2 (apply #'+ floors))))
                (list (etaf-node 'grid
                                 (list :width 'stretch
                                       :grid-template-columns tracks)

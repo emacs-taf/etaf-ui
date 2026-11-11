@@ -206,6 +206,10 @@ costs one cache lookup on the next repaint."
 (defun etaf-ui-markdown-highlight--compute (language text)
   "Return the highlighted runs of TEXT as LANGUAGE, or nil."
   (when-let* ((mode (etaf-ui-markdown-highlight--mode language)))
+    ;; A mode may announce what it set up, as `sh-mode' does when it picks the
+    ;; shell's indentation; the reader asked for a page, not for that log.
+    (let ((inhibit-message t)
+          (message-log-max nil))
     (with-temp-buffer
       (insert text)
       ;; `delay-mode-hooks' keeps the mode from running a page's mode hooks in
@@ -217,7 +221,7 @@ costs one cache lookup on the next repaint."
         (setq-local font-lock-verbose nil)
         (condition-case nil
             (progn (font-lock-ensure) (etaf-ui-markdown-highlight--runs (buffer-string)))
-          (error nil))))))
+          (error nil)))))))
 
 (provide 'etaf-ui-markdown-highlight)
 
