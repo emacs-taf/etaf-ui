@@ -103,6 +103,11 @@
   — a saturated set for a light page and a light one for a dark page.  A token
   whose face names no role keeps its own colour, adjusted to the page.
 
+- A table carries three line weights, one purpose each: a dark hairline under
+  the header divides the table, a faint line between cells and between rows
+  guides the eye, and nothing frames the table.  Rules of one weight everywhere
+  read as a spreadsheet, and a table with no rule between its rows left the
+  body looking unfinished.
 ### Fixed
 
 - An alert's note mark is the plain `i`: the information sign is missing from

@@ -655,18 +655,21 @@ keeps a tight container from squeezing cells below their words."
                                             maximize (etaf-ui-markdown--inline-width
                                                       (nth column row)))))
          (tracks (etaf-ui-markdown--table-tracks floors weights))
-         ;; One hairline under the header keeps the heading apart from its
-         ;; rows, and a hairline between cells keeps the columns apart; there is
-         ;; no outer frame and no rule between body rows, which is what made
-         ;; the table read as a spreadsheet.  Every line carries the same
-         ;; border colour at one pixel, so no edge is heavier than another.
-         ;; One pixel, half a step stronger than the page's border: at the
-         ;; border colour alone the rule sat at 1.3:1 against the surface and a
-         ;; reader could not see where a column ended.
+         (last-row (1- (length rows)))
+         ;; Three weights, one purpose each: a dark hairline closes the header,
+         ;; so the heading divides the table; a faint line between cells and
+         ;; between rows guides the eye without fencing the cells in; nothing
+         ;; frames the table, so it sits on the page instead of in a box.  Lines
+         ;; of one weight everywhere made the table read as a spreadsheet.
+         (surface (or (plist-get env :background)
+                      (etaf-ui-markdown--env-color env :panel)))
          (rule (list '(px 1) 'solid
                      (etaf-ui-color-mix
                       (etaf-ui-markdown--env-color env :border)
                       (etaf-ui-markdown--env-color env :ink) 0.45)))
+         (faint (list '(px 1) 'solid
+                      (etaf-ui-color-mix
+                       (etaf-ui-markdown--env-color env :border) surface 0.55)))
          (header-fill (etaf-ui-markdown--env-color env :table-header))
          (cells nil))
     (cl-loop for row in rows
@@ -682,15 +685,12 @@ keeps a tight container from squeezing cells below their words."
                                               :overflow 'hidden
                                               :wrap-mode 'word
                                               :text-align (or align 'left)
-                                              ;; Only the header closes with a
-                                              ;; rule: the body rows stay open, so
-                                              ;; the page reads as columns rather
-                                              ;; than as cells in a box.
                                               :border-bottom
-                                              (and (zerop row-index) rule)
+                                              (cond ((zerop row-index) rule)
+                                                    ((< row-index last-row) faint))
                                               :border-right
                                               (and (/= column-index (1- columns))
-                                                   rule)
+                                                   faint)
                                               :background-color
                                               (and (zerop row-index) header-fill))
                                         (etaf-ui-markdown--runs-view
