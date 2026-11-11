@@ -4,6 +4,12 @@
 
 ### Added
 
+- A code block keeps its syntax colours readable on the page it is painted
+  on: the colours come from the frame's own faces, which a light page can
+  swallow, so each one is passed through `etaf-ui-color-legible' against the
+  code surface.  `etaf-ui-color-contrast' reports the WCAG ratio between two
+  colours, and `etaf-ui-color-legible' mixes a colour toward black or white
+  until it reaches 4.5, keeping its hue.
 - A heading takes the size a markdown page gives it: level 1 is twice the
   body, level 2 one and a half, level 3 one and a quarter, level 4 a little
   above the body, and levels 5 and 6 keep the body size with the muted colour

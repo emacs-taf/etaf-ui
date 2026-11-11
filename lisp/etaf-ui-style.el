@@ -102,6 +102,84 @@
   "Return the deferred ETAF Theme value for private catalog token KEY."
   (etaf-theme-token key (plist-get etaf-ui--style-palette key)))
 
+(defun etaf-ui--color-hex (color)
+  "Return COLOR as #RRGGBB, or nil when Emacs cannot resolve it.
+A `#RRGGBB' string is read as it stands.  A face may name its colour, as the
+moccasin a string inherits from a theme does, and a name goes through Emacs'
+colour table; that table answers in a terminal's own colours, which is why the
+hex form is read directly instead of through it."
+  (when (stringp color)
+    (cond
+     ((string-match "\\`#[0-9a-fA-F]\\{6\\}\\'" color) (upcase color))
+     (t (when-let* ((channels (ignore-errors (color-name-to-rgb color))))
+          (when (cl-every #'numberp channels)
+            (apply #'format "#%02X%02X%02X"
+                   (mapcar (lambda (channel)
+                             (let ((scaled (if (> channel 1.0)
+                                               (/ channel 65535.0)
+                                             channel)))
+                               (max 0 (min 255 (round (* scaled 255))))))
+                           channels))))))))
+
+(defun etaf-ui--color-luminance (color)
+  "Return the relative luminance of COLOR, or nil when Emacs cannot resolve it.
+The channels are linearised the way WCAG defines them, because the contrast
+ratio below is only meaningful on that scale."
+  (when-let* ((channels (etaf-ui--color-channels (etaf-ui--color-hex color))))
+    (cl-destructuring-bind (red green blue) channels
+      (let ((linear (lambda (value)
+                      (let ((scaled (/ value 255.0)))
+                        (if (<= scaled 0.04045)
+                            (/ scaled 12.92)
+                          (expt (/ (+ scaled 0.055) 1.055) 2.4))))))
+        (+ (* 0.2126 (funcall linear red))
+           (* 0.7152 (funcall linear green))
+           (* 0.0722 (funcall linear blue)))))))
+
+(defun etaf-ui-color-contrast (from to)
+  "Return the WCAG contrast ratio between FROM and TO, from 1 to 21.
+Either colour may be written the way Emacs resolves colours, `#RRGGBB' or a
+name such as `moccasin'; one Emacs cannot resolve has no measurable contrast
+and answers 0, which reads as a colour nobody checked."
+  (let ((first (etaf-ui--color-luminance from))
+        (second (etaf-ui--color-luminance to)))
+    (if (and first second)
+        (/ (+ (max first second) 0.05) (+ (min first second) 0.05))
+      0)))
+
+(defvar etaf-ui--color-legible-cache (make-hash-table :test #'equal)
+  "Readable variants of a colour on a surface, keyed by the three inputs.")
+
+(defun etaf-ui-color-legible (color background &optional ratio)
+  "Return COLOR made readable on BACKGROUND, keeping its hue.
+A syntax colour written for one page disappears on another: the pale pink a
+dark theme gives strings vanishes on a white page.  COLOR is mixed toward
+black on a light surface and toward white on a dark one, in steps, until it
+reaches RATIO (default 4.5, the WCAG AA ratio for body text); a colour that
+already passes, and a colour in any spelling other than #RRGGBB, comes back
+unchanged.  The answer is cached per (COLOR BACKGROUND RATIO), because a page
+re-renders its code blocks on every repaint."
+  (let* ((target (or ratio 4.5))
+         (start (etaf-ui--color-hex color))
+         (surface (etaf-ui--color-hex background)))
+    (or (gethash (list color background target) etaf-ui--color-legible-cache)
+        (puthash (list color background target)
+                 (if (or (not start) (not surface)
+                         (>= (etaf-ui-color-contrast start surface) target))
+                     color
+                   (let* ((toward (if (>= (or (etaf-ui--color-luminance surface) 0) 0.5)
+                                      "#000000" "#FFFFFF"))
+                          (ink start)
+                          (step 0.08))
+                     (while (and (< step 1.0)
+                                 (< (etaf-ui-color-contrast ink surface) target))
+                       (setq ink (etaf-ui-color-mix start toward step))
+                       (setq step (+ step 0.08)))
+                     (if (>= (etaf-ui-color-contrast ink surface) target)
+                         ink
+                       toward)))
+                 etaf-ui--color-legible-cache))))
+
 (defun etaf-ui-color-mix (from to amount)
   "Return FROM mixed AMOUNT of the way toward TO.
 Both colors are #RRGGBB strings; a color in any other spelling is returned
@@ -125,12 +203,7 @@ unchanged, which keeps a Theme that uses a named color usable."
           (string-to-number (match-string 2 color) 16)
           (string-to-number (match-string 3 color) 16))))
 
-(defun etaf-ui--color-luminance (color)
-  "Return the relative luminance of #RRGGBB COLOR, or nil."
-  (when-let* ((channels (etaf-ui--color-channels color)))
-    (+ (* 0.2126 (/ (nth 0 channels) 255.0))
-       (* 0.7152 (/ (nth 1 channels) 255.0))
-       (* 0.0722 (/ (nth 2 channels) 255.0)))))
+
 
 ;;; Application palettes
 

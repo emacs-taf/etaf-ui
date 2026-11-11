@@ -38,6 +38,23 @@
 ;; usable.  Applications use it to derive hover, selection and surface steps
 ;; from the frame's own colours instead of carrying a second palette.
 ;;
+;; Function: etaf-ui-color-contrast (from to)
+;;;###autoload (autoload 'etaf-ui-color-contrast "etaf-ui" nil nil)
+;; Return the WCAG contrast ratio between FROM and TO, from 1 to 21.  Both
+;; are #RRGGBB strings; a colour in any other spelling answers 0, which reads
+;; as a colour nobody measured.  Applications use it to check a derived
+;; hover, selected or code colour against the surface it is painted on.
+;;
+;; Function: etaf-ui-color-legible (color background &optional ratio)
+;;;###autoload (autoload 'etaf-ui-color-legible "etaf-ui" nil nil)
+;; Return COLOR made readable on BACKGROUND, keeping its hue.  COLOR is mixed
+;; toward black on a light surface and toward white on a dark one until it
+;; reaches RATIO (default 4.5, the WCAG AA ratio for body text).  A colour
+;; that already passes, and one written in another spelling, comes back
+;; unchanged.  A page that renders with colours from elsewhere, such as the
+;; frame's syntax faces, passes them through this so they stay readable on its
+;; own surface.
+;;
 ;; Function: etaf-ui-theme-tokens (palette)
 ;;;###autoload (autoload 'etaf-ui-theme-tokens "etaf-ui" nil nil)
 ;; Return the catalog's color Theme tokens for application PALETTE, a plist

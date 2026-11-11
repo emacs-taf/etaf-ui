@@ -86,3 +86,31 @@
 
 (provide 'etaf-ui-theme-tokens-tests)
 ;;; etaf-ui-theme-tokens-tests.el ends here
+
+(ert-deftest etaf-ui-color-legible-keeps-a-syntax-colour-on-its-page ()
+  "A colour that vanishes on its surface is made readable, keeping its hue.
+The pale pink a dark theme gives strings has no contrast on a white page, so
+it is mixed toward black until it reaches the WCAG AA ratio for body text; a
+dark colour on a dark surface is lightened the same way, and a colour that
+already passes comes back unchanged."
+  (should (< (etaf-ui-color-contrast "#ffd7d5" "#ffffff") 4.5))
+  (let ((readable (etaf-ui-color-legible "#ffd7d5" "#ffffff")))
+    (should (>= (etaf-ui-color-contrast readable "#ffffff") 4.5))
+    ;; The hue survives: red stays the largest channel.
+    (should (> (string-to-number (substring readable 1 3) 16)
+               (string-to-number (substring readable 5 7) 16))))
+  (should (>= (etaf-ui-color-contrast
+               (etaf-ui-color-legible "#0b2b45" "#0d1117") "#0d1117")
+              4.5))
+  (should (equal "#1f2328" (etaf-ui-color-legible "#1f2328" "#ffffff")))
+  ;; A colour Emacs cannot resolve has no measurable contrast, and mixing it
+  ;; would invent one: it comes back as it was.
+  (should (equal "not-a-colour" (etaf-ui-color-legible "not-a-colour" "#ffffff"))))
+
+(ert-deftest etaf-ui-color-contrast-measures-the-wcag-ratio ()
+  "Contrast runs from 1 for one colour twice to 21 for black on white."
+  (should (= 1 (etaf-ui-color-contrast "#777777" "#777777")))
+  (should (< 20.5 (etaf-ui-color-contrast "#000000" "#ffffff") 21.1))
+  (should (= 0 (etaf-ui-color-contrast "not-a-colour" "#ffffff")))
+  ;; A name Emacs knows measures like the colour it stands for.
+  (should (< 3.5 (etaf-ui-color-contrast "red" "#ffffff") 4.6)))

@@ -1174,6 +1174,16 @@
       "purpose": "A palette without both base colors, with an unknown role or with a non-string color signals wrong-type-argument."
     },
     {
+      "name": "etaf-ui-color-legible-keeps-a-syntax-colour-on-its-page",
+      "file": "tests/etaf-ui-theme-tokens-tests.el",
+      "purpose": "A colour below the WCAG AA ratio on its surface is mixed toward black or white until it passes, keeping its hue, and a colour that already passes is unchanged."
+    },
+    {
+      "name": "etaf-ui-color-contrast-measures-the-wcag-ratio",
+      "file": "tests/etaf-ui-theme-tokens-tests.el",
+      "purpose": "Contrast is 1 for one colour twice, about 21 for black on white, and 0 for a colour with no channels."
+    },
+    {
       "name": "etaf-ui-theme-tokens-paint-catalog-components",
       "file": "tests/etaf-ui-theme-tokens-tests.el",
       "purpose": "Provided palette tokens paint a mounted catalog control, and a token placed before the result overrides it."

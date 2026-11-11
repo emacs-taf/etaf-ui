@@ -392,6 +392,7 @@ frames the block instead of floating over its first line."
          (lang (plist-get block :lang))
          (border (etaf-ui-markdown--env-color env :border))
          (text (or (plist-get block :text) ""))
+         (code-bg (etaf-ui-markdown--code-color env))
          (runs (unless (and (plist-member env :highlight-code)
                             (null (plist-get env :highlight-code)))
                  (etaf-ui-markdown-highlight-code lang text)))
@@ -404,14 +405,17 @@ frames the block instead of floating over its first line."
                           (if runs
                               ;; Each run carries its own colour.  The box sets
                               ;; none, because a colour on the box is painted
-                              ;; over every token the language coloured.
+                              ;; over every token the language coloured, and a
+                              ;; colour the page would swallow is made
+                              ;; readable on the page's own code surface.
                               (mapcar (lambda (run)
-                                        (let ((props (plist-get run :props)))
+                                        (let* ((props (plist-get run :props))
+                                               (color (or (plist-get props :color) ink)))
                                           (etaf-node 'text
                                                      (plist-put (copy-sequence props)
                                                                 :color
-                                                                (or (plist-get props :color)
-                                                                    ink))
+                                                                (etaf-ui-color-legible
+                                                                 color code-bg))
                                                      (list (plist-get run :text)))))
                                       runs)
                             (list (etaf-node 'text (list :color ink)
