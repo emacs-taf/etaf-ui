@@ -661,15 +661,19 @@ keeps a tight container from squeezing cells below their words."
          ;; between rows guides the eye without fencing the cells in; nothing
          ;; frames the table, so it sits on the page instead of in a box.  Lines
          ;; of one weight everywhere made the table read as a spreadsheet.
-         (surface (or (plist-get env :background)
-                      (etaf-ui-markdown--env-color env :panel)))
-         (rule (list '(px 1) 'solid
-                     (etaf-ui-color-mix
-                      (etaf-ui-markdown--env-color env :border)
-                      (etaf-ui-markdown--env-color env :ink) 0.45)))
-         (faint (list '(px 1) 'solid
-                      (etaf-ui-color-mix
-                       (etaf-ui-markdown--env-color env :border) surface 0.55)))
+         ;; Ebox draws a top or bottom border at one pixel, so the weights are
+         ;; told apart by colour, on one ramp from the page's ink: the header's
+         ;; rule is the darkest, the frame the next step, and the cell rules the
+         ;; lightest.  A frame mixed back toward the surface left the table's
+         ;; edges below the contrast a reader can see.
+         (ramp (lambda (amount)
+                 (list '(px 1) 'solid
+                       (etaf-ui-color-mix
+                        (etaf-ui-markdown--env-color env :border)
+                        (etaf-ui-markdown--env-color env :ink) amount))))
+         (rule (funcall ramp 0.6))
+         (frame (funcall ramp 0.45))
+         (faint (funcall ramp 0.3))
          (header-fill (etaf-ui-markdown--env-color env :table-header))
          (cells nil))
     (cl-loop for row in rows
@@ -704,8 +708,7 @@ keeps a tight container from squeezing cells below their words."
                      ;; object on the page: the frame is the table's own edge,
                      ;; painted in the page's border colour and no heavier than
                      ;; the rules inside it.
-                     :border (list '(px 1) 'solid
-                                   (etaf-ui-markdown--env-color env :border)))
+                     :border frame)
                (list (etaf-node 'grid
                                 (list :width 'stretch
                                       :grid-template-columns tracks)

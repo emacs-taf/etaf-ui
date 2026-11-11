@@ -103,12 +103,12 @@
   — a saturated set for a light page and a light one for a dark page.  A token
   whose face names no role keeps its own colour, adjusted to the page.
 
-- A table carries three line weights, one purpose each: a dark hairline under
-  the header divides the table, a faint line between cells and between rows
-  guides the eye, and a one-pixel frame in the page's border colour closes the
-  grid.  Rules of one weight everywhere read as a spreadsheet; a body with no
-  rule between its rows left the table looking unfinished, and an unframed one
-  looked unfinished on the page.
+- A table carries three line weights on one ramp from the page's ink: the
+  header's rule is the darkest, the frame the next step, and the rules between
+  cells and rows the lightest.  Ebox draws a top or bottom border at one pixel,
+  so the weights are told apart by colour; a frame mixed back toward the surface
+  left the table's edges below the contrast a reader can see, which is why the
+  grid looked like it was missing.
 ### Fixed
 
 - An alert's note mark is the plain `i`: the information sign is missing from
