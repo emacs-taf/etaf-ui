@@ -464,7 +464,11 @@ quote keeps the muted surface and the accent bar."
                        :padding-bottom '(lh 0)
                        :padding-left '(ch 2)
                        :padding-right '(ch 2))
-                 (etaf-ui-markdown-view-blocks children env t)))))
+                 ;; A quote holds paragraphs, lists and nested quotes: one
+                 ;; blank row between them separates what the source wrote as
+                 ;; separate blocks, exactly as the top level separates its
+                 ;; own, without adding one before the first or after the last.
+                 (etaf-ui-markdown-view-blocks children env)))))
 
 (defun etaf-ui-markdown--alert-kind (blocks env)
   "Return the GitHub alert kind when BLOCKS open with an alert marker."

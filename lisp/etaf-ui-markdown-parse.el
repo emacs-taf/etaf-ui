@@ -401,7 +401,9 @@ Return (ORDERED START TIGHT ITEMS . REST); each item is (FIRST-LINE . LINES)."
                         ;; another item of the same list.  Otherwise the list
                         ;; ends here and the blank line stays for the outer
                         ;; parser, so an unindented paragraph or a different
-                        ;; list is not swallowed as a lazy continuation.
+                        ;; list is not swallowed as a lazy continuation.  When
+                        ;; it does belong, the item keeps it: it separates the
+                        ;; two paragraphs the source wrote as such.
                         (let ((next (and (cadr rest)
                                          (etaf-ui-markdown--list-marker (cadr rest)))))
                           (when (and (cadr rest)
@@ -411,6 +413,7 @@ Return (ORDERED START TIGHT ITEMS . REST); each item is (FIRST-LINE . LINES)."
                                               (eq (nth 1 next) ordered)
                                               (= (nth 0 next) base))))
                             (setq tight nil)
+                            (push "" item-lines)
                             t)))
                        ((>= (etaf-ui-markdown--indent line) content-indent)
                         (push (etaf-ui-markdown--strip-indent line content-indent)

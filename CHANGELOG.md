@@ -85,6 +85,13 @@
 
 ### Fixed
 
+- A quote separates its own blocks by one blank row: a `>' line with nothing
+  after it ends a paragraph, and running the next block up against it read the
+  quote as one cramped lump instead of the paragraphs, list and nested quote
+  the source wrote.  The quote still ends on the last line of its last block.
+- A blank line inside a list item separates the paragraphs it wrote: the item
+  keeps that line, so the two paragraphs stay two instead of running together
+  as one paragraph split by a soft break.
 - The paragraph above a definition list carries its own `:begin` and `:end`:
   one clause reads both blocks, and only the list was given a range.  A caller
   that splices an edited document on those ranges used to fail on the

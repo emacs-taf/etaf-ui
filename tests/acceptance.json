@@ -1074,6 +1074,16 @@
       "purpose": "A blockquote whose source has no blank line inside it ends on its last text line; the rendered box adds no empty row of its own before its bottom edge."
     },
     {
+      "name": "etaf-ui-markdown-quote-separates-its-blocks",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A quote separates the blocks it holds by one blank row and ends on the last line of its last block."
+    },
+    {
+      "name": "etaf-ui-markdown-a-blank-line-in-an-item-separates-paragraphs",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A blank line inside a list item keeps the two paragraphs apart in the parse and one blank row apart in the render."
+    },
+    {
       "name": "etaf-ui-markdown-quote-text-recedes-behind-its-surface",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A quote paints its own text in the muted color while a link inside it keeps the accent, and body text outside the quote keeps following the buffer face."

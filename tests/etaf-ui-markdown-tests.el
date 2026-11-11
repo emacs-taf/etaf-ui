@@ -110,6 +110,43 @@ add one before its bottom edge."
       (should tail-line)
       (should (= 1 (- tail-line quote-line 1))))))
 
+(ert-deftest etaf-ui-markdown-quote-separates-its-blocks ()
+  "A quote keeps one blank row between the blocks it holds.
+A `>' line with nothing after it separates the paragraphs of a quote, so the
+rendered quote separates them the way the top level separates its own blocks,
+and it still ends on the last line of its last block."
+  (etaf-ui-markdown-test--with-mount
+      "> first quoted paragraph\n>\n> - a listed item\n\nTail.\n"
+      (etaf-ui-markdown-test--env)
+    (let* ((lines (split-string (etaf-ui-markdown-test--text buffer-name) "\n"))
+           (first-line (cl-position-if (lambda (line) (string-match-p "first quoted" line)) lines))
+           (item-line (cl-position-if (lambda (line) (string-match-p "a listed item" line)) lines))
+           (tail-line (cl-position-if (lambda (line) (string-match-p "Tail" line)) lines)))
+      (should first-line)
+      (should item-line)
+      (should tail-line)
+      (should (= 2 (- item-line first-line)))
+      (should (= 1 (- tail-line item-line 1))))))
+
+(ert-deftest etaf-ui-markdown-a-blank-line-in-an-item-separates-paragraphs ()
+  "A blank line inside a list item separates the paragraphs it wrote.
+The item keeps that line, so the two paragraphs stay two and the render draws
+the break between them instead of running them together as one paragraph."
+  (let* ((text "- first paragraph\n\n  second paragraph\n")
+         (block (car (plist-get (etaf-ui-markdown-parse text) :children)))
+         (item (car (plist-get block :items))))
+    (should-not (plist-get block :tight))
+    (should (equal '(paragraph paragraph)
+                   (mapcar (lambda (child) (plist-get child :type))
+                           (plist-get item :children))))
+    (etaf-ui-markdown-test--with-mount text (etaf-ui-markdown-test--env)
+      (let* ((lines (split-string (etaf-ui-markdown-test--text buffer-name) "\n"))
+             (first-line (cl-position-if (lambda (line) (string-match-p "first paragraph" line)) lines))
+             (second-line (cl-position-if (lambda (line) (string-match-p "second paragraph" line)) lines)))
+        (should first-line)
+        (should second-line)
+        (should (= 2 (- second-line first-line)))))))
+
 (ert-deftest etaf-ui-markdown-quote-text-recedes-behind-its-surface ()
   "A quote paints its own text in the muted color.
 The block keeps its surface and bar, and a link inside the quote keeps the
