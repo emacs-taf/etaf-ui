@@ -4,6 +4,11 @@
 
 ### Added
 
+- A heading takes the size a markdown page gives it: level 1 is twice the
+  body, level 2 one and a half, level 3 one and a quarter, level 4 a little
+  above the body, and levels 5 and 6 keep the body size with the muted colour
+  telling them apart.  The steps are relative to the reader's own default
+  font, so the document keeps their type size.
 - A parsed top-level block carries `:begin` and `:end`, its character range in
   the parsed text, and the parser exposes the line-offset helper behind it.
   A caller that must map an edit back to the block holding it no longer

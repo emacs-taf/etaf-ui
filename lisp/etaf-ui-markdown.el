@@ -65,12 +65,18 @@ code spans then use the frame's own font instead of guessing a family."
       16.0)))
 
 (defun etaf-ui-markdown--heading-pixels (level)
-  "Return the heading font size for LEVEL."
+  "Return the heading font size for LEVEL.
+The steps are the ones a markdown page uses on the web, so a document reads at
+the rank it was written in: level 1 is twice the body, level 2 one and a half,
+level 3 one and a quarter, and level 4 a little above the body.  Levels 5 and 6
+keep the body size, because a heading is never painted smaller than the text it
+introduces, and their muted colour tells them apart instead."
   (let ((base (etaf-ui-markdown--base-pixels)))
     (round (pcase level
-             (1 (* base 1.42))
-             (2 (* base 1.26))
-             (3 (* base 1.10))
+             (1 (* base 2.0))
+             (2 (* base 1.5))
+             (3 (* base 1.25))
+             (4 (* base 1.1))
              (_ base)))))
 
 (defun etaf-ui-markdown--divider (&optional label)
