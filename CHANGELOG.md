@@ -54,14 +54,17 @@
   and GitHub read it; a reference to a label that was never defined adds no
   note.
 
-### Changed
-
 - A code block's colours come from the runs, not from the block: the fenced
   body no longer paints one colour over every token, so highlighting shows
   what the language's mode decided.  A block without highlight keeps the page
   ink, and each run that has no colour of its own gets it.
 
 ### Changed
+
+- A soft line break inside a paragraph paints a space, the way CommonMark reads
+  a source line end: the paragraph flows and wraps at the page's width instead
+  of keeping one row per source line.  A hard break, written with two trailing
+  spaces or a backslash, still paints a line end.
 
 - `etaf-ui-markdown-flavor` now defaults to `etaf` instead of `gfm`, so opening
   a document shows every syntax the renderer knows.  `gfm` and `commonmark`

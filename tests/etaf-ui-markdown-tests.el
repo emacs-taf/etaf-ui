@@ -68,17 +68,26 @@
        (when-let* ((buffer (get-buffer buffer-name)))
          (kill-buffer buffer)))))
 
-(ert-deftest etaf-ui-markdown-keeps-a-source-line-break-inside-a-paragraph ()
-  "A newline inside a paragraph paints as a line break, not as a space.
-The source holds two lines and the page shows two: folding them into one would
-hide a line a reader editing the page has to see, because `RET' would move the
-source without giving them a row to type on."
-  (etaf-ui-markdown-test--with-mount "alpha\nbeta\n" (etaf-ui-markdown-test--env)
-    (let ((rows (split-string (string-trim-right
-                               (etaf-ui-markdown-test--text buffer-name))
-                              "\n")))
-      (should (equal '("alpha" "beta")
-                     (mapcar #'string-trim rows))))))
+(ert-deftest etaf-ui-markdown-a-soft-break-folds-into-one-line ()
+  "A source line end inside a paragraph is a space, and a hard break a line end.
+CommonMark reads the newline between two lines of one paragraph as a space, so
+the paragraph flows and wraps at the page's own width; two trailing spaces or a
+backslash is the author asking for a line end, and that paints a row of its
+own."
+  (etaf-ui-markdown-test--with-mount
+      "alpha\nbeta\n\ngamma  \ndelta\n\nepsilon\\\nzeta\n"
+      (etaf-ui-markdown-test--env)
+    (let* ((text (etaf-ui-markdown-test--text buffer-name))
+           (rows (mapcar #'string-trim (split-string text "\n"))))
+      ;; The soft break folded: one row holds both words, in source order.
+      (should (string-match-p "alpha beta" text))
+      (should-not (member "alpha" rows))
+      ;; The two hard spellings each start a row.
+      (should (cl-position "gamma" rows :test #'string=))
+      (should (= 1 (- (cl-position "delta" rows :test #'string=)
+                      (cl-position "gamma" rows :test #'string=))))
+      (should (= 1 (- (cl-position "zeta" rows :test #'string=)
+                      (cl-position "epsilon" rows :test #'string=)))))))
 
 (ert-deftest etaf-ui-markdown-parse-reports-document-structure ()
   "Parsing exposes the title, outline, blocks, footnotes and features."

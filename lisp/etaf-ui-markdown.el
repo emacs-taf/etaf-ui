@@ -132,12 +132,13 @@ Entries are (:text STRING :props PLIST) or (:view VIEW)."
         ('text
          (push (list :text (or (plist-get node :text) "") :props inherited) result))
         ('break
-         ;; A soft break is the source's own line end.  Rendering it as a space
-         ;; would fold the two lines into one, which a reader editing the page
-         ;; cannot see: `RET' would move the source without showing a line to
-         ;; type on.  CommonMark allows either rendering and every editor-side
-         ;; viewer keeps the line break, so the page keeps it too.
-         (push (list :text "\n" :props inherited) result))
+         ;; A soft break is a space: CommonMark reads the source line end
+         ;; inside a paragraph as a space, so the paragraph flows and wraps at
+         ;; the column width the way a browser shows it.  A hard break, written
+         ;; with two trailing spaces or a backslash, is the author asking for a
+         ;; line end and paints one.
+         (push (list :text (if (plist-get node :hard) "\n" " ") :props inherited)
+               result))
         ('code
          (push (list :text (or (plist-get node :text) "")
                      :props (plist-put (copy-sequence inherited) :code t))
