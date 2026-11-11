@@ -209,14 +209,14 @@ captured values."
   :styles
   (("&" :width max-content :flex-shrink 0)
    ("&.disabled" :font-weight normal)
-   ;; Keyboard focus must stay visible without moving geometry.  A control
-   ;; without its own inline surface takes the ghost hover fill; one with an
-   ;; inline surface keeps that surface and shows the underline instead.
+   ;; Keyboard focus must stay visible without moving geometry, and it paints
+   ;; the same kind of change as hover: a fill.  A rule may change only the
+   ;; background; a label keeps its own ink, weight and decoration in every
+   ;; state, so no state adds an underline.
    ("&:focus"
     :background-color (etaf-theme-token :ui-button-ghost-hover-bg
                                         (etaf-theme-token :ui-bg "#FFFDF8"
-                                                          etaf-ui--state-hover-shift))
-    :text-decoration-line underline)))
+                                                          etaf-ui--state-hover-shift)))))
 
 (defun etaf-ui--checkbox-variant-values (disabled)
   "Return semantic Theme presentation for a DISABLED Checkbox.

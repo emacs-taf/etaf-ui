@@ -56,7 +56,10 @@
                                       "single-line text fitting :cell-width"
                                       'etaf-tile-grid)
                      label))))
-  :styles (("&:focus" :text-decoration-line underline)))
+  :styles (("&:focus"
+            :background-color (etaf-theme-token :ui-button-ghost-hover-bg
+                                                (etaf-theme-token :ui-bg "#FFFDF8"
+                                                                  etaf-ui--state-hover-shift)))))
 
 (etaf-define-component etaf-tile-grid
     (&key rows columns (cell-width 2) (cell-height 1) cell-background cell-color cell-text cell-label cell-image cell-ref on-cell-press on-cell-focus)

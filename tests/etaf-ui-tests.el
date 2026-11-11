@@ -188,7 +188,7 @@ sizes its row to its own content instead of wrapping."
         (kill-buffer buffer)))))
 
 (ert-deftest etaf-ui-button-focus-uses-a-visible-cue ()
-  "Keyboard focus underlines a label and fills a surface-less Button."
+  "Keyboard focus fills a Button and leaves its label decoration alone."
   (let ((buffer-name " *etaf-ui-button-focus-test*"))
     (unwind-protect
         (progn
@@ -209,13 +209,13 @@ sizes its row to its own content instead of wrapping."
                               (format "%S" (get-text-property (1- (point)) 'face))))))
             (etaf-focus runtime 'ghost)
             (let ((face (funcall face-at "Action")))
-              (should (string-match-p ":underline" face))
+              (should-not (string-match-p ":underline" face))
               (should (string-match-p ":background" face)))
-            ;; A control with its own inline surface keeps that surface under
-            ;; focus and still shows the underline.
+            ;; A control with its own inline surface keeps that surface: one
+            ;; state rule changes the fill only, never the label decoration.
             (etaf-focus runtime 'filled)
             (let ((face (funcall face-at "Filled")))
-              (should (string-match-p ":underline" face))
+              (should-not (string-match-p ":underline" face))
               (should (string-match-p "224466" face)))))
       (when-let* ((runtime (etaf-runtime-for-buffer buffer-name)))
         (etaf-unmount runtime))
