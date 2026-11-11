@@ -634,6 +634,20 @@ when the paragraph ends where the list begins."
                                         (plist-get block :end)))
                            blocks)))))
 
+(ert-deftest etaf-ui-markdown-list-mark-takes-one-cell-before-its-text ()
+  "A list mark sits one cell before its text, and a wider number keeps the column.
+A fixed marker column leaves a gap as wide as a CJK character after a single
+mark, so the text starts far from its bullet; the column now fits the widest
+mark of its own list and one cell of air."
+  (etaf-ui-markdown-test--with-mount
+      "- 第一项\n\n9. 第九项\n10. 第十项\n\n- [x] 完成\n"
+      (etaf-ui-markdown-test--env)
+    (let ((text (etaf-ui-markdown-test--text buffer-name)))
+      (should (string-match-p "^• 第一项" text))
+      (should (string-match-p "^ 9\\. 第九项" text))
+      (should (string-match-p "^10\\. 第十项" text))
+      (should (string-match-p "^■ 完成" text)))))
+
 (ert-deftest etaf-ui-markdown-table-columns-follow-content ()
   "Table columns take width in proportion to their content and wrap by word."
   (let ((long "alpha bravo charlie delta echo foxtrot"))

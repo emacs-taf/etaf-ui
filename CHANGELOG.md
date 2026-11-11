@@ -90,6 +90,11 @@
 
 ### Fixed
 
+- A list mark sits one cell before its text instead of a fixed three-cell
+  column, which left a gap as wide as a CJK character after a single bullet.
+  The column fits the widest mark of its own list, so an ordered list that
+  reaches two digits keeps one text column and a bullet list does not reserve
+  space it never uses.
 - A quote separates its own blocks by one blank row: a `>' line with nothing
   after it ends a paragraph, and running the next block up against it read the
   quote as one cramped lump instead of the paragraphs, list and nested quote

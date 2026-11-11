@@ -730,11 +730,20 @@ silently drops content it cannot render."
 
 (defun etaf-ui-markdown--list-node (block env)
   "Return the list View of BLOCK in ENV."
-  (let ((tight (plist-get block :tight))
-        (ordered (plist-get block :ordered))
-        (start (or (plist-get block :start) 1))
-        (index 0)
-        (items nil))
+  (let* ((tight (plist-get block :tight))
+         (ordered (plist-get block :ordered))
+         (start (or (plist-get block :start) 1))
+         ;; The marker column fits the widest mark in this list plus one cell
+         ;; of air: a two-digit item still lines up with a one-digit one, and a
+         ;; list of single marks does not reserve a gap as wide as a CJK
+         ;; character between the mark and its text.
+         (marks (cl-loop for item in (plist-get block :items)
+                         for number from start
+                         maximize (cond ((plist-get item :task) 1)
+                                        (ordered (length (format "%d." number)))
+                                        (t 1))))
+         (index 0)
+         (items nil))
     (dolist (item (plist-get block :items))
       (cl-incf index)
       (let* ((checked (plist-get item :checked))
@@ -751,9 +760,12 @@ silently drops content it cannot render."
                                                  (etaf-ui-markdown--env-color env :accent)
                                                (etaf-ui-markdown--env-color env :muted)))
                                 (list (if checked "■" "□"))))
+               ;; A number is padded to the widest mark of its own list, so a
+               ;; list that reaches ten keeps one text column.
                (ordered (etaf-node 'text
                                    (list :color (etaf-ui-markdown--env-color env :muted))
-                                   (list (format "%d." (+ start (1- index))))))
+                                   (list (format (format "%%%ds" marks)
+                                                 (format "%d." (+ start (1- index)))))))
                (t (etaf-node 'text
                              (list :color (etaf-ui-markdown--env-color env :muted))
                              (list "•")))))
@@ -762,7 +774,7 @@ silently drops content it cannot render."
                          (list :width 'stretch)
                          (list
                           (etaf-node 'box
-                                     (list :width '(ch 3) :flex-shrink 0)
+                                     (list :width (list 'ch (1+ marks)) :flex-shrink 0)
                                      (list marker))
                           (etaf-node 'column
                                      (list :width 'stretch :min-width '(ch 0))
