@@ -225,8 +225,11 @@ END) and returns (NODE . NEXT) when it claims the text there.")
     (match-string 1 line)))
 
 (defun etaf-ui-markdown--list-marker (line)
-  "Return (INDENT ORDERED START CONTENT-INDENT CONTENT) when LINE starts an item.
-Only markers indented by less than four columns are list markers."
+  "Return (INDENT ORDERED START CONTENT-INDENT CONTENT DELIMITER) for an item.
+Only markers indented by less than four columns are list markers.  DELIMITER
+is the character after the number, or the bullet itself: a list changes when
+it changes, which is what lets a numbered list run 3, 4, 5 and then start a new
+one at 1 with the other delimiter."
   (let ((indent (etaf-ui-markdown--indent line)))
     (when (< indent 4)
       (let ((rest (substring line indent)))
@@ -234,11 +237,13 @@ Only markers indented by less than four columns are list markers."
          ((string-match "\\`\\([-+*]\\)\\(?:[ \t]+\\(.*\\)\\|\\'\\)\\'" rest)
           (list indent nil nil
                 (+ indent (if (match-string 2 rest) 2 1))
-                (or (match-string 2 rest) "")))
-         ((string-match "\\`\\([0-9]\\{1,9\\}\\)[.)]\\(?:[ \t]+\\(.*\\)\\|\\'\\)\\'" rest)
+                (or (match-string 2 rest) "")
+                (match-string 1 rest)))
+         ((string-match "\\`\\([0-9]\\{1,9\\}\\)\\([.)]\\)\\(?:[ \t]+\\(.*\\)\\|\\'\\)\\'" rest)
           (list indent t (string-to-number (match-string 1 rest))
-                (+ indent (if (match-string 2 rest) 2 1))
-                (or (match-string 2 rest) "")))
+                (+ indent (if (match-string 3 rest) 2 1))
+                (or (match-string 3 rest) "")
+                (match-string 2 rest)))
          (t nil))))))
 
 (defun etaf-ui-markdown--table-delimiter-p (line)
@@ -308,13 +313,28 @@ Only markers indented by less than four columns are list markers."
       (>= (etaf-ui-markdown--indent line) 4)))
 
 (defun etaf-ui-markdown--split-table-row (line)
-  "Return LINE's table cells as a list of trimmed strings."
+  "Return LINE's table cells as a list of trimmed strings.
+A pipe written `\\|' belongs to the cell it sits in, which is the only way to
+put one in a cell at all; every other pipe separates two cells."
   (let* ((trimmed (string-trim line))
          (trimmed (if (string-prefix-p "|" trimmed) (substring trimmed 1) trimmed))
-         (trimmed (if (string-suffix-p "|" trimmed)
+         (trimmed (if (and (string-suffix-p "|" trimmed)
+                           (not (string-suffix-p "\\|" trimmed)))
                       (substring trimmed 0 (1- (length trimmed)))
-                    trimmed)))
-    (mapcar #'string-trim (split-string trimmed "|"))))
+                    trimmed))
+         (cells nil)
+         (start 0)
+         (index 0))
+    (while (< index (length trimmed))
+      (when (and (eq (aref trimmed index) ?|)
+                 (not (and (> index 0) (eq (aref trimmed (1- index)) ?\\))))
+        (push (substring trimmed start index) cells)
+        (setq start (1+ index)))
+      (setq index (1+ index)))
+    (push (substring trimmed start) cells)
+    (mapcar (lambda (cell)
+              (string-trim (string-replace "\\|" "|" cell)))
+            (nreverse cells))))
 
 (defun etaf-ui-markdown--table-alignments (line)
   "Return the alignment list described by delimiter LINE."
@@ -375,6 +395,9 @@ Return (ORDERED START TIGHT ITEMS . REST); each item is (FIRST-LINE . LINES)."
          (base (nth 0 first-marker))
          (ordered (nth 1 first-marker))
          (start (nth 2 first-marker))
+         ;; A different delimiter or bullet starts another list; a numbered
+         ;; list written 3, 4, 5 must not continue into a 1) list.
+         (delimiter (nth 5 first-marker))
          (items nil)
          (tight t)
          (rest lines))
@@ -382,7 +405,8 @@ Return (ORDERED START TIGHT ITEMS . REST); each item is (FIRST-LINE . LINES)."
                 (let ((marker (etaf-ui-markdown--list-marker (car rest))))
                   (and marker
                        (eq (nth 1 marker) ordered)
-                       (= (nth 0 marker) base))))
+                       (= (nth 0 marker) base)
+                       (equal (nth 5 marker) delimiter))))
       (let* ((marker (etaf-ui-markdown--list-marker (car rest)))
              (content-indent (nth 3 marker))
              (first-content (nth 4 marker))
@@ -392,7 +416,8 @@ Return (ORDERED START TIGHT ITEMS . REST); each item is (FIRST-LINE . LINES)."
                     (not (let ((next (etaf-ui-markdown--list-marker (car rest))))
                            (and next
                                 (eq (nth 1 next) ordered)
-                                (= (nth 0 next) base))))
+                                (= (nth 0 next) base)
+                                (equal (nth 5 next) delimiter))))
                     (let ((line (car rest)))
                       (cond
                        ((etaf-ui-markdown--blank-line-p line)
@@ -411,7 +436,8 @@ Return (ORDERED START TIGHT ITEMS . REST); each item is (FIRST-LINE . LINES)."
                                              content-indent)
                                          (and next
                                               (eq (nth 1 next) ordered)
-                                              (= (nth 0 next) base))))
+                                              (= (nth 0 next) base)
+                                              (equal (nth 5 next) delimiter))))
                             (setq tight nil)
                             (push "" item-lines)
                             t)))

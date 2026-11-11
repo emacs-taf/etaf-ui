@@ -1119,6 +1119,21 @@
       "purpose": "A paragraph read together with its definition list keeps a range of its own, ending where the list begins."
     },
     {
+      "name": "etaf-ui-markdown-an-alert-puts-its-text-under-the-label",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "An alert paints its label row and then its text row with no empty row between them."
+    },
+    {
+      "name": "etaf-ui-markdown-a-cell-keeps-an-escaped-pipe",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A pipe escaped with a backslash stays inside its table cell while the other pipes split cells."
+    },
+    {
+      "name": "etaf-ui-markdown-a-new-delimiter-starts-a-new-list",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A numbered list that changes its delimiter starts a new list from its own number instead of continuing the previous one."
+    },
+    {
       "name": "etaf-ui-markdown-list-mark-takes-one-cell-before-its-text",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A list mark sits one cell before its text, and a list that reaches two digits keeps one text column."

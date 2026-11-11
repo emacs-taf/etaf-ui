@@ -634,6 +634,50 @@ when the paragraph ends where the list begins."
                                         (plist-get block :end)))
                            blocks)))))
 
+(ert-deftest etaf-ui-markdown-an-alert-puts-its-text-under-the-label ()
+  "An alert paints its label and then its text, with no row between them.
+The marker sits on its own line, and the line break that ended it stayed at the
+head of the paragraph after the marker was removed, so every callout opened
+with an empty row."
+  (etaf-ui-markdown-test--with-mount
+      "> [!NOTE]\n> 正文一行。\n"
+      (etaf-ui-markdown-test--env)
+    (let ((lines (split-string (etaf-ui-markdown-test--text buffer-name) "\n")))
+      (should (string-match-p "Note\\|笔记" (nth 0 lines)))
+      (should-not (string-blank-p (nth 1 lines)))
+      (should (string-match-p "正文一行" (nth 1 lines))))))
+
+(ert-deftest etaf-ui-markdown-a-cell-keeps-an-escaped-pipe ()
+  "A pipe written `\\|' stays inside its cell; the others split cells.
+Splitting on every pipe lost the cell the escape protects, which is the only
+way a table can show a pipe at all."
+  (let* ((text "| a \\| b | c |\n| --- | --- |\n| 1 \\| 2 | 3 |\n")
+         (table (car (plist-get (etaf-ui-markdown-parse text) :children)))
+         (cells (lambda (row)
+                  (mapcar (lambda (cell)
+                            (mapconcat (lambda (node) (or (plist-get node :text) ""))
+                                       cell ""))
+                          row))))
+    (should (= 2 (length (plist-get table :header))))
+    (should (equal '("a | b" "c") (funcall cells (plist-get table :header))))
+    (should (equal '(("1 | 2" "3")) (mapcar (lambda (row) (funcall cells row))
+                                            (plist-get table :rows))))))
+
+(ert-deftest etaf-ui-markdown-a-new-delimiter-starts-a-new-list ()
+  "A numbered list that changes its delimiter starts again from its own number.
+CommonMark reads `3.' and `1)' as two lists; sharing one made the second list
+continue at 6 and 7 instead of showing the numbers the source wrote."
+  (let* ((text "3. 三\n4. 四\n\n1) 圆括号一\n2) 圆括号二\n")
+         (lists (plist-get (etaf-ui-markdown-parse text) :children)))
+    (should (= 2 (length lists)))
+    (should (equal '(3 1) (mapcar (lambda (list) (plist-get list :start)) lists)))
+    (etaf-ui-markdown-test--with-mount text (etaf-ui-markdown-test--env)
+      (let ((painted (etaf-ui-markdown-test--text buffer-name)))
+        (should (string-match-p "^3\\. 三" painted))
+        (should (string-match-p "^4\\. 四" painted))
+        (should (string-match-p "^1\\. 圆括号一" painted))
+        (should (string-match-p "^2\\. 圆括号二" painted))))))
+
 (ert-deftest etaf-ui-markdown-list-mark-takes-one-cell-before-its-text ()
   "A list mark sits one cell before its text, and a wider number keeps the column.
 A fixed marker column leaves a gap as wide as a CJK character after a single

@@ -516,14 +516,19 @@ instead of mutated."
   (let* ((first (car blocks))
          (children (plist-get first :children))
          (text (plist-get (car children) :text))
-         (rest (replace-regexp-in-string
-                "\\`\\[![A-Za-z]+\\][ \t]*\\n?" "" text)))
+         (rest (string-trim-left
+                (replace-regexp-in-string "\\`\\[![A-Za-z]+\\][ \t]*" "" text)))
+         (rest-children (if (string-empty-p rest)
+                            (cdr children)
+                          (cons (plist-put (copy-sequence (car children)) :text rest)
+                                (cdr children)))))
+    ;; The marker sat on its own line, so the break that ended that line still
+    ;; leads the paragraph: dropping it puts the alert's text on the row under
+    ;; its label, which is where a callout puts it.
+    (while (eq (plist-get (car rest-children) :type) 'break)
+      (setq rest-children (cdr rest-children)))
     (cons (let ((paragraph (copy-sequence first)))
-            (plist-put paragraph :children
-                       (if (string-empty-p rest)
-                           (cdr children)
-                         (cons (plist-put (copy-sequence (car children)) :text rest)
-                               (cdr children)))))
+            (plist-put paragraph :children rest-children))
           (cdr blocks))))
 
 (defun etaf-ui-markdown--inline-width (inlines)

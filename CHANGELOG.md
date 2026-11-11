@@ -96,6 +96,14 @@
 
 ### Fixed
 
+- An alert paints its text on the row under its label: the marker line's break
+  stayed at the head of the paragraph after the marker was removed, so every
+  callout opened with an empty row.
+- A table cell keeps a pipe written `\|`: splitting on every pipe cut the cell
+  the escape protects, and a pipe cannot appear in a cell any other way.
+- A numbered list that changes its delimiter starts a new list: `3.` and `1)`
+  were read as one list, so the second one showed 6 and 7 instead of the
+  numbers the source wrote.
 - A list mark sits one cell before its text instead of a fixed three-cell
   column, which left a gap as wide as a CJK character after a single bullet.
   The column fits the widest mark of its own list, so an ordered list that
