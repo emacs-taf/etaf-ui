@@ -58,11 +58,16 @@ code spans then use the frame's own font instead of guessing a family."
     (and (stringp family) (not (string-empty-p family)) family)))
 
 (defun etaf-ui-markdown--base-pixels ()
-  "Return the frame's default font size in CSS reference pixels."
-  (let ((height (face-attribute 'default :height nil t)))
-    (if (numberp height)
-        (max 8 (round (/ (* height 4.0) 30.0)))
-      16.0)))
+  "Return the pixel height of the frame's default font.
+The page draws its body with that font, so every size it derives is a multiple
+of this number: a heading of twice the body is twice this.  Emacs reports the
+font in points, and how many pixels a point is belongs to the frame, so the
+frame's own measured height is read instead of converting through 96 dpi."
+  (or (ignore-errors (window-font-height))
+      (let ((height (face-attribute 'default :height nil t)))
+        (if (numberp height)
+            (max 8 (round (/ (* height 4.0) 30.0)))
+          16.0))))
 
 (defun etaf-ui-markdown--heading-pixels (level)
   "Return the heading font size for LEVEL.
