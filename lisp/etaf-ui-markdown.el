@@ -593,6 +593,12 @@ keeps its full width instead.")
                            widths)))
     widths))
 
+(defconst etaf-ui-markdown--table-cell-padding 2
+  "Cells of a column, in character widths on each side.
+The floor of a column covers this padding on both sides plus its one-pixel
+border, so a change here has to reach both places or the widest token in a
+column gets clipped to its last character.")
+
 (defun etaf-ui-markdown--table-floors (rows columns)
   "Return the min-width floors of COLUMNS for table ROWS.
 A column's floor covers its widest unbreakable token plus the cell's padding
@@ -609,7 +615,9 @@ push it out of line."
                              (apply #'max 0
                                     (etaf-ui-markdown--inline-segments inlines))))))
     (mapcar (lambda (width)
-              (+ 4 (min etaf-ui-markdown--cell-max-floor (or width 0))))
+              (+ (* 2 etaf-ui-markdown--table-cell-padding)
+                 1
+                 (min etaf-ui-markdown--cell-max-floor (or width 0))))
             widths)))
 
 (defun etaf-ui-markdown--table-tracks (floors weights)
@@ -630,15 +638,29 @@ painting a row the color it already has costs a paint and shows nothing."
         (header (etaf-ui-markdown--env-color env :table-header)))
     (unless (equal stripe header) stripe)))
 
+(defun etaf-ui-markdown--header-fill (env)
+  "Return the header tint for a table in ENV, deepened to stay visible.
+A theme's own `:table-header' colour is used when it stands apart from the
+page.  A tint that sits within a tenth of the page's own lightness disappears
+behind the text on it, which is what a dark palette's tint tends to do, so the
+band is then rebuilt as one step from the page toward its ink."
+  (let* ((page (or (plist-get env :background)
+                   (etaf-ui-markdown--env-color env :panel)))
+         (ink (etaf-ui-markdown--env-color env :ink))
+         (tint (etaf-ui-markdown--env-color env :table-header)))
+    (if (< (etaf-ui-color-contrast tint page) 1.12)
+        (etaf-ui-color-mix page ink 0.08)
+      tint)))
+
 (defun etaf-ui-markdown--table-node (block env)
   "Return the table View of BLOCK in ENV.
-The table draws one hairline under its header and one between each pair of
-cells, and no rule between body rows or around the table: a full grid of
-rules reads like a spreadsheet, while a header tint with the columns ruled
-keeps every alignment visible.  A palette that names a `:table-stripe'
-different from its header tints every other body row.  Columns share the width
-in proportion to their content and never go narrower than their widest
-unbreakable token plus the cell padding, and cells wrap at word boundaries.
+Every cell carries the same hairline, one step of ink away from the page's own
+surface, and the header is set apart by its tint and its weight instead of by a
+heavier rule: a page wants to see where a cell ends, not to read a spreadsheet's
+grid of black lines.  A palette that names a `:table-stripe' different from its
+header tints every other body row.  Columns share the width in proportion to
+their content and never go narrower than their widest unbreakable token plus the
+cell padding, and cells wrap at word boundaries.
 
 The whole table is one grid, and its floors are the column maximums over
 every row.  A grid per row gave each row its own track resolution, so a row
@@ -656,25 +678,17 @@ keeps a tight container from squeezing cells below their words."
                                                       (nth column row)))))
          (tracks (etaf-ui-markdown--table-tracks floors weights))
          (last-row (1- (length rows)))
-         ;; Three weights, one purpose each: a dark hairline closes the header,
-         ;; so the heading divides the table; a faint line between cells and
-         ;; between rows guides the eye without fencing the cells in; nothing
-         ;; frames the table, so it sits on the page instead of in a box.  Lines
-         ;; of one weight everywhere made the table read as a spreadsheet.
-         ;; Ebox draws a top or bottom border at one pixel, so the weights are
-         ;; told apart by colour, on one ramp from the page's ink: the header's
-         ;; rule is the darkest, the frame the next step, and the cell rules the
-         ;; lightest.  A frame mixed back toward the surface left the table's
-         ;; edges below the contrast a reader can see.
-         (ramp (lambda (amount)
-                 (list '(px 1) 'solid
-                       (etaf-ui-color-mix
-                        (etaf-ui-markdown--env-color env :border)
-                        (etaf-ui-markdown--env-color env :ink) amount))))
-         (rule (funcall ramp 0.6))
-         (frame (funcall ramp 0.45))
-         (faint (funcall ramp 0.3))
-         (header-fill (etaf-ui-markdown--env-color env :table-header))
+         ;; One hairline for the whole table, a fifth of the way from the
+         ;; surface to the page's ink: the weight a documentation site gives its
+         ;; grid, visible on every edge and still quiet next to the text.  The
+         ;; header is told apart by its tint and its weight, not by a heavier
+         ;; rule; a dark rule there fought the band it sits under.
+         (line (list '(px 1) 'solid
+                     (etaf-ui-color-mix
+                      (or (plist-get env :background)
+                          (etaf-ui-markdown--env-color env :panel))
+                      (etaf-ui-markdown--env-color env :ink) 0.2)))
+         (header-fill (etaf-ui-markdown--header-fill env))
          (cells nil))
     (cl-loop for row in rows
              for row-index from 0
@@ -683,18 +697,19 @@ keeps a tight container from squeezing cells below their words."
                          for column-index from 0
                          do (push
                              (etaf-node 'box
-                                        (list :padding '((lh 0) (ch 1))
+                                        (list :padding
+                                              `((lh 0)
+                                                (ch ,etaf-ui-markdown--table-cell-padding))
                                               :min-width (list 'ch (nth column-index floors))
                                               :width 'stretch
                                               :overflow 'hidden
                                               :wrap-mode 'word
                                               :text-align (or align 'left)
                                               :border-bottom
-                                              (cond ((zerop row-index) rule)
-                                                    ((< row-index last-row) faint))
+                                              (and (< row-index last-row) line)
                                               :border-right
                                               (and (/= column-index (1- columns))
-                                                   faint)
+                                                   line)
                                               :background-color
                                               (and (zerop row-index) header-fill))
                                         (etaf-ui-markdown--runs-view
@@ -708,7 +723,7 @@ keeps a tight container from squeezing cells below their words."
                      ;; object on the page: the frame is the table's own edge,
                      ;; painted in the page's border colour and no heavier than
                      ;; the rules inside it.
-                     :border frame)
+                     :border line)
                (list (etaf-node 'grid
                                 (list :width 'stretch
                                       :grid-template-columns tracks)

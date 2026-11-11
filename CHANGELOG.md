@@ -103,12 +103,14 @@
   — a saturated set for a light page and a light one for a dark page.  A token
   whose face names no role keeps its own colour, adjusted to the page.
 
-- A table carries three line weights on one ramp from the page's ink: the
-  header's rule is the darkest, the frame the next step, and the rules between
-  cells and rows the lightest.  Ebox draws a top or bottom border at one pixel,
-  so the weights are told apart by colour; a frame mixed back toward the surface
-  left the table's edges below the contrast a reader can see, which is why the
-  grid looked like it was missing.
+- A table draws one hairline on every cell edge and around the table, a fifth of
+  the way from the page's surface to its ink: the weight a documentation site
+  gives its grid, seen on every edge and still quiet beside the text.  The header
+  is set apart by its tint and its weight instead of by a heavier rule.  A tint
+  that sits within a tenth of the page's own lightness is rebuilt from the page
+  and its ink, so a dark palette's band stays visible behind the header.  Cells
+  are padded two characters on each side, and a column's floor counts that
+  padding, so the widest word in a column still fits.
 ### Fixed
 
 - An alert's note mark is the plain `i`: the information sign is missing from
