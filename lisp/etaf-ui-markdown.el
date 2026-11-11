@@ -660,7 +660,13 @@ keeps a tight container from squeezing cells below their words."
          ;; no outer frame and no rule between body rows, which is what made
          ;; the table read as a spreadsheet.  Every line carries the same
          ;; border colour at one pixel, so no edge is heavier than another.
-         (rule (list '(px 1) 'solid (etaf-ui-markdown--env-color env :border)))
+         ;; One pixel, half a step stronger than the page's border: at the
+         ;; border colour alone the rule sat at 1.3:1 against the surface and a
+         ;; reader could not see where a column ended.
+         (rule (list '(px 1) 'solid
+                     (etaf-ui-color-mix
+                      (etaf-ui-markdown--env-color env :border)
+                      (etaf-ui-markdown--env-color env :ink) 0.45)))
          (header-fill (etaf-ui-markdown--env-color env :table-header))
          (cells nil))
     (cl-loop for row in rows
