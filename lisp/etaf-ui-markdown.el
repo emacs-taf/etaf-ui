@@ -699,7 +699,13 @@ keeps a tight container from squeezing cells below their words."
                              cells)))
     (etaf-node 'box
                (list :width 'stretch
-                     :min-width (list 'ch (+ 2 (apply #'+ floors))))
+                     :min-width (list 'ch (+ 2 (apply #'+ floors)))
+                     ;; One pixel closes the grid, so the table reads as one
+                     ;; object on the page: the frame is the table's own edge,
+                     ;; painted in the page's border colour and no heavier than
+                     ;; the rules inside it.
+                     :border (list '(px 1) 'solid
+                                   (etaf-ui-markdown--env-color env :border)))
                (list (etaf-node 'grid
                                 (list :width 'stretch
                                       :grid-template-columns tracks)

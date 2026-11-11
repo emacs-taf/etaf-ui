@@ -751,11 +751,11 @@ counts that width, and a plain character counts its own."
           (forward-line 1)))
       (nreverse rulers))))
 
-(ert-deftest etaf-ui-markdown-table-rules-the-columns-not-the-rows ()
-  "A table rules its columns and closes only its header.
-One hairline under the header and one between each pair of cells keeps every
-alignment visible; a rule between body rows and a frame around the table made
-the page read like a spreadsheet."
+(ert-deftest etaf-ui-markdown-table-weights-its-lines ()
+  "A table rules every cell, and the frames it draws are the ones the page owns.
+Every row carries the rule between its cells, so the columns stay apart.  The
+header's rule, the cell rules and the table's frame differ only in weight, which
+the batch renderer does not paint: the GUI captures carry that half."
   (etaf-ui-markdown-test--with-mount
       (concat "| Option | Meaning |\n"
               "| --- | --- |\n"
@@ -763,14 +763,14 @@ the page read like a spreadsheet."
               "| :width | Content columns |\n")
       (etaf-ui-markdown-test--env)
     (let* ((text (etaf-ui-markdown-test--text buffer-name))
-           (rows (cl-remove-if-not (lambda (line) (string-match-p "│" line))
+           (rows (cl-remove-if-not (lambda (line) (string-match-p "\u2502" line))
                                    (split-string text "\n"))))
-      ;; Every row is ruled between its cells, and no row is framed: the outer
-      ;; rules the table used to draw would show as a corner glyph.  The rule
-      ;; under the header is a graphical border the batch renderer does not
-      ;; paint, so the GUI capture is its evidence.
       (should (= 3 (length rows)))
-      (should-not (string-match-p "┌\|┐\|└\|┘" text)))))
+      (should (string-match-p "Option" (car rows)))
+      (should (string-match-p ":width" (car (last rows))))
+      ;; A row of two columns shows the table's two frame edges and the one
+      ;; rule between the cells.
+      (should (cl-every (lambda (row) (= 3 (cl-count ?\u2502 row))) rows)))))
 
 (ert-deftest etaf-ui-markdown-table-rows-share-one-column-grid ()
   "Every row of a table rules its cells in the same display columns.

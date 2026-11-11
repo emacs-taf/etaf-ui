@@ -105,9 +105,10 @@
 
 - A table carries three line weights, one purpose each: a dark hairline under
   the header divides the table, a faint line between cells and between rows
-  guides the eye, and nothing frames the table.  Rules of one weight everywhere
-  read as a spreadsheet, and a table with no rule between its rows left the
-  body looking unfinished.
+  guides the eye, and a one-pixel frame in the page's border colour closes the
+  grid.  Rules of one weight everywhere read as a spreadsheet; a body with no
+  rule between its rows left the table looking unfinished, and an unframed one
+  looked unfinished on the page.
 ### Fixed
 
 - An alert's note mark is the plain `i`: the information sign is missing from
