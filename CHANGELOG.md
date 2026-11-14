@@ -67,6 +67,11 @@
   what the language's mode decided.  A block without highlight keeps the page
   ink, and each run that has no colour of its own gets it.
 
+- A code block whose plist has `:header` nil draws without its language strip:
+  the fence keeps its frame and syntax colours, and the caller that already
+  names the language, such as a code tab, no longer repeats it.  A block
+  without the key keeps the header.
+
 ### Changed
 
 - A soft line break inside a paragraph paints a space, the way CommonMark reads
@@ -159,6 +164,10 @@
   instead of `«`, `||` and `»`.  A text terminal showed the previous and next
   buttons as quotation marks beside the play pill, and the pause glyph as two
   thin bars, so a player's transport read as text rather than controls.
+
+- A timeline entry's marker is a round dot, not an asterisk: the asterisk read
+  as a footnote mark.  The dot keeps the row's line height and takes the
+  colour its status names.
 
 ### Added
 
