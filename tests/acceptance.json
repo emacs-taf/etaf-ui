@@ -1256,7 +1256,7 @@
     {
       "name": "etaf-ui-markdown-table-weights-its-lines",
       "file": "tests/etaf-ui-markdown-tests.el",
-      "purpose": "Every table row carries the rule between its cells, in one of three weights the page paints: the header\u2019s rule, the cell rules and the table\u2019s frame."
+      "purpose": "Every table row carries the rule between its cells, in one of three weights the page paints: the header’s rule, the cell rules and the table’s frame."
     },
     {
       "name": "etaf-ui-markdown-table-rows-share-one-column-grid",
@@ -1312,6 +1312,16 @@
       "name": "etaf-ui-markdown-math-text-keeps-command-case",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "The plain-text rendering keeps TeX command case (pi versus Pi) and renders a root inside a fraction as its value."
+    },
+    {
+      "name": "etaf-ui-markdown-parse-marks-icons-keys-and-badges",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "The etaf dialect reads highlighted runs, key groups, badges and icons into their own inline nodes while a bare comparison stays prose."
+    },
+    {
+      "name": "etaf-ui-markdown-etaf-inline-marks-paint",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "A paragraph paints its highlighted text, key cap group and badge through the shared renderer."
     }
   ]
 }

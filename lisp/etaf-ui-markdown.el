@@ -24,8 +24,10 @@
 (require 'etaf)
 (require 'etaf-ui-basic)
 (require 'etaf-ui-feedback)
+(require 'etaf-ui-icon)
 (require 'etaf-ui-markdown-parse)
 (require 'etaf-ui-markdown-highlight)
+
 
 
 ;;; ---------------------------------------------------------------------------
@@ -134,7 +136,32 @@ The palette may provide `:code-bg'; without it code uses `:panel'."
     (when-let* ((title (plist-get run :abbreviation)))
       (setq props (plist-put props :text-decoration-line '(underline)))
       (setq props (plist-put props :help-echo title)))
+    (when-let* ((class (plist-get run :mark)))
+      ;; A marker is a fill behind the text, never a new ink: the text keeps
+      ;; the colour its enclosing block gave it.
+      (setq props (plist-put props :background-color
+                             (etaf-ui-markdown--mark-fill class))))
     props))
+
+(defun etaf-ui-markdown--mark-fill (class)
+  "Return the Theme fill behind a marker CLASS.
+The fill comes from the same semantic pairs badges and alerts use, so a
+marker stays legible in every palette and follows a theme switch."
+  (let ((variant (pcase (and class (downcase class))
+                   ((or "warning" "warn" "caution") 'warning)
+                   ((or "danger" "error" "important") 'danger)
+                   ((or "success" "tip" "info" "note") 'info)
+                   (_ 'neutral))))
+    (nth 1 (etaf-ui--feedback-theme variant))))
+
+(defun etaf-ui-markdown--badge-variant (class)
+  "Return the badge variant named by CLASS."
+  (pcase (and class (downcase class))
+    ((or "warning" "warn" "caution") 'warning)
+    ((or "danger" "error" "important") 'danger)
+    ((or "success") 'success)
+    ((or "tip" "info" "note") 'info)
+    (_ 'neutral)))
 
 (defun etaf-ui-markdown--flatten-inlines (nodes inherited env)
   "Return styled run entries for inline NODES in ENV.
@@ -180,6 +207,30 @@ Entries are (:text STRING :props PLIST) or (:view VIEW)."
          (push (list :text (etaf-ui-markdown-math-text
                             (or (plist-get node :text) ""))
                      :props (plist-put (copy-sequence inherited) :math t))
+               result))
+        ('mark
+         (setq result
+               (append (nreverse
+                        (etaf-ui-markdown--flatten-inlines
+                         (plist-get node :children)
+                         (plist-put (copy-sequence inherited)
+                                    :mark (plist-get node :class))
+                         env))
+                       result)))
+        ('icon
+         (push (list :view (etaf-ui-markdown--icon-view node)) result))
+        ('kbd
+         (push (list :view
+                     (etaf-view
+                       (etaf-kbd :keys (plist-get node :keys))))
+               result))
+        ('badge
+         (push (list :view
+                     (etaf-view
+                       (etaf-badge
+                        :text (or (plist-get node :content) "")
+                        :variant (etaf-ui-markdown--badge-variant
+                                  (plist-get node :variant)))))
                result))
         ((or 'emph 'strong 'strike)
          (let ((child (copy-sequence inherited)))
@@ -301,6 +352,13 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                         props)))
           (push (etaf-node 'text props (list text)) nodes))))
     (nreverse nodes)))
+
+(defun etaf-ui-markdown--icon-view (node)
+  "Return NODE's inline icon.
+An unknown name falls back to the icon set's printable fallback, or the name
+itself, so a document never fails to paint because a font set lacks a glyph."
+  (etaf-view
+    (etaf-ui-icon :name (plist-get node :name))))
 
 (defun etaf-ui-markdown--footnote-view (node env)
   "Return the superscript reference View of footnote NODE in ENV."

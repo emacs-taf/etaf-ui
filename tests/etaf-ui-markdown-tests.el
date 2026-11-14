@@ -325,6 +325,38 @@ colons, so the syntax can never eat prose."
                               prose "")))
     (should-not (seq-find (lambda (node) (eq (plist-get node :type) 'emoji)) narrow))))
 
+(ert-deftest etaf-ui-markdown-parse-marks-icons-keys-and-badges ()
+  "The added inline marks become their own nodes.
+A comparison written `a == b' stays prose, and a mark's `{.class}' names the
+fill; a key group keeps its separate keys and a badge its text and variant."
+  (let* ((document (etaf-ui-markdown-parse
+                    "a ==marked=={.warning} then a == b and :kbd[Ctrl+B] :badge[beta]{.tip} ::check:: :tada:\n"))
+         (nodes (plist-get (car (plist-get document :children)) :children))
+         (find (lambda (type) (cl-find type nodes :key (lambda (n) (plist-get n :type)))))
+         (mark (funcall find 'mark))
+         (kbd (funcall find 'kbd))
+         (badge (funcall find 'badge))
+         (icon (funcall find 'icon))
+         (emoji (funcall find 'emoji)))
+    (should (equal "warning" (plist-get mark :class)))
+    (should (equal "marked" (plist-get (car (plist-get mark :children)) :text)))
+    (should (equal '("Ctrl" "B") (plist-get kbd :keys)))
+    (should (equal "beta" (plist-get badge :content)))
+    (should (equal "tip" (plist-get badge :variant)))
+    (should (equal "check" (plist-get icon :name)))
+    (should (equal "🎉" (plist-get emoji :char)))
+    (should (= 1 (seq-count (lambda (node) (eq (plist-get node :type) 'mark)) nodes)))))
+
+(ert-deftest etaf-ui-markdown-etaf-inline-marks-paint ()
+  "A highlighted run, a key group and a badge paint inside one paragraph."
+  (etaf-ui-markdown-test--with-mount
+      "a ==marked=={.warning} :kbd[Ctrl+B] :badge[beta]{.tip}\n"
+      (etaf-ui-markdown-test--env)
+    (let ((text (etaf-ui-markdown-test--text buffer-name)))
+      (should (string-match-p "marked" text))
+      (should (string-match-p "Ctrl" text))
+      (should (string-match-p "beta" text)))))
+
 (ert-deftest etaf-ui-markdown-parse-a-repeated-footnote-uses-its-first-definition ()
   "A label defined twice shows the first definition, and a reference to a label
 that was never defined has no note to show."

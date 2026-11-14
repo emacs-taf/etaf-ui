@@ -57,12 +57,15 @@ change what an older preset meant.")
     ;; here needs an external program, so a plain checkout renders them.
     (etaf . ,(append etaf-ui-markdown-gfm-features
                      '(:extensions (definition-list subscript superscript
-                                    abbreviation math emoji)))))
+                                    abbreviation math emoji mark icon kbd
+                                    badge)))))
   "Named markdown dialects and the syntax each one enables.
 `commonmark' is the CommonMark core; `gfm' adds GitHub's extensions there as
 well: tables, task lists, strikethrough, bare autolinks, footnotes, alert
 blocks and front matter; `etaf' adds definition lists, sub- and superscript,
-abbreviations and `$' math on top of `gfm'.  A preset is only a set of
+abbreviations, `$' math, emoji shortcodes, `==highlighted==' runs,
+`::name::' icons, `:kbd[KEY+KEY]' key groups and `:badge[TEXT]' badges on
+top of `gfm'.  A preset is only a set of
 switches over one parser, so a document written for one of them still parses
 under another, with the syntax it did not enable showing as literal text.")
 
@@ -118,11 +121,15 @@ them.  A preset enables NAME, and a disabled extension never runs, so its
 syntax stays literal text exactly as CommonMark reads it.")
 
 (defconst etaf-ui-markdown-inline-extensions
-  '((math ?$ etaf-ui-markdown--try-math)
+  '((mark ?= etaf-ui-markdown--try-mark)
+    (math ?$ etaf-ui-markdown--try-math)
     (subscript ?~ etaf-ui-markdown--try-subscript)
     (superscript ?^ etaf-ui-markdown--try-superscript)
     (abbreviation nil etaf-ui-markdown--try-abbreviation)
-    (emoji ?: etaf-ui-markdown--try-emoji))
+    (emoji ?: etaf-ui-markdown--try-emoji)
+    (icon ?: etaf-ui-markdown--try-icon)
+    (kbd ?: etaf-ui-markdown--try-kbd)
+    (badge ?: etaf-ui-markdown--try-badge))
   "Inline syntax this module adds, as (NAME TRIGGER-CHAR RECOGNIZER).
 TRIGGER-CHAR is the character that can open the syntax, or nil for a
 recognizer that starts at a word character.  RECOGNIZER takes (TEXT POSITION
@@ -143,17 +150,21 @@ END) and returns (NODE . NEXT) when it claims the text there.")
          (word-start (or (>= char 128)
                          (and (>= char ?A) (<= char ?Z))
                          (and (>= char ?a) (<= char ?z))))
-         (entry (seq-find (lambda (candidate)
-                            (and (etaf-ui-markdown-extension-p (car candidate))
-                                 (if (nth 1 candidate)
-                                     (eq char (nth 1 candidate))
-                                   ;; A recognizer without a trigger character
-                                   ;; starts on a word character, which is
-                                   ;; where a word can begin.
-                                   word-start)))
-                          etaf-ui-markdown-inline-extensions)))
-    (when entry
-      (funcall (nth 2 entry) text position end))))
+         (result nil))
+    ;; Several extensions can share one trigger: `:' opens an emoji, an
+    ;; `::name::' icon, a `:kbd[...]' key group and a `:badge[...]' badge.
+    ;; Each recognizer declines text it does not own, so try them in order
+    ;; until one claims the position.
+    (dolist (entry etaf-ui-markdown-inline-extensions)
+      (when (and (not result)
+                 (etaf-ui-markdown-extension-p (car entry))
+                 (if (nth 1 entry)
+                     (eq char (nth 1 entry))
+                   ;; A recognizer without a trigger character starts on a
+                   ;; word character, which is where a word can begin.
+                   word-start))
+        (setq result (funcall (nth 2 entry) text position end))))
+    result))
 
 (defvar etaf-ui-markdown--abbreviations nil
   "Abbreviation definitions of the document being parsed, newest first.")
@@ -1665,6 +1676,91 @@ Only a known name matches, and only as a whole token: `12:30:45' is a time and
               (cons (list :type 'emoji :text (substring text position (1+ index))
                           :char char)
                     (1+ index)))))))))
+
+(defun etaf-ui-markdown--try-mark (text position end)
+  "Return (NODE . NEXT) for `==text==' at POSITION in TEXT.
+The delimiter needs a non-space on its inside edge, so a comparison written
+`a == b' stays prose.  A `{.class}' after the closing pair names the
+highlight colour."
+  (when (and (<= (+ position 2) end)
+             (eq (aref text position) ?=)
+             (eq (aref text (1+ position)) ?=))
+    (let* ((start (+ position 2))
+           (close (string-match "==" text start)))
+      (when (and close (< close end) (> close start)
+                 (not (memq (aref text start) '(?\s ?\t)))
+                 (not (memq (aref text (1- close)) '(?\s ?\t))))
+        (let* ((class (etaf-ui-markdown--inline-class text (+ close 2) end))
+               (content (substring text start close)))
+          (cons (list :type 'mark
+                      :class (car class)
+                      :text (substring text position (cdr class))
+                      :children (etaf-ui-markdown--parse-inlines content))
+                (cdr class)))))))
+
+(defun etaf-ui-markdown--inline-class (text position end)
+  "Return (CLASS . NEXT) for a `{.name}' after POSITION in TEXT.
+NEXT is POSITION when no attribute follows, so a caller can always use it."
+  (if (and (< position end)
+           (eq (aref text position) ?{))
+      (let ((close (cl-position ?} text :start position :end end)))
+        (if (and close
+                 (string-match-p "\\`\\.[a-zA-Z0-9_-]+\\'"
+                                 (substring text (1+ position) close)))
+            (cons (substring text (+ position 2) close) (1+ close))
+          (cons nil position)))
+    (cons nil position)))
+
+(defun etaf-ui-markdown--try-icon (text position end)
+  "Return (NODE . NEXT) for an `::name::' icon at POSITION in TEXT."
+  (when (and (<= (+ position 4) end)
+             (eq (aref text position) ?:)
+             (eq (aref text (1+ position)) ?:))
+    (let* ((start (+ position 2))
+           (close (string-match "::" text start)))
+      (when (and close (< close end) (> close start))
+        (let ((name (substring text start close)))
+          (when (string-match-p "\\`[a-zA-Z0-9_.:-]+\\'" name)
+            (cons (list :type 'icon
+                        :name name
+                        :text (substring text position (+ close 2)))
+                  (+ close 2))))))))
+
+(defun etaf-ui-markdown--try-kbd (text position end)
+  "Return (NODE . NEXT) for a `:kbd[KEY+KEY]' group at POSITION in TEXT."
+  (when (and (<= (+ position 5) end)
+             (eq (aref text position) ?:)
+             (string-match-p "\\`kbd\\["
+                             (substring text (1+ position) (+ position 5))))
+    (let* ((start (+ position 5))
+           (close (cl-position ?\] text :start start :end end)))
+      (when (and close (> close start))
+        (let ((keys (mapcar #'string-trim
+                            (split-string (substring text start close)
+                                          "[+]" t " "))))
+          (when keys
+            (cons (list :type 'kbd
+                        :keys keys
+                        :text (substring text position (1+ close)))
+                  (1+ close))))))))
+
+(defun etaf-ui-markdown--try-badge (text position end)
+  "Return (NODE . NEXT) for a `:badge[TEXT]' badge at POSITION in TEXT.
+A `{.variant}' after the closing bracket sets its semantic colour."
+  (when (and (<= (+ position 7) end)
+             (eq (aref text position) ?:)
+             (string-match-p "\\`badge\\["
+                             (substring text (1+ position) (+ position 7))))
+    (let* ((start (+ position 7))
+           (close (cl-position ?\] text :start start :end end)))
+      (when (and close (> close start))
+        (let* ((content (substring text start close))
+               (variant (etaf-ui-markdown--inline-class text (1+ close) end)))
+          (cons (list :type 'badge
+                      :text (substring text position (cdr variant))
+                      :content content
+                      :variant (car variant))
+                (cdr variant)))))))
 
 (defun etaf-ui-markdown--word-char-p (char)
   "Return non-nil when CHAR belongs to a Latin word or number.

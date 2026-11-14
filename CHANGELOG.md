@@ -67,6 +67,13 @@
   what the language's mode decided.  A block without highlight keeps the page
   ink, and each run that has no colour of its own gets it.
 
+- The `etaf' markdown dialect reads four more inline forms: `==text==' with an
+  optional `{.class}' fill, `::name::' for an icon from the icon sets,
+  `:kbd[KEY+KEY]' for a key cap group and `:badge[TEXT]{.variant}' for a status
+  badge.  `:' now opens several recognizers in turn, so a shortcode, an icon,
+  a key group and a badge can share the trigger without eating each other's
+  text.
+
 - A code block whose plist has `:header` nil draws without its language strip:
   the fence keeps its frame and syntax colours, and the caller that already
   names the language, such as a code tab, no longer repeats it.  A block
