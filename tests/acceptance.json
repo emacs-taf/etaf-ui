@@ -1044,6 +1044,11 @@
       "purpose": "代码高亮读的是语言自己 mode 的 face：段落被切成带样式的 run，重组后文本一字不差；没有 mode 的语言返回 nil 按单色画。"
     },
     {
+      "name": "etaf-ui-markdown-code-fence-options-paint-their-block",
+      "file": "tests/etaf-ui-markdown-tests.el",
+      "purpose": "围栏的 title、行号与行标记画出标题、编号与去掉标记的代码，标记本身不出现在页面上。"
+    },
+    {
       "name": "etaf-ui-markdown-code-renderers-draw-their-language",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "为某个围栏语言注册渲染器后，该语言交给渲染器画；没有注册项的仍按默认代码块画。"

@@ -498,72 +498,270 @@ border, for a caller that supplies the card around it."
   (or (etaf-ui-markdown--code-block-renderer block env)
       (etaf-ui-markdown--default-code-block-node block env)))
 
+(defconst etaf-ui-markdown--code-mark-regexp
+  "[ \t]*\\(?://\\|#\\|;\\|<!--\\)?[ \t]*\\[!code \\([^]]+\\)\\][ \t]*\\(?:-->[ \t]*\\)?$"
+  "Trailing marker a code line uses to state how it is painted.")
+
+(defun etaf-ui-markdown--code-numbers (spec)
+  "Return the line numbers SPEC names, as `(LOW . HIGH)' pairs.
+SPEC is what a fence writes between braces: `4', `6-8', `1,4,6-8'."
+  (let ((numbers nil))
+    (dolist (part (split-string (or spec "") "[, ]+" t))
+      (cond
+       ((string-match "\\`\\([0-9]+\\)-\\([0-9]+\\)\\'" part)
+        (push (cons (string-to-number (match-string 1 part))
+                    (string-to-number (match-string 2 part)))
+              numbers))
+       ((string-match "\\`[0-9]+\\'" part)
+        (let ((number (string-to-number part)))
+          (push (cons number number) numbers)))))
+    numbers))
+
+(defun etaf-ui-markdown--code-info (block)
+  "Return BLOCK's fence options: :lang, :title, :lines, :numbers.
+The options are written where a fence writes its language, the way every
+plume page writes them, and the parser keeps that string in :info."
+  (let* ((info (or (plist-get block :info) ""))
+         (title (when (string-match "title=\"\\([^\"]*\\)\"" info)
+                  (match-string 1 info)))
+         (spec (when (string-match "{\\([^}]*\\)}" info)
+                 (match-string 1 info)))
+         (numbers (cond
+                   ((string-match ":no-line-numbers" info) nil)
+                   ((string-match ":line-numbers=\\([0-9]+\\)" info)
+                    (string-to-number (match-string 1 info)))
+                   ((string-match ":line-numbers" info) 1)
+                   (t nil)))
+         (lang (string-trim
+                (replace-regexp-in-string
+                 "title=\"[^\"]*\"\\|{[^}]*}\\|:no-line-numbers\\|:line-numbers\\(=[0-9]+\\)?"
+                 "" info))))
+    (list :lang (and (not (equal lang "")) (car (split-string lang "[ \t]+" t)))
+          :title title
+          :lines (etaf-ui-markdown--code-numbers spec)
+          :numbers numbers)))
+
+(defun etaf-ui-markdown--code-line-states (lines)
+  "Return one paint state per entry of LINES and the text without markers.
+A line states its paint with a trailing `[!code ...]' comment; the comment
+leaves the painted text, and its word becomes the line's state."
+  (let ((texts nil)
+        (states nil)
+        (focus nil))
+    (dolist (line lines)
+      (let ((state nil)
+            (count 0))
+        (when (string-match etaf-ui-markdown--code-mark-regexp line)
+          (let ((word (match-string 1 line)))
+            (setq line (substring line 0 (match-beginning 0)))
+            (cond
+             ((equal word "highlight") (setq state 'highlight))
+             ((equal word "++") (setq state 'add))
+             ((equal word "--") (setq state 'remove))
+             ((equal word "warning") (setq state 'warning))
+             ((equal word "error") (setq state 'error))
+             ((string-match "\\`focus\\(?::\\([0-9]+\\)\\)?\\'" word)
+              (setq state 'focus)
+              (setq count (if (match-string 1 word)
+                              (string-to-number (match-string 1 word)) 0))))))
+        (setq focus (or focus (eq state 'focus)))
+        (push line texts)
+        (push (cons state count) states)))
+    (list :texts (nreverse texts)
+          :states (nreverse states)
+          :focus focus)))
+
+(defun etaf-ui-markdown--code-split-runs (runs)
+  "Split RUNS at newlines, returning one run list per line."
+  (let ((lines (list nil)))
+    (dolist (run runs)
+      (let ((text (plist-get run :text))
+            (start 0))
+        (while (<= start (length text))
+          (let ((newline (string-search "\n" text start)))
+            (if newline
+                (progn
+                  (when (> newline start)
+                    (setcar lines
+                            (cons (plist-put (copy-sequence run) :text
+                                             (substring text start newline))
+                                  (car lines))))
+                  (setq lines (cons nil lines))
+                  (setq start (1+ newline)))
+              (when (> (length text) start)
+                (setcar lines
+                        (cons (plist-put (copy-sequence run) :text
+                                         (substring text start))
+                              (car lines))))
+              (setq start (1+ (length text))))))))
+    (mapcar #'nreverse (nreverse lines))))
+
+(defun etaf-ui-markdown--code-line-colour (props env surface dim)
+  "Return the ink of a code run with PROPS on SURFACE, dimmed when DIM.
+A token with a role takes the page's own syntax colour; one without keeps the
+face's colour.  Every colour is made readable against SURFACE, which is the
+row's own fill when it has one; a dimmed row recedes but stays legible."
+  (let* ((dark (etaf-ui-markdown--dark-page-p env))
+         (ink (etaf-ui-markdown--env-color env :ink))
+         (colour (or (etaf-ui-markdown-highlight-color props dark)
+                     (or (plist-get props :color) ink))))
+    (etaf-ui-color-legible
+     (if dim (etaf-ui-color-mix colour surface 0.55) colour)
+     surface)))
+
+(defun etaf-ui-markdown--code-row (line-runs kind number number-width fill dim
+                                             env code-bg mono ink muted)
+  "Return one painted code ROW.
+LINE-RUNS are the highlighted runs of the row; KIND is its paint state,
+NUMBER its label or nil, FILL its background; DIM recedes an unfocused row."
+  (etaf-node
+   'flex
+   (append (list :width 'stretch
+                 :align-items 'start
+                 :padding-inline '(ch 2))
+           (when fill (list :background-color fill)))
+   (append
+    (when number
+      (list (etaf-node
+             'box
+             (list :padding-right '(ch 1))
+             (list (etaf-node 'text
+                              (list :font-family mono
+                                    :color (etaf-ui-color-legible muted fill))
+                              ;; The label carries its own padding: a fixed
+                              ;; width with right alignment clipped it.
+                              (list (format (format "%%%dd " number-width)
+                                            number)))))))
+    (when (memq kind '(add remove))
+      (list (etaf-node
+             'text
+             (list :font-family mono
+                   :color (etaf-ui-color-legible
+                           (etaf-ui-markdown--env-color-or
+                            env (if (eq kind 'add) :ok :danger) :accent)
+                           fill))
+             (list (if (eq kind 'add) "+ " "- ")))))
+    (list
+     (etaf-node
+      'box
+      (list :flex-basis '(ch 0) :flex-grow 1 :wrap-mode 'char)
+      (if line-runs
+          (mapcar
+           (lambda (run)
+             (let ((props (plist-get run :props)))
+               (etaf-node 'text
+                          (plist-put (copy-sequence props)
+                                     :color (etaf-ui-markdown--code-line-colour
+                                             props env (or fill code-bg) dim))
+                          (list (plist-get run :text)))))
+           line-runs)
+        (list (etaf-node 'text
+                         (list :color (if dim muted ink))
+                         (list " ")))))))))
+
 (defun etaf-ui-markdown--default-code-block-node (block env)
   "Return the default fenced code block View of BLOCK in ENV.
-A block with a language opens with a header strip: the language sits on its
-own row, a rule closes it, and the code starts under that rule, so the label
-frames the block instead of floating over its first line."
+The fence's options live in its info string the way plume writes them: a
+`title=' names the block, `:line-numbers[=N]' numbers its rows, and a `{...}'
+or a trailing `[!code ...]' marker paints a row as highlighted, focused, added,
+removed, warned or failed.  A block with a language opens with a header strip,
+and the header carries the copy action; the code starts under that rule, so
+the label frames the block instead of floating over its first line."
   (let* ((mono (etaf-ui-markdown--mono-family))
-         (lang (plist-get block :lang))
          (frame (or (not (plist-member block :frame))
                     (plist-get block :frame)))
          (border (etaf-ui-markdown--env-color env :border))
-         (text (or (plist-get block :text) ""))
+         (info (etaf-ui-markdown--code-info block))
+         (lang (plist-get info :lang))
+         (title (plist-get info :title))
+         (label (or title lang))
+         (numbers (plist-get info :numbers))
+         (text (string-trim-right (or (plist-get block :text) "") "\n"))
+         (parsed (etaf-ui-markdown--code-line-states (split-string text "\n")))
+         (texts (plist-get parsed :texts))
+         (states (plist-get parsed :states))
+         (focus-any (plist-get parsed :focus))
+         (clean (mapconcat #'identity texts "\n"))
          (code-bg (etaf-ui-markdown--code-color env))
+         (ink (etaf-ui-markdown--env-color env :ink))
+         (muted (etaf-ui-markdown--env-color env :muted))
+         (accent (etaf-ui-markdown--env-color-or env :accent :link))
          (runs (unless (and (plist-member env :highlight-code)
                             (null (plist-get env :highlight-code)))
-                 (etaf-ui-markdown-highlight-code lang text)))
-         (ink (etaf-ui-markdown--env-color env :ink))
-         (dark (etaf-ui-markdown--dark-page-p env))
-         (body (etaf-node 'box
-                          (list :width 'stretch :wrap-mode 'char
-                                :font-family mono
-                                :padding (if lang '((lh 0.5) (ch 2))
-                                           '((lh 1) (ch 2))))
-                          (if runs
-                              ;; Each run carries its own colour.  The box sets
-                              ;; none, because a colour on the box is painted
-                              ;; over every token the language coloured, and a
-                              ;; colour the page would swallow is made
-                              ;; readable on the page's own code surface.
-                              (mapcar (lambda (run)
-                                        (let* ((props (plist-get run :props))
-                                               ;; A token with a role takes the
-                                               ;; page's own syntax colour;
-                                               ;; one without keeps the face's
-                                               ;; colour, made readable.
-                                               (color (or (etaf-ui-markdown-highlight-color
-                                                           props dark)
-                                                          (etaf-ui-color-legible
-                                                           (or (plist-get props :color) ink)
-                                                           code-bg))))
-                                          (etaf-node 'text
-                                                     (plist-put (copy-sequence props)
-                                                                :color color)
-                                                     (list (plist-get run :text)))))
-                                      runs)
-                            (list (etaf-node 'text (list :color ink)
-                                             (list text))))))
-         (header (when (and lang
-                             (or (not (plist-member block :header))
-                                 (plist-get block :header)))
-                   (etaf-node 'box
-                              (list :width 'stretch
-                                    :border-bottom (list '(px 1) 'solid border)
-                                    :padding '((lh 0) (ch 2)))
-                              (list (etaf-node 'text
-                                               (list :font-family mono
-                                                     :color (etaf-ui-markdown--env-color
-                                                             env :muted))
-                                               (list lang)))))))
-    (etaf-node 'box
-               (append (list :width 'stretch
-                             ;; The surface stays even without a frame: a
-                             ;; caller supplies the frame, not the code colour.
-                             :background-color (etaf-ui-markdown--code-color env))
-                       (when frame
-                         (list :border (list '(px 1) 'solid border))))
-               (append (when header (list header)) (list body)))))
+                 (etaf-ui-markdown-highlight-code lang clean)))
+         (run-lines (if runs
+                        (etaf-ui-markdown--code-split-runs runs)
+                      (mapcar (lambda (line) (list (list :text line))) texts)))
+         (marked (mapcar #'car (plist-get info :lines)))
+         (number-width (length (number-to-string
+                                (+ (or numbers 1) (max 0 (1- (length texts)))))))
+         (focus-lines nil))
+    (when focus-any
+      (cl-loop for state in states
+               for index from 0
+               when (eq (car state) 'focus)
+               do (dotimes (offset (1+ (or (cdr state) 0)))
+                    (push (+ index offset) focus-lines))))
+    (let* ((rows
+            (cl-loop for line-runs in run-lines
+                     for state in states
+                     for index from 0
+                     for kind = (car state)
+                     for fill =
+                     (cond
+                      ((eq kind 'highlight)
+                       (etaf-ui-color-mix accent code-bg 0.82))
+                      ((eq kind 'add)
+                       (etaf-ui-color-mix
+                        (etaf-ui-markdown--env-color-or env :ok :accent)
+                        code-bg 0.4))
+                      ((memq kind '(remove error))
+                       (etaf-ui-color-mix
+                        (etaf-ui-markdown--env-color-or env :danger :accent)
+                        code-bg 0.4))
+                      ((eq kind 'warning)
+                       (etaf-ui-color-mix
+                        (etaf-ui-markdown--env-color-or env :warn :accent)
+                        code-bg 0.4))
+                      ((memq index marked)
+                       (etaf-ui-color-mix accent code-bg 0.82)))
+                     for dim = (and focus-any (not (memq index focus-lines)))
+                     collect (etaf-ui-markdown--code-row
+                              line-runs kind
+                              (and numbers (+ numbers index))
+                              number-width fill dim env code-bg mono ink muted)))
+           (body (etaf-node 'column
+                            (list :width 'stretch :item-gap '(lh 0)
+                                  :padding '((lh 0.5) (ch 0)))
+                            rows))
+           (header (when (and label
+                              (or (not (plist-member block :header))
+                                  (plist-get block :header)))
+                     (etaf-node
+                      'flex
+                      (list :width 'stretch :align-items 'center
+                            :border-bottom (list '(px 1) 'solid border)
+                            :padding '((lh 0) (ch 2)))
+                      (list
+                       (etaf-node 'text
+                                  (list :font-family mono
+                                        :font-weight (if title 'bold nil)
+                                        :color (if title ink muted))
+                                  (list label))
+                       (etaf-node 'box
+                                  (list :flex-basis '(ch 0) :flex-grow 1)
+                                  nil)
+                       (etaf-node 'text
+                                  (list :color accent :role 'button :tab-index 0
+                                        :help-echo "把这段代码复制下来"
+                                        :on-press (lambda () (kill-new clean)))
+                                  (list "复制")))))))
+      (etaf-node 'box
+                 (append (list :width 'stretch
+                               :background-color code-bg)
+                         (when frame
+                           (list :border (list '(px 1) 'solid border))))
+                 (append (when header (list header)) (list body))))))
 
 (defun etaf-ui-markdown--blockquote-node (block env)
   "Return the blockquote View of BLOCK in ENV.

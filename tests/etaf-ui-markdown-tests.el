@@ -386,6 +386,27 @@ language with no mode, or a block too large to fontify, stays one run."
     (should (memq 'bold weights))
     (should-not plain)))
 
+(ert-deftest etaf-ui-markdown-code-fence-options-paint-their-block ()
+  "A fence's title, line numbers and row paints reach the painted block.
+The options live in the info string the way plume writes them, and the row
+markers leave the painted code: a reader sees the title, the numbers and the
+words, not the markers that chose the paint."
+  (let* ((buffer (etaf-ui-markdown-test--mount
+                  (concat "```elisp title=\"a.el\" :line-numbers=2\n"
+                          "(defun f ())\n"
+                          "(defun g ()) ; [!code ++]\n"
+                          "```\n")
+                  (etaf-ui-markdown-test--env))))
+    (unwind-protect
+        (let ((text (etaf-ui-markdown-test--text buffer)))
+          (should (string-match-p "a.el" text))
+          (should (string-match-p "复制" text))
+          (should (string-match-p "2 (defun f ())" (replace-regexp-in-string "[[:space:]]+" " " text)))
+          (should (string-match-p "3 +" (replace-regexp-in-string "[[:space:]]+" " " text)))
+          (should (string-match-p "defun g" text))
+          (should-not (string-match-p "\\[!code" text)))
+      (kill-buffer buffer))))
+
 (ert-deftest etaf-ui-markdown-code-renderers-draw-their-language ()
   "A language with a registered renderer stops being painted as code.
 The table is how a diagram language or a typesetter joins in without the parser

@@ -4,6 +4,12 @@
 
 ### Added
 
+- A fenced code block reads plume's fence options: `title=` names it,
+  `:line-numbers[=N]` numbers its rows, `{1,4-7}` and a trailing
+  `[!code highlight|focus|++|--|warning|error]` paint rows, and the header
+  carries a copy action.  Every ink is made readable against the fill of the
+  row it sits on, so diffs and warnings stay legible in both palettes.
+
 - A timeline item's `:status` may be a plist of `:text` and `:variant`, so a
   caller writes the badge in its own words and still takes the state colour.
   A bare symbol keeps its old meaning: the badge shows the symbol's name.
