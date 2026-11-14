@@ -355,6 +355,40 @@
 ;; the cursor already; call this after moving `:cursor' from application code,
 ;; for example a "go to cell" command or a restored session.
 ;;
+
+;; Component: etaf-log (&key rows level-width time-width width ref)
+;; Parameters:
+;; :rows — List of plists with :time, :level and :message.
+;; :level-width — Level column width; default 5.
+;; :time-width — Time column width; default 8.
+;; :width — Host length; default `stretch'.
+;; :ref — Optional Host reference.
+;;
+;; Render a log without a frame: the level is coloured by severity, the
+;; message fills the rest, and the pane around it supplies the edge.
+
+;; Component: etaf-status-bar (&key mode keys note width ref)
+;; Parameters:
+;; :mode — Optional string naming the current mode; painted as a filled chip.
+;; :keys — List of (KEY . LABEL) pairs.
+;; :note — Optional right-aligned string.
+;; :width — Host length; default `stretch'.
+;; :ref — Optional Host reference.
+;;
+;; Render one status row: mode chip, key hints, note at the right.
+
+;; Component: etaf-braille-chart (&key values width height min max label ref)
+;; Parameters:
+;; :values — List of at least two numbers.
+;; :width — Cell count; default 40.
+;; :height — Row count; default 6; each cell holds a 2x4 dot grid.
+;; :min, :max — Optional scale bounds.
+;; :label — Optional string above the chart.
+;; :ref — Optional Host reference.
+;;
+;; Render VALUES as a braille dot chart: dots the series does not pass
+;; through stay empty, so the line is thin and its shape copies as text.
+
 ;; Component: etaf-data-grid (&key controller columns row-key on-row-press row-ref row-selected-p loading-label error-label empty-label)
 ;; Parameters:
 ;; :controller — Required caller-owned ETAF Data Controller; create it before rendering and stop it at its owner's disposal.
@@ -731,6 +765,41 @@
 ;; Render a titled Panel with named header and default slots.
 ;; Panel supplies a header slot; Card instead supplies a description prop.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
+
+;; Component: etaf-edge-panel (&key title status variant focus width ref)
+;; Parameters:
+;; :title — Optional string; default nil. Painted in the first row, on the rule.
+;; :status — Optional string; default nil. Painted at the right end of that rule.
+;; :variant — `default' or `flat'; default `default'. Flat keeps the rule but no surface.
+;; :focus — Optional boolean; default nil. The accent colour paints the rule.
+;; :width — Host length; default `stretch'.
+;; :ref — Optional Host reference; default nil.
+;;
+;; Render a panel whose title sits on its top rule, so the frame spends no row
+;; on a header. The default slot is the body under the title row.
+
+;; Component: etaf-edge-tabs (&key items active on-change width ref)
+;; Parameters:
+;; :items — List of plists with unique :key and string :label.
+;; :active — Required key present in :items.
+;; :on-change — Function (key), called when a tab is pressed or activated.
+;; :width — Host length; default `stretch'.
+;; :ref — Optional Host reference; default nil.
+;;
+;; Render tabs set into the panel's top rule, with the body in the default
+;; slot. The chosen tab takes the accent ink and the raised surface.
+
+;; Component: etaf-underline-field (&key label value placeholder focus width ref)
+;; Parameters:
+;; :label — Optional string naming the field; default nil.
+;; :value — Optional string; default "".
+;; :placeholder — Optional string shown while the value is empty.
+;; :focus — Optional boolean; default nil. The accent colour paints the rule.
+;; :width — Host length; default `stretch'.
+;; :ref — Optional Host reference; default nil.
+;;
+;; Render a read-only field as a line under its value: the rule costs no row,
+;; so a form reads as rows of labelled text instead of boxes.
 
 ;; Component: etaf-resizable-panel (&key x y width height position z-index visible min-width max-width min-height max-height resizable resize-edges resize-refs resize-use on-resize on-move header-style drag-lock-modifier full-bleed font-size font-family ref id class role use overflow)
 ;; Parameters:
@@ -1976,6 +2045,8 @@ nothing about where the package directory is.")
   (add-to-list 'load-path (expand-file-name "lisp" etaf-ui--root)))
 
 (require 'etaf-ui-basic)
+(require 'etaf-ui-edge)
+(require 'etaf-ui-pane)
 (require 'etaf-ui-icon)
 (require 'etaf-ui-svg)
 (require 'etaf-ui-input)

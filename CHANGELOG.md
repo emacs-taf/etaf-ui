@@ -4,6 +4,18 @@
 
 ### Added
 
+- `etaf-edge-panel`, `etaf-edge-tabs` and `etaf-underline-field` put their
+  labels on rules the layout already draws: a panel title and status sit on its
+  top rule, tabs share the pane's edge instead of owning a strip above it, and a
+  field hangs its value under a single line.  None of them spends a row on
+  chrome.
+
+- `etaf-log` paints a log entry per row with a coloured level column and no
+  frame, and `etaf-status-bar` is one row of mode, key hints and a note.
+
+- `etaf-braille-chart` plots a series on a 2x4 dot grid per cell, so the line
+  stays thin and copies as text.
+
 - A fenced code block reads plume's fence options: `title=` names it,
   `:line-numbers[=N]` numbers its rows, `{1,4-7}` and a trailing
   `[!code highlight|focus|++|--|warning|error]` paint rows, and the header

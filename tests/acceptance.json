@@ -1044,6 +1044,21 @@
       "purpose": "代码高亮读的是语言自己 mode 的 face：段落被切成带样式的 run，重组后文本一字不差；没有 mode 的语言返回 nil 按单色画。"
     },
     {
+      "name": "etaf-ui-edge-panel-keeps-its-title-on-the-rule",
+      "file": "tests/etaf-ui-edge-tests.el",
+      "purpose": "面板把标题、状态和正文依次画出，标题写在顶边那一行。"
+    },
+    {
+      "name": "etaf-ui-edge-tabs-dispatch-the-pressed-tab",
+      "file": "tests/etaf-ui-edge-tests.el",
+      "purpose": "顶边标签页画出所有标签，按下一个标签时把它的 key 交给回调。"
+    },
+    {
+      "name": "etaf-ui-underline-field-shows-placeholder-until-it-has-a-value",
+      "file": "tests/etaf-ui-edge-tests.el",
+      "purpose": "下划线字段在值为空时画出占位文字，有值时画值本身。"
+    },
+    {
       "name": "etaf-ui-markdown-code-fence-options-paint-their-block",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "围栏的 title、行号与行标记画出标题、编号与去掉标记的代码，标记本身不出现在页面上。"
