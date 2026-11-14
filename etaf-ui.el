@@ -1282,10 +1282,13 @@
 ;;
 ;; Render a neutral loading placeholder without owning loading state.
 
-;; Component: etaf-card (&key title description variant)
+;; Component: etaf-card (&key title description icon variant width text-align on-press)
 ;; Parameters:
 ;; :title, :description — Optional display values/refs/computeds; default nil (omit row). Heading and muted summary.
+;; :icon — Optional icon name; default nil. Draws the set's glyph before the title on the title's row.
 ;; :variant — Optional style name; default default. Adds a class; does not select a built-in alternative paint scheme.
+;; :width, :text-align — Optional size and alignment; default stretch and start.
+;; :on-press — Optional function; default nil. Makes the whole surface activate.
 ;;
 ;; Render a reusable titled surface with default content slots.
 ;; Card supplies a summary description; use Panel for a named header slot.

@@ -144,11 +144,12 @@ caller decides the width."
        :background-color (etaf-theme-token :ui-progress-track "#E2E8F0")))
 
 (etaf-define-component etaf-card
-    (&key title description (variant 'default) (width 'stretch)
+    (&key title description icon (variant 'default) (width 'stretch)
           (text-align 'start) on-press)
   "Render a reusable surface with optional TITLE and DESCRIPTION slots.
-WIDTH sizes the card, TEXT-ALIGN places its content and ON-PRESS makes the
-whole surface activate; the border, fill and padding stay the card's own."
+ICON draws a glyph from the icon sets before the title on the title's own
+row.  WIDTH sizes the card, TEXT-ALIGN places its content and ON-PRESS makes
+the whole surface activate; the border, fill and padding stay the card's own."
   :validate
   (etaf-check-prop :on-press on-press (or (null on-press) (functionp on-press))
                    "a function or nil" 'etaf-card)
@@ -163,7 +164,11 @@ whole surface activate; the border, fill and padding stay the card's own."
              :color (plist-get theme :ui-panel-fg)
              :background-color (plist-get theme :ui-panel-bg)
              :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
-       (expr (when title (etaf-view (etaf-label :text title :variant 'strong))))
+       (expr (when title
+               (let* ((glyph (and icon
+                                  (car (etaf-ui-icon-lines icon :lines 1))))
+                      (label (if glyph (concat glyph " " title) title)))
+                 (etaf-view (etaf-label :text label :variant 'strong)))))
        (expr (when description (etaf-view (etaf-label :text description :variant 'muted))))
        (expr (etaf-current-slot 'default))))))
 

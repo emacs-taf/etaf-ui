@@ -79,6 +79,10 @@
   names the language, such as a code tab, no longer repeats it.  A block
   without the key keeps the header.
 
+- `etaf-card` takes an optional `:icon`: the icon set's glyph is drawn before
+  the title on the title's own row.  A card without the key keeps its title
+  exactly as before.
+
 ### Changed
 
 - A soft line break inside a paragraph paints a space, the way CommonMark reads
