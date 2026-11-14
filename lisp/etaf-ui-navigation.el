@@ -168,34 +168,43 @@ sitting in a second, separate panel."
                           (or (stringp content) (functionp content))
                           "a string or zero-argument function"
                           'etaf-accordion)
+         ;; A row that carries :ref keeps the same Host across a repaint, so a
+         ;; caller that re-renders around the accordion updates the title in
+         ;; place instead of leaving the previous header above the new one.
          (list
           (etaf-node 'etaf-button
-                     (list :label (etaf-ui--disclosure-label
-                                   (plist-get item :label)
-                                   (if expanded 'chevron-down 'chevron-right) t)
-                           :aria-label (plist-get item :label)
-                           :aria-expanded (if expanded t 'false)
-                           :variant 'ghost
-                           :width 'stretch
-                           :font-weight 'bold
-                           :padding '((lh 1) (ch 2))
-                           :border-bottom (unless last
-                                            (etaf-ui--style-border line))
-                           :on-press
-                           (lambda ()
-                             (funcall on-toggle
-                                      (if expanded
-                                          (delete key (copy-sequence open))
-                                        (if multiple
-                                            (cons key (copy-sequence open))
-                                          (list key))))))
+                     (append
+                      (list :label (etaf-ui--disclosure-label
+                                    (plist-get item :label)
+                                    (if expanded 'chevron-down 'chevron-right) t)
+                            :aria-label (plist-get item :label)
+                            :aria-expanded (if expanded t 'false)
+                            :variant 'ghost
+                            :width 'stretch
+                            :font-weight 'bold
+                            :padding '((lh 1) (ch 2))
+                            :border-bottom (unless last
+                                             (etaf-ui--style-border line))
+                            :on-press
+                            (lambda ()
+                              (funcall on-toggle
+                                       (if expanded
+                                           (delete key (copy-sequence open))
+                                         (if multiple
+                                             (cons key (copy-sequence open))
+                                           (list key))))))
+                      (when-let* ((ref (plist-get item :ref)))
+                        (list :ref ref)))
                      nil)
           (when expanded
             (etaf-node
              'box
-             (list :width 'stretch
-                   :padding '((lh 0) (ch 4) (lh 1) (ch 2))
-                   :border-bottom (unless last (etaf-ui--style-border line)))
+             (append
+              (list :width 'stretch
+                    :padding '((lh 0) (ch 4) (lh 1) (ch 2))
+                    :border-bottom (unless last (etaf-ui--style-border line)))
+              (when-let* ((ref (plist-get item :ref)))
+                (list :ref (intern (format "%s-body" ref)))))
              (list (if (functionp content)
                        (funcall content)
                      (etaf-node 'etaf-label (list :text content) nil)))))))))))

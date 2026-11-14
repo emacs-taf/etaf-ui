@@ -1477,7 +1477,7 @@
 ;;
 ;; Component: etaf-accordion (&key items open on-toggle multiple)
 ;; Parameters:
-;; :items — Plist list; default nil (empty). Unique non-nil :key and unique nonempty :label; :content is a string or pure function () returning a View.
+;; :items — Plist list; default nil (empty). Unique non-nil :key and unique nonempty :label; :content is a string or pure function () returning a View. An optional symbol :ref gives that row a stable Host ref, so a repaint around the accordion updates the row in place.
 ;; :open — List of item keys/ref/computed; default nil (all closed). At most one key when :multiple is nil.
 ;; :on-toggle — Required function (next-open-keys), not (key). Caller stores the complete next list.
 ;; :multiple — Boolean; default t. Allow several expanded sections.
