@@ -4,6 +4,10 @@
 
 ### Added
 
+- A timeline item's `:status` may be a plist of `:text` and `:variant`, so a
+  caller writes the badge in its own words and still takes the state colour.
+  A bare symbol keeps its old meaning: the badge shows the symbol's name.
+
 - The collection and navigation parts now draw the shape their names promise.
   `etaf-tabs` is one segmented bar with a filled selection and a single Tab
   stop: Left and Right move focus inside it and RET selects, and either end

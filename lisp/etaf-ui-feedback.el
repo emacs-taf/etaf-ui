@@ -311,11 +311,18 @@ the line height and sits on the baseline the label uses."
 The time sits below the content, the way a chronology reads: title, what
 happened, when.  A left rail joins the entries, and each entry owns a dot in
 the colour its STATUS names."
-  (let ((time (plist-get item :time))
-        (status (plist-get item :status))
+  (let* ((time (plist-get item :time))
+         (status (plist-get item :status))
+         ;; A caller may spell the badge as a plist: :text is what the badge
+         ;; reads and :variant names the colour.  A bare symbol keeps its old
+         ;; meaning, a colour name used as the badge's own text.
+         (status-variant (if (and (consp status) (plist-get status :variant))
+                             (plist-get status :variant)
+                           status))
+         (status-text (if (consp status) (plist-get status :text) status))
         (title (plist-get item :title))
         (content (plist-get item :content))
-        (muted (etaf-theme-token :ui-muted-fg "#687386")))
+         (muted (etaf-theme-token :ui-muted-fg "#687386")))
     (etaf-view
      (flex :class "etaf-timeline-item" :width 'stretch
            :gap '((lh 0) (ch 1)) :align-items 'start
@@ -328,7 +335,7 @@ the colour its STATUS names."
                           :variant 'muted)))
             ('bullet
              (etaf-ui--dot-view
-              (if status (etaf-ui--status-token status)
+              (if status-variant (etaf-ui--status-token status-variant)
                 (etaf-theme-token :ui-accent "#2563EB"))))
             (_ nil))))
        (column :class "etaf-timeline-body" :width 'stretch
@@ -337,8 +344,13 @@ the colour its STATUS names."
                :padding '((lh 0) (ch 2) (lh 1) (ch 2))
          (flex :width 'stretch :gap '((lh 0) (ch 1)) :align-items 'center
            (etaf-label :text title :variant 'strong)
-           (expr (when status
-                   (etaf-view (etaf-badge :text status :variant 'info)))))
+           (expr (when status-text
+                   (etaf-view (etaf-badge
+                               :text status-text
+                               :variant (if (memq status-variant
+                                                  '(success warning danger info))
+                                            status-variant
+                                          'info))))))
          (expr
           (cond ((functionp content) (funcall content))
                 ((stringp content)
@@ -350,10 +362,12 @@ the colour its STATUS names."
 (etaf-define-component etaf-timeline
     (&key items (list-style 'bullet) (start 1))
   "Render chronological ITEMS with :title, :content and optional :time, :status.
-An item with TIME shows it above its title.  STATUS, when present, becomes the
-leading badge; otherwise LIST-STYLE picks the marker, starting at START.  A
-CONTENT that is a function is called for a View, so a caller can compose a
-whole block under the title."
+An item with TIME shows it above its title.  STATUS becomes the leading badge
+and colours the dot: a symbol spells the badge with its own name, while a plist
+of :text and :variant lets a caller write the badge in its own words.  Without
+STATUS, LIST-STYLE picks the marker, starting at START.  A CONTENT that is a
+function is called for a View, so a caller can compose a whole block under the
+title."
   :validate
   (progn
     (etaf-check-prop :items items (and (proper-list-p items) items)
