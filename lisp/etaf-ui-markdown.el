@@ -394,7 +394,8 @@ lets one caller override the table without changing it."
   "Return the code block View of BLOCK in ENV.
 ENV's `:render-code-block', when present, may return a View for the block;
 nil falls back to `etaf-ui-markdown-code-renderers', and then to the default
-fenced block."
+fenced block.  A BLOCK whose `:header' is nil draws without its language
+strip, for a caller that already names the language."
   (or (etaf-ui-markdown--code-block-renderer block env)
       (etaf-ui-markdown--default-code-block-node block env)))
 
@@ -442,7 +443,9 @@ frames the block instead of floating over its first line."
                                       runs)
                             (list (etaf-node 'text (list :color ink)
                                              (list text))))))
-         (header (when lang
+         (header (when (and lang
+                             (or (not (plist-member block :header))
+                                 (plist-get block :header)))
                    (etaf-node 'box
                               (list :width 'stretch
                                     :border-bottom (list '(px 1) 'solid border)
