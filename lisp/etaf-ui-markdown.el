@@ -141,17 +141,31 @@ The palette may provide `:code-bg'; without it code uses `:panel'."
       ;; the colour its enclosing block gave it.
       (setq props (plist-put props :background-color
                              (etaf-ui-markdown--mark-fill class))))
+    (when (plist-get run :kbd)
+      (setq props (plist-put props :background-color
+                             (etaf-theme-token :ui-panel-bg "#eef1f4")))
+      (setq props (plist-put props :color
+                             (etaf-theme-token :ui-fg "#1f2328")))
+      (setq props (plist-put props :font-weight 'bold)))
+    (when-let* ((variant (plist-get run :badge)))
+      (let ((theme (etaf-ui--feedback-theme
+                    (etaf-ui-markdown--badge-variant variant))))
+        (setq props (plist-put props :color (nth 0 theme)))
+        (setq props (plist-put props :background-color (nth 1 theme)))
+        (setq props (plist-put props :font-weight 'bold))))
     props))
 
 (defun etaf-ui-markdown--mark-fill (class)
   "Return the Theme fill behind a marker CLASS.
-The fill comes from the same semantic pairs badges and alerts use, so a
-marker stays legible in every palette and follows a theme switch."
+A marker is a highlighter, so its default is the warning pair rather than
+the page surface; a named class chooses its own semantic pair.  The colours
+follow a theme switch with the rest of the page."
   (let ((variant (pcase (and class (downcase class))
                    ((or "warning" "warn" "caution") 'warning)
                    ((or "danger" "error" "important") 'danger)
-                   ((or "success" "tip" "info" "note") 'info)
-                   (_ 'neutral))))
+                   ((or "success") 'success)
+                   ((or "tip" "info" "note") 'info)
+                   (_ 'warning))))
     (nth 1 (etaf-ui--feedback-theme variant))))
 
 (defun etaf-ui-markdown--badge-variant (class)
@@ -218,19 +232,21 @@ Entries are (:text STRING :props PLIST) or (:view VIEW)."
                          env))
                        result)))
         ('icon
-         (push (list :view (etaf-ui-markdown--icon-view node)) result))
+         ;; An icon paints as its glyph run: a nested View would become a
+         ;; block of its own inside the paragraph and break the line.
+         (push (list :text (or (car (etaf-ui-icon-lines (plist-get node :name))) "")
+                     :props inherited)
+               result))
         ('kbd
-         (push (list :view
-                     (etaf-view
-                       (etaf-kbd :keys (plist-get node :keys))))
+         (push (list :text (concat " "
+                                   (mapconcat #'identity (plist-get node :keys) "+")
+                                   " ")
+                     :props (plist-put (copy-sequence inherited) :kbd t))
                result))
         ('badge
-         (push (list :view
-                     (etaf-view
-                       (etaf-badge
-                        :text (or (plist-get node :content) "")
-                        :variant (etaf-ui-markdown--badge-variant
-                                  (plist-get node :variant)))))
+         (push (list :text (concat " " (or (plist-get node :content) "") " ")
+                     :props (plist-put (copy-sequence inherited)
+                                       :badge (plist-get node :variant)))
                result))
         ((or 'emph 'strong 'strike)
          (let ((child (copy-sequence inherited)))
@@ -352,13 +368,6 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                         props)))
           (push (etaf-node 'text props (list text)) nodes))))
     (nreverse nodes)))
-
-(defun etaf-ui-markdown--icon-view (node)
-  "Return NODE's inline icon.
-An unknown name falls back to the icon set's printable fallback, or the name
-itself, so a document never fails to paint because a font set lacks a glyph."
-  (etaf-view
-    (etaf-ui-icon :name (plist-get node :name))))
 
 (defun etaf-ui-markdown--footnote-view (node env)
   "Return the superscript reference View of footnote NODE in ENV."
