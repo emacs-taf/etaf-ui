@@ -80,8 +80,7 @@ consumed instead of wrapping or ringing."
                 (content (when count
                            (etaf-view
                             (row :item-gap '(ch 0)
-                              (text (expr (concat (if (zerop index) "" " ")
-                                                  label " ")))
+                              (text (expr (concat " " label " ")))
                               (box :color muted
                                 (text (expr (concat
                                              (if (numberp count)
@@ -122,8 +121,7 @@ consumed instead of wrapping or ringing."
                       (if count
                           (list content)
                         (list (etaf-node 'text nil
-                                         (list (concat (if (zerop index) "" " ")
-                                                       label " "))))))))
+                                         (list (concat " " label " "))))))))
        items))))
 
 (etaf-define-component etaf-accordion
