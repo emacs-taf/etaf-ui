@@ -136,37 +136,67 @@ The palette may provide `:code-bg'; without it code uses `:panel'."
     (when-let* ((title (plist-get run :abbreviation)))
       (setq props (plist-put props :text-decoration-line '(underline)))
       (setq props (plist-put props :help-echo title)))
-    (when-let* ((class (plist-get run :mark)))
-      ;; A marker is a fill behind the text, never a new ink: the text keeps
-      ;; the colour its enclosing block gave it.
-      (setq props (plist-put props :background-color
-                             (etaf-ui-markdown--mark-fill class))))
+    (when (plist-member run :mark)
+      ;; A marker is a fill behind the text.  The run also takes the page ink:
+      ;; a fill alone merges back into the surrounding text, and a marker has
+      ;; to stand apart from it in every palette.  A marker without a class is
+      ;; still a marker, so the key's presence is what counts.
+      (let* ((class (plist-get run :mark))
+             (variant (pcase (and class (downcase class))
+                       ((or "warning" "warn" "caution") 'warning)
+                       ((or "danger" "error" "important") 'danger)
+                       ((or "success") 'success)
+                        ((or "tip" "info" "note") 'info)
+                        (_ 'warning))))
+        (setq props (plist-put props :color (etaf-ui-markdown--run-ink env)))
+        (setq props (plist-put props :background-color
+                               (etaf-ui-markdown--run-soft-fill env variant)))))
     (when (plist-get run :kbd)
-      (setq props (plist-put props :background-color
-                             (etaf-theme-token :ui-panel-bg "#eef1f4")))
-      (setq props (plist-put props :color
-                             (etaf-theme-token :ui-fg "#1f2328")))
+      ;; A run is a text node, so its colours are the page's own strings.
+      (let* ((palette (plist-get env :palette))
+             (fill (or (etaf-ui-markdown--palette-value palette :panel2)
+                       (etaf-ui-markdown--palette-value palette :panel))))
+        (when fill (setq props (plist-put props :background-color fill)))
+        (when-let* ((ink (etaf-ui-markdown--run-ink env)))
+          (setq props (plist-put props :color ink))))
       (setq props (plist-put props :font-weight 'bold)))
     (when-let* ((variant (plist-get run :badge)))
-      (let ((theme (etaf-ui--feedback-theme
-                    (etaf-ui-markdown--badge-variant variant))))
-        (setq props (plist-put props :color (nth 0 theme)))
-        (setq props (plist-put props :background-color (nth 1 theme)))
+      (let ((variant (etaf-ui-markdown--badge-variant variant)))
+        (setq props (plist-put props :color (etaf-ui-markdown--run-ink env)))
+        (setq props (plist-put props :background-color
+                               (etaf-ui-markdown--run-soft-fill env variant)))
         (setq props (plist-put props :font-weight 'bold))))
     props))
 
-(defun etaf-ui-markdown--mark-fill (class)
-  "Return the Theme fill behind a marker CLASS.
-A marker is a highlighter, so its default is the warning pair rather than
-the page surface; a named class chooses its own semantic pair.  The colours
-follow a theme switch with the rest of the page."
-  (let ((variant (pcase (and class (downcase class))
-                   ((or "warning" "warn" "caution") 'warning)
-                   ((or "danger" "error" "important") 'danger)
-                   ((or "success") 'success)
-                   ((or "tip" "info" "note") 'info)
-                   (_ 'warning))))
-    (nth 1 (etaf-ui--feedback-theme variant))))
+(defun etaf-ui-markdown--palette-value (palette key)
+  "Return KEY's colour from PALETTE, in alist or plist form."
+  (or (alist-get key palette) (plist-get palette key)))
+
+(defun etaf-ui-markdown--run-soft-fill (env variant)
+  "Return the page palette's soft fill for VARIANT in ENV.
+A highlight, a key cap and a badge are fills behind text, so they read the
+page's own soft colours.  A palette without them falls back to its panel, so
+the run keeps a surface instead of nothing."
+  (let ((palette (plist-get env :palette)))
+    (pcase variant
+      ('warning (or (etaf-ui-markdown--palette-value palette :warn-soft)
+                    (etaf-ui-markdown--palette-value palette :panel)))
+      ('danger (or (etaf-ui-markdown--palette-value palette :danger-soft)
+                   (etaf-ui-markdown--palette-value palette :panel)))
+      ('success (or (etaf-ui-markdown--palette-value palette :ok-soft)
+                    (etaf-ui-markdown--palette-value palette :panel)))
+      ('info (or (etaf-ui-markdown--palette-value palette :accent-soft)
+                 (etaf-ui-markdown--palette-value palette :panel)))
+      (_ (or (etaf-ui-markdown--palette-value palette :panel)
+             (etaf-ui-markdown--palette-value palette :panel2))))))
+
+(defun etaf-ui-markdown--run-ink (env)
+  "Return the page ink a filled run writes with.
+The soft fills are built for the page ink in both palettes, so a run never
+needs a second semantic colour of its own."
+  (let ((palette (plist-get env :palette)))
+    (or (etaf-ui-markdown--palette-value palette :ink)
+        (etaf-ui-markdown--palette-value palette :fg))))
 
 (defun etaf-ui-markdown--badge-variant (class)
   "Return the badge variant named by CLASS."
