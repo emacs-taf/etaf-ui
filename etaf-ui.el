@@ -766,6 +766,22 @@
 ;; Panel supplies a header slot; Card instead supplies a description prop.
 ;; Use inside (etaf-view (etaf-panel ...)); keyword arguments are component props.
 
+
+;; Component: etaf-drop-zone (&key side label ratio cols rows accent width ref)
+;; Parameters:
+;; :side — nil, `top', `bottom', `left', `right' or `center'.
+;; :label — Optional string naming the dragged thing.
+;; :ratio — Share of the pane the preview takes; default 0.5.
+;; :cols, :rows — The pane's cell size, so the preview frame is exact.
+;; :accent — Optional colour for the preview; default the warning ink.
+;; :width — Host length; default `stretch'.
+;; :ref — Optional Host reference.
+;;
+;; Render a pane with a drop preview on SIDE. The default slot is the pane
+;; body; with SIDE nil it is painted unchanged. The preview occupies exactly
+;; the half a release would take and names the dragged thing, so nothing
+;; moves again when the pointer lets go.
+
 ;; Component: etaf-edge-panel (&key title status variant focus width ref)
 ;; Parameters:
 ;; :title — Optional string; default nil. Painted in the first row, on the rule.
@@ -2045,6 +2061,7 @@ nothing about where the package directory is.")
   (add-to-list 'load-path (expand-file-name "lisp" etaf-ui--root)))
 
 (require 'etaf-ui-basic)
+(require 'etaf-ui-drop)
 (require 'etaf-ui-edge)
 (require 'etaf-ui-pane)
 (require 'etaf-ui-icon)

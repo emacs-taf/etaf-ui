@@ -16,6 +16,11 @@
 - `etaf-braille-chart` plots a series on a 2x4 dot grid per cell, so the line
   stays thin and copies as text.
 
+- `etaf-drop-zone` answers where a drag will land before the release: the half
+  the release would take is tinted with the accent colour, framed with a dashed
+  rule and named after the dragged thing, so the layout does not move again when
+  the pointer lets go.
+
 - A fenced code block reads plume's fence options: `title=` names it,
   `:line-numbers[=N]` numbers its rows, `{1,4-7}` and a trailing
   `[!code highlight|focus|++|--|warning|error]` paint rows, and the header
