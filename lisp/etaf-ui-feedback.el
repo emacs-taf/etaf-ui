@@ -6,6 +6,7 @@
 ;; Presentational Components share semantic Theme tokens and caller-owned values.
 
 ;;; Code:
+(require 'cl-lib)
 (require 'etaf-ui-basic)
 
 (declare-function etaf-ui-icon-lines "etaf-ui" (name &rest options))
@@ -101,12 +102,26 @@
                         :on-press on-dismiss))))))))
 
 (etaf-define-component etaf-statistic (&key label value trend)
-  "Render a three-line metric; callers own its container spacing and surface."
-  :view
-  (column :class "etaf-statistic"
-    (etaf-label :text label :variant 'muted)
-    (etaf-label :text value :variant 'heading)
-    (etaf-label :text trend :variant 'success)))
+  "Render a metric as a small panel: a muted caption, the figure, a trend.
+The panel owns its surface and spacing so a row of metrics lines up; the
+caller decides the width."
+  :validate
+  (etaf-check-prop :trend trend (or (null trend) (stringp trend))
+                   "a string or nil" 'etaf-statistic)
+  :render
+  (let ((muted (etaf-theme-token :ui-muted-fg "#687386")))
+    (etaf-view
+     (column :class "etaf-statistic" :width 'stretch
+             :item-gap '(lh 0)
+             :padding '((lh 1) (ch 2))
+              :background-color (etaf-theme-token :ui-panel-bg "#F6F7F9")
+             :border (etaf-ui--style-border
+                      (etaf-theme-token :ui-panel-border "#D9DDE3"))
+       (etaf-label :text label :variant 'muted)
+       (text :font-weight 'bold :color muted
+         (expr (or value "")))
+       (expr (when trend
+               (etaf-view (etaf-label :text trend :variant 'success))))))))
 
 (etaf-define-component etaf-empty
     (&key (title "Nothing here") description action-label on-action)
@@ -128,17 +143,26 @@
   (box :class "etaf-skeleton" :width width :height height
        :background-color (etaf-theme-token :ui-progress-track "#E2E8F0")))
 
-(etaf-define-component etaf-card (&key title description (variant 'default))
-  "Render a reusable surface with optional TITLE and DESCRIPTION slots."
+(etaf-define-component etaf-card
+    (&key title description (variant 'default) (width 'stretch)
+          (text-align 'start) on-press)
+  "Render a reusable surface with optional TITLE and DESCRIPTION slots.
+WIDTH sizes the card, TEXT-ALIGN places its content and ON-PRESS makes the
+whole surface activate; the border, fill and padding stay the card's own."
+  :validate
+  (etaf-check-prop :on-press on-press (or (null on-press) (functionp on-press))
+                   "a function or nil" 'etaf-card)
   :render
   (let ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border)))
     (etaf-view
-     (column :class (format "etaf-card %s" variant) :width 'stretch
+     (column :class (format "etaf-card %s" variant) :width width
+             :cross-align text-align
+             :on-press on-press
              :padding '((lh 1) (ch 2))
+             :item-gap '(lh 1)
              :color (plist-get theme :ui-panel-fg)
              :background-color (plist-get theme :ui-panel-bg)
              :border (etaf-ui--style-border (plist-get theme :ui-panel-border))
-             :item-gap '(lh 1)
        (expr (when title (etaf-view (etaf-label :text title :variant 'strong))))
        (expr (when description (etaf-view (etaf-label :text description :variant 'muted))))
        (expr (etaf-current-slot 'default))))))
@@ -255,24 +279,92 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
               :border (unless background (nth 2 theme))
            (text (expr initials))))))))
 
-(etaf-define-component etaf-timeline (&key items)
-  "Render chronological ITEMS with :title, :content and optional :status."
+(defun etaf-ui--timeline-marker (list-style index)
+  "Return the timeline marker LIST-STYLE draws at INDEX."
+  (pcase list-style
+    ('decimal (format "%d." index))
+    ('bullet "o")
+    (_ "")))
+
+(defun etaf-ui--dot-view (color)
+  "Return a small round marker drawn in COLOR.
+A text grid has no pixel-height box, so the dot is the glyph itself: it keeps
+the line height and sits on the baseline the label uses."
+  (etaf-node 'text (list :color color) (list "*")))
+
+(defun etaf-ui--status-token (status)
+  "Return the Theme colour STATUS names, or the accent colour."
+  (pcase status
+    ('success (etaf-theme-token :ui-success-fg "#15803D"))
+    ('warning (etaf-theme-token :ui-warning-fg "#B45309"))
+    ('danger (etaf-theme-token :ui-danger-fg "#B91C1C"))
+    ('info (etaf-theme-token :ui-info-fg "#0369A1"))
+    (_ (etaf-theme-token :ui-accent "#2563EB"))))
+
+(defun etaf-ui--timeline-item (item index list-style)
+  "Return timeline ITEM at INDEX rendered under LIST-STYLE.
+The time sits below the content, the way a chronology reads: title, what
+happened, when.  A left rail joins the entries, and each entry owns a dot in
+the colour its STATUS names."
+  (let ((time (plist-get item :time))
+        (status (plist-get item :status))
+        (title (plist-get item :title))
+        (content (plist-get item :content))
+        (muted (etaf-theme-token :ui-muted-fg "#687386")))
+    (etaf-view
+     (flex :class "etaf-timeline-item" :width 'stretch
+           :gap '((lh 0) (ch 1)) :align-items 'start
+       (box :class "etaf-timeline-marker" :width '(ch 2)
+         (expr
+          (pcase list-style
+            ('decimal
+             (etaf-view
+              (etaf-label :text (etaf-ui--timeline-marker list-style index)
+                          :variant 'muted)))
+            ('bullet
+             (etaf-ui--dot-view
+              (if status (etaf-ui--status-token status)
+                (etaf-theme-token :ui-accent "#2563EB"))))
+            (_ nil))))
+       (column :class "etaf-timeline-body" :width 'stretch
+               :item-gap '(lh 0)
+               :border-left (etaf-ui--style-border muted)
+               :padding '((lh 0) (ch 2) (lh 1) (ch 2))
+         (flex :width 'stretch :gap '((lh 0) (ch 1)) :align-items 'center
+           (etaf-label :text title :variant 'strong)
+           (expr (when status
+                   (etaf-view (etaf-badge :text status :variant 'info)))))
+         (expr
+          (cond ((functionp content) (funcall content))
+                ((stringp content)
+                 (etaf-view (etaf-label :text content :variant 'default)))))
+         (expr (when time
+                 (etaf-view
+                  (etaf-label :text time :variant 'muted)))))))))
+
+(etaf-define-component etaf-timeline
+    (&key items (list-style 'bullet) (start 1))
+  "Render chronological ITEMS with :title, :content and optional :time, :status.
+An item with TIME shows it above its title.  STATUS, when present, becomes the
+leading badge; otherwise LIST-STYLE picks the marker, starting at START.  A
+CONTENT that is a function is called for a View, so a caller can compose a
+whole block under the title."
   :validate
-  (etaf-check-prop :items items (and (proper-list-p items) items)
-                   "a nonempty list of item plists" 'etaf-timeline)
+  (progn
+    (etaf-check-prop :items items (and (proper-list-p items) items)
+                     "a nonempty list of item plists" 'etaf-timeline)
+    (etaf-check-prop :list-style list-style (memq list-style '(decimal bullet none))
+                     "decimal, bullet or none" 'etaf-timeline)
+    (etaf-check-prop :start start (and (integerp start) (>= start 0))
+                     "a non-negative integer" 'etaf-timeline))
   :render
   (etaf-view
-   (column :class "etaf-timeline" :width 'stretch :item-gap '(lh 1)
+   (column :class "etaf-timeline" :width 'stretch :item-gap '(lh 0)
      (expr
-      (mapcar
-       (lambda (item)
-         (etaf-view
-          (row :item-gap '(ch 1)
-            (etaf-badge :text (or (plist-get item :status) "Update") :variant 'info)
-            (column :item-gap '(lh 0)
-              (etaf-label :text (plist-get item :title) :variant 'strong)
-              (etaf-label :text (plist-get item :content) :variant 'muted)))))
-       items)))))
+      (cl-loop
+       for item in items
+       for index from start
+       collect (etaf-ui--timeline-item item index list-style))))))
 
 (etaf-define-component etaf-tag
     (&key text (variant 'neutral) closable on-close)
@@ -365,18 +457,22 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
   "Keycap sizes: an action key is one row high, a region key is a square.")
 
 (etaf-define-component etaf-keycap
-    (&key text (level 'action) label active disabled on-press aria-label help-echo)
+    (&key text (level 'action) label active disabled on-press aria-label help-echo
+          (variant 'outline))
   "Render keycap TEXT at action or region LEVEL with an optional caption LABEL.
 
-Both levels keep the frame's own type size.  A cap is a soft chip: a filled
-rounded block with one cell of inline padding and no outline, so a header full
-of hints reads as text rather than as a row of boxes.  The region level is the
-same chip, bold, and fills with the accent while its region holds the
-keyboard."
+Both levels keep the frame's own type size.  VARIANT picks how the cap is
+painted: `filled' is a soft chip with one cell of inline padding and no
+outline, which keeps a header full of hints reading as text; `outline' draws
+the same cap as a hairline box with no fill, so a row of keys reads as keys.
+The region level is bold in both variants and fills with the accent while its
+region holds the keyboard."
   :validate
   (progn
     (etaf-check-prop :text text (and (stringp text) (not (string-empty-p text)))
                      "a nonempty string" 'etaf-keycap)
+    (etaf-check-prop :variant variant (memq variant '(filled outline))
+                     "filled or outline" 'etaf-keycap)
     (etaf-check-prop :level level (memq level etaf-keycap-levels)
                      "action or region" 'etaf-keycap)
     (etaf-check-prop :label label (or (null label) (stringp label))
@@ -390,12 +486,20 @@ keyboard."
          (accent (etaf-theme-token :ui-accent
                                    (plist-get etaf-ui--style-palette :ui-accent)))
          (regionp (eq level 'region))
-         (fill (cond (disabled (etaf-ui-color-mix bg fg 0.04))
+         (outlinep (eq variant 'outline))
+         (fill (cond (outlinep nil)
+                     (disabled (etaf-ui-color-mix bg fg 0.04))
                      ((and regionp active) accent)
                      (regionp (etaf-ui-color-mix bg fg 0.12))
                      (t (etaf-ui-color-mix bg fg 0.08))))
+         (edge (cond (disabled (etaf-ui-color-mix bg fg 0.10))
+                     ((and regionp active) accent)
+                     (t (etaf-ui-color-mix bg fg 0.22))))
          (ink (cond (disabled (etaf-ui-color-mix fg bg 0.45))
-                    ((and regionp active) bg)
+                    ((and regionp active) (if outlinep accent bg))
+                    ((and outlinep regionp) fg)
+                    (outlinep (etaf-theme-token :ui-muted-fg
+                                                (plist-get etaf-ui--style-palette :ui-muted-fg)))
                     (regionp fg)
                     (t (etaf-theme-token :ui-muted-fg
                                          (plist-get etaf-ui--style-palette :ui-muted-fg))))))
@@ -419,6 +523,7 @@ keyboard."
              :min-height '(lh 1)
              :padding-inline (unless regionp '(ch 1))
              :background-color fill
+             :border (when outlinep (etaf-ui--style-border edge))
              :border-radius '(px 3)
          (text :font-weight (if regionp 'bold 'normal) :color ink
                (expr text)))

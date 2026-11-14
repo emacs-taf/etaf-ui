@@ -1460,12 +1460,15 @@
 ;; the footer cancel button request ON-CLOSE.  The component sends no request
 ;; and asks for no credentials; mount it as the application shell's last child.
 ;;
-;; Component: etaf-tabs (&key items active on-change variant)
+;; Component: etaf-tabs (&key items active on-change variant framed)
 ;; Parameters:
 ;; :items — Required nonempty plist list; unique scalar :key and nonempty unique :label; optional scalar :count and symbol :ref.
 ;; :active — Required key/ref/computed present in :items. Selected tab.
 ;; :on-change — Required function (key). Caller updates selection and content.
 ;; :variant — Optional style name; default underline. Adds a class; selection paint is shared across variants.
+;; :framed — Optional boolean; default t. The strip draws its own outer frame; nil leaves every outer edge to a surrounding panel and keeps only the dividers.
+;;
+;; The strip is one Tab stop, entered at the selected tab; Left/Right move focus inside it and RET selects.  At either end the key is consumed.
 ;;
 ;; Render controlled tabs from unique scalar keys and labels.  An item may
 ;; carry a scalar :count and a symbol :ref, so callers can address a tab by

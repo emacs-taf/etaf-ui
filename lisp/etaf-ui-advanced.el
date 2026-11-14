@@ -45,39 +45,51 @@ it."
      nil)))
 
 (defun etaf-ui--tree-items (items expanded)
-  "Validate all ITEMS and return visible entries under EXPANDED keys."
+  "Validate all ITEMS and return visible entries under EXPANDED keys.
+Each entry carries its depth, whether it is a branch, whether it is the last
+of its siblings, and the guide a line-drawing caller puts before its label."
   (let ((seen (make-hash-table :test #'equal)))
     (cl-labels
-        ((walk (nodes depth visible)
+        ((walk (nodes depth visible guide)
            (etaf-check-prop :items nodes (proper-list-p nodes)
                             "a list of tree items" 'etaf-tree)
-           (cl-mapcan
-            (lambda (item)
-              (etaf-check-prop
-               :items item
-               (and (proper-list-p item) (zerop (% (length item) 2))
-                    (plist-get item :key)
-                    (let ((key (plist-get item :key)))
-                      (or (symbolp key) (stringp key) (numberp key)))
-                    (stringp (plist-get item :label))
-                    (not (string-empty-p (plist-get item :label)))
-                    (not (gethash (plist-get item :key) seen)))
-               "items with globally unique scalar keys and nonempty labels" 'etaf-tree)
-              (let* ((key (plist-get item :key))
-                     (children (plist-get item :children)))
-                (puthash key t seen)
-                (append
+           (let ((entries nil)
+                 (index 0)
+                 (count (length nodes)))
+             (dolist (item nodes (nreverse entries))
+               (etaf-check-prop
+                :items item
+                (and (proper-list-p item) (zerop (% (length item) 2))
+                     (plist-get item :key)
+                     (let ((key (plist-get item :key)))
+                       (or (symbolp key) (stringp key) (numberp key)))
+                     (stringp (plist-get item :label))
+                     (not (string-empty-p (plist-get item :label)))
+                     (not (gethash (plist-get item :key) seen)))
+                "items with globally unique scalar keys and nonempty labels" 'etaf-tree)
+               (let* ((key (plist-get item :key))
+                      (children (plist-get item :children))
+                      (last (= index (1- count))))
+                 (setq index (1+ index))
+                 (puthash key t seen)
                  (when visible
-                   (list (list :key key :label (plist-get item :label)
-                               :depth depth :branch (and children t))))
-                 (walk children (1+ depth) (and visible (member key expanded))))))
-            nodes)))
-      (walk items 0 t))))
+                   (push (list :key key :label (plist-get item :label)
+                               :depth depth :branch (and children t)
+                               :last last :guide guide)
+                         entries))
+                 (dolist (child (walk children (1+ depth)
+                                      (and visible (member key expanded))
+                                      (concat guide (if last "   " "│  "))))
+                   (push child entries)))))))
+      (walk items 0 t ""))))
 
-(etaf-define-component etaf-tree (&key items expanded on-toggle on-select)
+(etaf-define-component etaf-tree
+    (&key items expanded on-toggle on-select lines)
   "Render a controlled TREE with nested :children item plists.
 EXPANDED is a caller-owned list of open keys; callbacks receive a key or the
-next expanded key list."
+next expanded key list.  LINES draws box-drawing guides instead of disclosure
+arrows; a tree without callbacks is static and draws plain labels, so a
+document can show a directory without adding tab stops."
   :validate
   (progn
     (etaf-check-prop :items items (and (proper-list-p items) items)
@@ -85,7 +97,9 @@ next expanded key list."
     (etaf-check-prop :on-toggle on-toggle (or (null on-toggle) (functionp on-toggle))
                      "a function or nil" 'etaf-tree)
     (etaf-check-prop :on-select on-select (or (null on-select) (functionp on-select))
-                     "a function or nil" 'etaf-tree))
+                     "a function or nil" 'etaf-tree)
+    (etaf-check-prop :lines lines (or (null lines) (eq lines t))
+                     "a boolean" 'etaf-tree))
   :render
   (let* ((expanded (etaf-ui--reactive-value expanded))
          (_ (etaf-check-prop :expanded expanded (proper-list-p expanded)
@@ -93,44 +107,51 @@ next expanded key list."
          (flat (etaf-ui--tree-items items expanded)))
     (etaf-view
      (column :class "etaf-tree" :width 'stretch :item-gap '(lh 0)
-             :focus-group 'vertical
+             :focus-group (unless (and lines (null on-toggle)) 'vertical)
        (expr
         (mapcar
          (lambda (entry)
            (let* ((key (plist-get entry :key))
                   (branch (plist-get entry :branch))
                   (open (member key expanded))
-                  (prefix (make-string (* 2 (plist-get entry :depth)) ?\s))
-                  (caption (concat prefix
-                                   (if branch
-                                       (etaf-ui--disclosure-label
-                                        (plist-get entry :label)
-                                        (if open 'chevron-down 'chevron-right) t)
-                                     (concat "  " (plist-get entry :label)))))
+                  (guide (plist-get entry :guide))
+                  (caption (concat
+                            (if lines
+                                (concat guide (if (plist-get entry :last) "└─ " "├─ "))
+                              (make-string (* 2 (plist-get entry :depth)) ?\s))
+                            (if lines
+                                (plist-get entry :label)
+                              (if branch
+                                  (etaf-ui--disclosure-label
+                                   (plist-get entry :label)
+                                   (if open 'chevron-down 'chevron-right) t)
+                                (concat "  " (plist-get entry :label))))))
                   (toggle (lambda ()
                             (when on-toggle
                               (funcall on-toggle
                                        (if open (delete key (copy-sequence expanded))
                                          (cons key (copy-sequence expanded))))))))
-             (etaf-view
-              (etaf-button :label caption :variant 'ghost :aria-selected (and open t)
-                           :aria-label (plist-get entry :label)
-                           :aria-expanded (and branch (if open t 'false))
-                           ;; Right opens and left closes a branch in place.
-                           :on-direction
-                           (when (and branch on-toggle)
-                             (lambda (direction)
-                               (pcase direction
-                                 ('right (if open 'release
-                                           (funcall toggle) 'handled))
-                                 ('left (if open (progn (funcall toggle) 'handled)
-                                         'release))
-                                 (_ 'release))))
-                           :on-press
-                           (lambda ()
-                             (if branch
-                                 (funcall toggle)
-                               (when on-select (funcall on-select key))))))))
+             (if (and lines (null on-toggle) (null on-select))
+                 (etaf-view (etaf-label :text caption :variant 'default))
+               (etaf-view
+                (etaf-button :label caption :variant 'ghost :aria-selected (and open t)
+                             :aria-label (plist-get entry :label)
+                             :aria-expanded (and branch (if open t 'false))
+                             ;; Right opens and left closes a branch in place.
+                             :on-direction
+                             (when (and branch on-toggle)
+                               (lambda (direction)
+                                 (pcase direction
+                                   ('right (if open 'release
+                                             (funcall toggle) 'handled))
+                                   ('left (if open (progn (funcall toggle) 'handled)
+                                           'release))
+                                   (_ 'release))))
+                             :on-press
+                             (lambda ()
+                               (if branch
+                                   (funcall toggle)
+                                 (when on-select (funcall on-select key)))))))))
          flat))))))
 
 (etaf-define-component etaf-calendar

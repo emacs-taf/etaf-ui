@@ -4,6 +4,14 @@
 
 ### Added
 
+- The collection and navigation parts now draw the shape their names promise.
+  `etaf-tabs` is one segmented bar with a filled selection and a single Tab
+  stop: Left and Right move focus inside it and RET selects, and either end
+  consumes the key instead of ringing.  Steps carry a numbered rail and body
+  content, a timeline shows its time and composes whole blocks, a tree can
+  draw guides, a metric is a panel, and a card takes a width, alignment and
+  press handler.  The old props keep their meaning.
+
 - A code block keeps its syntax colours readable on the page it is painted
   on: the colours come from the frame's own faces, which a light page can
   swallow, so each one is passed through `etaf-ui-color-legible' against the
