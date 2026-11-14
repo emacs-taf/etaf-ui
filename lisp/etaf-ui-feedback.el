@@ -290,7 +290,7 @@ height; BACKGROUND replaces VARIANT's colors with white initials on it."
   "Return a small round marker drawn in COLOR.
 A text grid has no pixel-height box, so the dot is the glyph itself: it keeps
 the line height and sits on the baseline the label uses."
-  (etaf-node 'text (list :color color) (list "*")))
+  (etaf-node 'text (list :color color) (list "•")))
 
 (defun etaf-ui--status-token (status)
   "Return the Theme colour STATUS names, or the accent colour."
