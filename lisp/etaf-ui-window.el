@@ -372,7 +372,7 @@ not change geometry; callers update their X/Y refs (or use an ETAF Behavior).
 MODE selects the Zoom action's transition and the chrome's mode class; a
 reactive MODE updates both without rebuilding the title bar.  Named `actions'
 and default slots are projected after the built-in controls.  TITLE-FONT-SIZE
-is nil to inherit typography, or a positive CSS pixel size."
+is nil to inherit typography, or a size ratio (1 is body text)."
   :validate
   (progn
     (etaf-check-prop :mode mode
@@ -396,8 +396,8 @@ is nil to inherit typography, or a positive CSS pixel size."
                      "nil or a supported modifier" 'etaf-window-chrome)
     (etaf-check-prop :title-font-size title-font-size
                      (or (null title-font-size)
-                         (and (numberp title-font-size) (> title-font-size 0)))
-                     "nil or a positive CSS pixel size" 'etaf-window-chrome)
+                         (and (numberp title-font-size) (<= 0.3 title-font-size) (<= title-font-size 4)))
+                     "nil or a size ratio (1 is body text)" 'etaf-window-chrome)
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-window-chrome)
@@ -471,7 +471,7 @@ supplied, owns the panel's first row between the corner cells; HEADER-STYLE
 presents those corner cells like the header so its background and rule stay
 closed across the row.  No geometry, constraints, z-order or interaction
 state is retained by this Component.  FONT-SIZE is nil to inherit typography,
-or a positive CSS pixel size; FONT-FAMILY likewise inherits when nil."
+or a size ratio (1 is body text); FONT-FAMILY likewise inherits when nil."
   :validate
   (progn
     (etaf-check-prop :position position (memq position '(absolute relative))
@@ -514,8 +514,8 @@ or a positive CSS pixel size; FONT-FAMILY likewise inherits when nil."
                      "nil or a supported modifier" 'etaf-resizable-panel)
     (etaf-check-prop :font-size font-size
                      (or (null font-size)
-                         (and (numberp font-size) (> font-size 0)))
-                     "nil or a positive CSS pixel size" 'etaf-resizable-panel)
+                         (and (numberp font-size) (<= 0.3 font-size) (<= font-size 4)))
+                     "nil or a size ratio (1 is body text)" 'etaf-resizable-panel)
     (etaf-check-prop :font-family font-family
                      (or (null font-family) (stringp font-family))
                      "a string or nil" 'etaf-resizable-panel))
@@ -606,7 +606,7 @@ With focus anywhere in the window, M-arrows move it through the title bar's
 handlers and M-S-arrows resize it through the right/bottom handles.
 ON-FOCUS runs for a press in the body and whenever focus enters the window.
 TITLE-FONT-SIZE and CONTENT-FONT-SIZE independently inherit when nil (the
-default), or accept positive CSS pixel sizes.  FONT-FAMILY inherits when nil.
+default), or accept size ratios.  FONT-FAMILY inherits when nil.
 Slots are
 `header' (extra title-bar content), `actions' (extra title-bar actions),
 `default' (window body) and `footer'.  The default slot is wrapped in one
@@ -640,12 +640,12 @@ sit in the title row or in the content's own margin."
                      "a boolean" 'etaf-window)
     (etaf-check-prop :title-font-size title-font-size
                      (or (null title-font-size)
-                         (and (numberp title-font-size) (> title-font-size 0)))
-                     "nil or a positive CSS pixel size" 'etaf-window)
+                         (and (numberp title-font-size) (<= 0.3 title-font-size) (<= title-font-size 4)))
+                     "nil or a size ratio (1 is body text)" 'etaf-window)
     (etaf-check-prop :content-font-size content-font-size
                      (or (null content-font-size)
-                         (and (numberp content-font-size) (> content-font-size 0)))
-                     "nil or a positive CSS pixel size" 'etaf-window)
+                         (and (numberp content-font-size) (<= 0.3 content-font-size) (<= content-font-size 4)))
+                     "nil or a size ratio (1 is body text)" 'etaf-window)
     (etaf-check-prop :full-bleed full-bleed (booleanp full-bleed)
                      "a boolean" 'etaf-window)
     (etaf-check-prop :font-family font-family
