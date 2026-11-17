@@ -289,7 +289,7 @@ callbacks even with equal contents; its stable key preserves cell state."
       :row-ref row-ref :on-row-press on-row-press
       :row-selected-p row-selected-p))))
 
-(etaf-define-component etaf-list (&key items on-select)
+(etaf-define-component etaf-list (&key items on-select checkbox selected)
   "Render a list of item plists with :title and optional :description."
   :validate
   (progn
@@ -304,31 +304,72 @@ callbacks even with equal contents; its stable key preserves cell state."
                               (stringp (plist-get item :title))
                               (not (string-empty-p (plist-get item :title)))
                               (or (null (plist-get item :description))
-                                  (stringp (plist-get item :description))))
-                         "items with unique :key, string :title and optional string :description"
+                                  (stringp (plist-get item :description)))
+                              (or (null (plist-get item :meta))
+                                  (stringp (plist-get item :meta)))
+                              (or (null (plist-get item :checked))
+                                  (booleanp (plist-get item :checked))))
+                         "items with unique :key, string :title and optional string :description, string :meta, boolean :checked"
                          'etaf-list)
-        (push (plist-get item :key) keys)))
+        (push (plist-get item :key) keys))
+      (etaf-check-prop :selected selected
+                       (or (null selected) (member selected keys))
+                       "nil or the :key of one item" 'etaf-list))
     (etaf-check-prop :on-select on-select (or (null on-select) (functionp on-select))
-                     "a function or nil" 'etaf-list))
+                     "a function or nil" 'etaf-list)
+    (etaf-check-prop :checkbox checkbox (or (null checkbox) (booleanp checkbox))
+                     "a boolean or nil" 'etaf-list))
   :render
-  (etaf-view
-   (column :class "etaf-list" :width 'stretch :item-gap '(lh 1)
-           :focus-group 'vertical
-     (expr
-      (mapcar
-       (lambda (item)
-         (etaf-view
-          (etaf-button
-           :key (plist-get item :key) :label (plist-get item :title)
-           :variant 'ghost :width 'stretch
-           :on-press (and on-select
-                          (lambda () (funcall on-select (plist-get item :key))))
-           (etaf-label :text (plist-get item :title) :variant 'strong)
-           (expr (when (plist-get item :description)
-                   (etaf-view
-                    (etaf-label :text (plist-get item :description)
-                                :variant 'muted :wrap-mode 'word)))))))
-       items)))))
+  (let* ((theme (etaf-ui--style-tokens
+                 :ui-muted-fg :ui-accent
+                 :ui-table-selected-bg :ui-table-selected-fg))
+         (muted (plist-get theme :ui-muted-fg)))
+    (etaf-view
+     (flex :class "etaf-list" :flex-direction 'column
+             :align-items 'stretch :width 'stretch :gap '((lh 0) (ch 0))
+             :focus-group 'vertical
+       (expr
+        (mapcar
+         (lambda (item)
+           (let* ((key (plist-get item :key))
+                  (current (and selected (equal key selected)))
+                  (checked (plist-get item :checked))
+                  (meta (plist-get item :meta)))
+             (etaf-view
+              (row :key key
+                   :class (etaf-ui--class-value
+                           "etaf-list-row"
+                           (cond ((and current checked) "selected done")
+                                 (current "selected")
+                                 (checked "idle done")
+                                 (t "idle"))
+                           nil)
+                   :width 'stretch :role 'button :tab-index 0
+                   :aria-label (plist-get item :title)
+                   :color (and current (plist-get theme :ui-table-selected-fg))
+                   :background-color (and current
+                                          (plist-get theme :ui-table-selected-bg))
+                   :on-press (and on-select
+                                  (lambda () (funcall on-select key)))
+                (expr (when checkbox
+                        (etaf-view
+                         (text :color (cond (checked muted)
+                                            (current (plist-get theme :ui-accent))
+                                            (t muted))
+                               (expr (concat (if checked "[x]" "[ ]") " "))))))
+                (text :color (and checked muted)
+                      (expr (plist-get item :title)))
+                (expr (when (plist-get item :description)
+                        (etaf-view
+                         (text :color muted
+                               (expr (concat "  " (plist-get item :description)))))))
+                (box :flex-grow 1 :flex-basis '(ch 0) :min-width '(px 0) "")
+                (expr (when meta
+                        (etaf-view (text :color muted (expr meta)))))))))
+         items)))))
+  :styles
+  ((".etaf-list-row" :min-height (lh 1) :padding ((lh 0) (ch 1)))
+   (".etaf-list-row.done" :text-decoration-line (line-through))))
 
 (provide 'etaf-ui-table)
 ;;; etaf-ui-table.el ends here

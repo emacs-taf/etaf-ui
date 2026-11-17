@@ -112,6 +112,12 @@
 
 ### Changed
 
+- `etaf-list` rows carry a `[ ]`/`[x]` checkbox column, a right-aligned
+  `:meta` value and a selected row, so a caller that needs a done mark, a
+  trailing value or a current entry no longer rebuilds the list out of rows.
+  The item plist takes `:checked` and `:meta`, the component takes `:checkbox`
+  and `:selected`, and a checked row greys its title and strikes it through.
+
 - A soft line break inside a paragraph paints a space, the way CommonMark reads
   a source line end: the paragraph flows and wraps at the page's width instead
   of keeping one row per source line.  A hard break, written with two trailing
