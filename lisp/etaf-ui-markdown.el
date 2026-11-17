@@ -53,38 +53,29 @@ requiring every palette to name a color it never wanted to choose."
         (etaf-ui-markdown--env-color env fallback-key))))
 
 (defun etaf-ui-markdown--mono-family ()
-  "Return the family of the frame's fixed-pitch font, or nil.
-A frame whose fixed-pitch face inherits the default family yields nil, and
-code spans then use the frame's own font instead of guessing a family."
-  (let ((family (face-attribute 'fixed-pitch :family nil t)))
+  "Return the family code spans paint with, or nil for the body family.
+A theme provides `:font-mono' when it wants code set apart.  Without that
+token the body family is the honest default: Emacs's `fixed-pitch' face
+names the generic family \"Monospace\", which no font backs on Windows, so
+code silently switched to Courier at a different size."
+  (let ((family (etaf-theme-token :font-mono nil)))
     (and (stringp family) (not (string-empty-p family)) family)))
 
-(defun etaf-ui-markdown--base-pixels ()
-  "Return the pixel height of the frame's default font.
-The page draws its body with that font, so every size it derives is a multiple
-of this number: a heading of twice the body is twice this.  Emacs reports the
-font in points, and how many pixels a point is belongs to the frame, so the
-frame's own measured height is read instead of converting through 96 dpi."
-  (or (ignore-errors (window-font-height))
-      (let ((height (face-attribute 'default :height nil t)))
-        (if (numberp height)
-            (max 8 (round (/ (* height 4.0) 30.0)))
-          16.0))))
-
-(defun etaf-ui-markdown--heading-pixels (level)
-  "Return the heading font size for LEVEL.
+(defun etaf-ui-markdown--heading-ratio (level)
+  "Return the heading size for LEVEL as a multiple of the body size.
 The steps are the ones a markdown page uses on the web, so a document reads at
 the rank it was written in: level 1 is twice the body, level 2 one and a half,
 level 3 one and a quarter, and level 4 a little above the body.  Levels 5 and 6
 keep the body size, because a heading is never painted smaller than the text it
-introduces, and their muted colour tells them apart instead."
-  (let ((base (etaf-ui-markdown--base-pixels)))
-    (round (pcase level
-             (1 (* base 2.0))
-             (2 (* base 1.5))
-             (3 (* base 1.25))
-             (4 (* base 1.1))
-             (_ base)))))
+introduces, and their muted colour tells them apart instead.  A ratio follows
+the reader's default font on any platform instead of assuming a body size in
+CSS pixels."
+  (pcase level
+    (1 2.0)
+    (2 1.5)
+    (3 1.25)
+    (4 1.1)
+    (_ 1.0)))
 
 (defun etaf-ui-markdown--divider (&optional label)
   "Return a horizontal divider View, optionally labeled."
@@ -408,7 +399,7 @@ BASE is a run-attribute plist (`:bold', `:italic', `:strike', `:code',
                (append
                 (list :color (etaf-ui-markdown--env-color env :accent))
                 (unless (plist-get env :line-grid)
-                  (list :font-size (round (* (etaf-ui-markdown--base-pixels) 0.8))))
+                  (list :font-size 0.8))
                 (list :role 'link :tab-index 0
                      :help-echo (format "Footnote %s" label)
                      :on-press (lambda ()
@@ -445,7 +436,7 @@ body color."
           (etaf-ui-markdown--runs-view
            (plist-get block :children) env (list :bold t)
            (append (unless grid
-                     (list :font-size (etaf-ui-markdown--heading-pixels level)))
+                     (list :font-size (etaf-ui-markdown--heading-ratio level)))
                    (list :color color)))))
     (etaf-node 'box
                (append

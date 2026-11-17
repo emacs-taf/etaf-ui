@@ -22,8 +22,7 @@
 
 (ert-deftest etaf-ui-window-fonts-inherit-and-override-independently ()
   "Window text and controls inherit unless their own region overrides it."
-  (dolist (sizes '((nil nil 180 180) (16 nil 120 180)
-                   (nil 20 180 150) (16 20 120 150)))
+  (dolist (sizes '((nil nil) (1.0 nil) (nil 0.8) (1.0 0.8)))
     (let ((buffer (generate-new-buffer " *etaf-ui-font-window*")))
       (unwind-protect
           (progn
@@ -31,7 +30,7 @@
              buffer
              (etaf-node
               'box '(:position relative :width (ch 100) :height (lh 25)
-                      :font-size 24 :font-family "Monospace")
+                      :font-size 1.5 :font-family "Monospace")
               (list
                (etaf-node
                 'etaf-window
@@ -40,22 +39,26 @@
                 (list (etaf-view
                        (column
                         (etaf-label :text "BodyLabel")
+                        (text :font-size 1.0 "BodyRef")
                         (etaf-label :text "BodyHeading" :variant 'heading)
                         (etaf-button :label "BodyButton")
                         (etaf-text-input :value "BodyInput" :hide-label t))))
                 (list (cons 'footer (list (etaf-view (text "BodyFooter")))))))))
-            (should (= (nth 2 sizes)
-                       (etaf-ui-test-font-property buffer "WindowTitle" :height)))
-            (should (= (nth 2 sizes)
-                       (etaf-ui-test-font-property
-                        buffer (if (and (display-graphic-p)
-                                        (image-type-available-p 'svg)) "⬤" "o")
-                        :height)))
-            (dolist (text '("BodyLabel" "BodyHeading" "BodyButton" "BodyInput" "BodyFooter"))
-              (should (= (nth 3 sizes)
-                         (etaf-ui-test-font-property buffer text :height)))
-              (should (equal "Monospace"
-                             (etaf-ui-test-font-property buffer text :family)))))
+            (let* ((unit (etaf-ui-test-font-property buffer "BodyRef" :height))
+                  (closes (lambda (ratio height)
+                            (< (abs (- height (* ratio unit))) 1.5))))
+              (should (funcall closes (or (nth 0 sizes) 1.5)
+                               (etaf-ui-test-font-property buffer "WindowTitle" :height)))
+              (should (funcall closes (or (nth 0 sizes) 1.5)
+                               (etaf-ui-test-font-property
+                                buffer (if (and (display-graphic-p)
+                                                (image-type-available-p 'svg)) "⬤" "o")
+                                :height)))
+              (dolist (text '("BodyLabel" "BodyHeading" "BodyButton" "BodyInput" "BodyFooter"))
+                (should (funcall closes (or (nth 1 sizes) 1.5)
+                                 (etaf-ui-test-font-property buffer text :height)))
+                (should (equal "Monospace"
+                               (etaf-ui-test-font-property buffer text :family))))))
         (when-let* ((runtime (etaf-runtime-for-buffer buffer)))
           (etaf-unmount runtime))
         (kill-buffer buffer)))))
@@ -137,14 +140,17 @@
           (etaf-mount
            buffer
            (etaf-view
-            (box :font-size 24
-              (etaf-window-controls
-               :mode mode
-               :on-close (lambda () (push 'close actions))
-               :on-minimize (lambda () (push 'minimize actions))
-               :on-maximize (lambda () (push 'maximize actions))
-               :on-restore (lambda () (push 'restore actions))))))
-          (should (= 180 (etaf-ui-test-font-property buffer "o" :height)))
+            (box :font-size 1.5
+              (column
+               (text "UnitRef")
+               (etaf-window-controls
+                :mode mode
+                :on-close (lambda () (push 'close actions))
+                :on-minimize (lambda () (push 'minimize actions))
+                :on-maximize (lambda () (push 'maximize actions))
+                :on-restore (lambda () (push 'restore actions)))))))
+          (should (= (etaf-ui-test-font-property buffer "UnitRef" :height)
+                     (etaf-ui-test-font-property buffer "o" :height)))
           (let* ((runtime (etaf-runtime-for-buffer buffer))
                  (controls
                   (mapcar

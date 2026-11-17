@@ -818,7 +818,7 @@
 ;; :header-style — Optional Host style plist; default nil. Paint header corner cells like the header slot.
 ;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default nil (held-button tracking).
 ;; :full-bleed — Boolean; default nil. Let body reach the frame edges; handles keep their edge cells as hit surfaces that show the body's paint.
-;; :font-size, :font-family — Optional positive CSS pixel size and family string; default nil (inherit). Must fit the canvas line height.
+;; :font-size, :font-family — Optional body-relative size ratio and family string; default nil (inherit). Must fit the canvas line height.
 ;; :ref, :id, :class — Optional Host reference, semantic ID and extra classes; default nil; class may be reactive.
 ;; :role — Optional Host role; nil uses region.
 ;; :use — Optional root Behavior composition; default nil.
@@ -877,7 +877,7 @@
 ;; :on-minimize, :on-maximize, :on-restore, :on-close — Optional functions (); default nil. Caller owns transitions.
 ;; :on-move — Optional function (gesture); default nil. Title drag supplies pixel :delta (dx . dy) and start/move/end/cancel :phase.
 ;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default shift. Enable release-independent dragging; caller restores cancelled geometry.
-;; :title-font-size, :font-family — Optional positive CSS pixel size and family string; default nil (inherit). Must fit the canvas line height.
+;; :title-font-size, :font-family — Optional body-relative size ratio and family string; default nil (inherit). Must fit the canvas line height.
 ;; :group — Optional scalar hover-group key; nil uses :ref, then etaf-window-controls.
 ;; :ref, :class — Optional title Host reference and extra classes; default nil.
 ;; :use — Optional title Behavior composition; default nil. Can implement movement instead of a callback.
@@ -912,7 +912,7 @@
 ;; :on-resize — Optional function (edge gesture); default nil. Caller updates dimensions and handles start/move/end/cancel phases.
 ;; :on-focus — Optional function (); default nil. Body activation and keyboard focus entry request caller-owned focus/z-order.
 ;; :drag-lock-modifier — nil/shift/control/meta/super/hyper; default shift. Applies to title and handles; cancellation does not restore caller data automatically.
-;; :title-font-size, :content-font-size — Optional positive CSS pixel sizes; default nil (inherit independently). Must fit the shared canvas line height.
+;; :title-font-size, :content-font-size — Optional body-relative size ratios; default nil (inherit independently). Must fit the shared canvas line height.
 ;; :font-family — Optional string; default nil (inherit in both regions).
 ;; :controls-group — Optional scalar hover-group key; nil derives from the title reference.
 ;; :controls-active — Boolean/ref/computed; default t. Select active versus inactive control paint.
