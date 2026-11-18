@@ -29,6 +29,18 @@
 (defvar etaf-ui--unsupplied (make-symbol "unsupplied")
   "Distinguish omitted controlled props from explicitly supplied nil.")
 
+(defun etaf-ui--canvas-cell ()
+  "Return (CHAR-WIDTH . LINE-HEIGHT) pixels of the canvas being drawn.
+`ch' and `lh' lengths resolve against the canvas's own face, so anything
+that turns pixels into cells, or states a pixel size for a cell count, reads
+them here instead of the frame: a text scale or a canvas font is a different
+cell from the frame's default face, and a size measured with the frame's one
+leaves the drawing short of the region it measured.  Outside a mounted canvas
+the selected frame's face stands in."
+  (let ((metrics (ignore-errors (etaf-display-metrics))))
+    (cons (or (plist-get metrics :char-width) (frame-char-width))
+          (or (plist-get metrics :line-height) (frame-char-height)))))
+
 (defun etaf-ui--controlled-input (component value-prop bind value on-change)
   "Resolve COMPONENT's BIND or explicit VALUE-PROP and ON-CHANGE.
 Return the value source and callback as a cons.  A binding uses the caller's

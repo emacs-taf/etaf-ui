@@ -169,6 +169,9 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
   :render
   (let* ((theme (etaf-ui--style-tokens :ui-panel-fg :ui-panel-bg :ui-panel-border))
          (runtime (etaf-current-runtime))
+         ;; `ch' widths and the centring margins are page pixels, so they are
+         ;; stated in the cell the canvas draws with.
+         (cell (max 1 (car (etaf-ui--canvas-cell))))
          (window-viewport
           (and runtime (etaf-runtime-window-viewport runtime)))
          (canvas-viewport (and runtime (etaf-runtime-viewport runtime)))
@@ -181,13 +184,12 @@ removes the body's vertical air; SPACIOUS separates body items by one row."
          (requested-width-px
           (pcase width
             (`(ch ,(and n (pred numberp)))
-             (* (max 1 (frame-char-width)) n))
+             (* cell n))
             (`(px ,(and n (pred numberp))) n)))
          (bounded-width-px
           (when (and center viewport-width-known requested-width-px)
             (min requested-width-px
-                 (max 1 (- viewport-width
-                           (* 2 (max 1 (frame-char-width))))))))
+                 (max 1 (- viewport-width (* 2 cell))))))
          (requested-height-rows
           (pcase height (`(lh ,(and n (pred integerp))) n)))
          (bounded-height-rows

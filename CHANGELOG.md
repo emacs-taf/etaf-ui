@@ -170,6 +170,13 @@
   padding, so the widest word in a column still fits.
 ### Fixed
 
+- Components that convert between pixels and cells measure the canvas they are
+  drawn in instead of the frame's default face: the media grid and stage, an
+  icon's slice, an avatar's SVG, a selection rule, a traffic light and a
+  floating surface's width.  A text scale or a canvas font is a different
+  cell, and a picture or panel measured with the frame's one drew short of the
+  region the canvas covers.
+
 - An alert's note mark is the plain `i`: the information sign is missing from
   common monospace fonts and rendered as a box or a stray bar.
 - An alert paints its text on the row under its label: the marker line's break

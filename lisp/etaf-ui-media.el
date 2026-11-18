@@ -88,8 +88,9 @@ when ffplay is unavailable or the process cannot start."
 (defun etaf-ui--media-grid (natural width-px rows upscale)
   "Fit NATURAL pixel size into WIDTH-PX by ROWS lines as (COLUMNS . ROWS).
 Keep the aspect ratio; enlarge beyond the natural size only when UPSCALE."
-  (let* ((cw (max 1 (frame-char-width)))
-         (lh (max 1 (frame-char-height)))
+  (let* ((cell (etaf-ui--canvas-cell))
+         (cw (max 1 (car cell)))
+         (lh (max 1 (cdr cell)))
          (width (float (max 1 (car natural))))
          (height (float (max 1 (cdr natural))))
          (scale (min (/ width-px width) (/ (* rows lh) height)))
@@ -334,7 +335,7 @@ Keep the aspect ratio; enlarge beyond the natural size only when UPSCALE."
   :render
   (let* ((viewport (etaf-runtime-viewport))
          (lines (max 8 (or (cdr viewport) 24)))
-         (cw (max 1 (frame-char-width)))
+         (cw (max 1 (car (etaf-ui--canvas-cell))))
          (video (eq kind 'video))
          (playable (memq kind '(video audio)))
          (stage-rows (max 3 (- lines 6)))

@@ -302,7 +302,7 @@ defaults to STEP, else a twentieth of the span."
                      ;; native image limits when its frame becomes compact.
                      (width (max 1 (ceiling (or (car (etaf-viewport))
                                                 (frame-pixel-width)))))
-                     (height (frame-char-height))
+                     (height (cdr (etaf-ui--canvas-cell)))
                      (ink (max 1 (round (* height (/ bar-height 100.0)))))
                      (image
                       (create-image

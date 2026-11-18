@@ -205,7 +205,8 @@ the whole surface activate; the border, fill and padding stay the card's own."
 SRC is a photo source; without a readable photo, draw INITIALS in
 FOREGROUND on a BACKGROUND circle."
   (when (and (display-images-p) (image-type-available-p 'svg))
-    (let* ((cw (frame-char-width)) (lh (frame-char-height))
+    (let* ((cell (etaf-ui--canvas-cell))
+           (cw (car cell)) (lh (cdr cell))
            (key (list src initials foreground background columns lines cw lh)))
       (or (gethash key etaf-ui--avatar-cache)
           (let* ((width (* columns cw)) (height (* lines lh))

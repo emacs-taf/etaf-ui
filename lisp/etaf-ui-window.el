@@ -18,7 +18,7 @@
 
 (defun etaf-ui--window-icon-size ()
   "Return a traffic-light glyph size that fits the current frame line."
-  (let ((line-height (if (display-graphic-p) (frame-char-height) 16)))
+  (let ((line-height (if (display-graphic-p) (cdr (etaf-ui--canvas-cell)) 16)))
     (max 10 (min 16 (- line-height 4)))))
 
 (defun etaf-ui--window-hover-icon (symbol)

@@ -137,9 +137,11 @@ leaves a search edit first, then closes the dialog, preserving its caller."
   :render
   (let* ((viewport (etaf-viewport))
          (window (etaf-runtime-window-viewport runtime))
-         (pixels (or (car window) (car viewport) (* 80 (max 1 (frame-char-width)))))
+         ;; The dialog is drawn on the canvas, so its cell is the canvas's face.
+         (cell (max 1 (car (etaf-ui--canvas-cell))))
+         (pixels (or (car window) (car viewport) (* 80 cell)))
          (rows (or (cdr window) (cdr viewport) 32))
-         (width (min 96 (max 24 (- (/ pixels (max 1 (frame-char-width))) 4))))
+         (width (min 96 (max 24 (- (/ pixels cell) 4))))
          (height (max 12 (min 29 (- rows 4))))
          (wide (>= width 88))
          (body-height (max 3 (- height 12)))

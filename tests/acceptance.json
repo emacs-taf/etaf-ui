@@ -1342,6 +1342,11 @@
       "name": "etaf-ui-markdown-etaf-inline-marks-paint",
       "file": "tests/etaf-ui-markdown-tests.el",
       "purpose": "A paragraph paints its highlighted text, key cap group and badge through the shared renderer."
+    },
+    {
+      "name": "etaf-ui-cell-metrics-slice-icons-at-the-canvas-row",
+      "file": "tests/etaf-ui-cell-metrics-tests.el",
+      "purpose": "A two-row icon is cut at the line height the canvas draws, so a canvas font or text scale does not leave the picture a row short of the cells that hold it."
     }
   ]
 }

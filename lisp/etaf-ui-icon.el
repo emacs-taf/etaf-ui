@@ -177,10 +177,11 @@ availability claim is made.  Unknown SET signals `user-error'."
           :line-pixel-height pixels :line-height line
           :fit (and pixels (<= pixels line)))))
 
-(defun etaf-ui--icon-font-presentation (set spec size frame)
-  "Return a shared, clamped named face and font for SET, SPEC, SIZE and FRAME."
+(defun etaf-ui--icon-font-presentation (set spec size frame line)
+  "Return a shared, clamped named face and font for SET, SPEC, SIZE and FRAME.
+LINE is the canvas row height the glyph must fit."
   (let* ((default (etaf-ui--icon-default-info frame))
-         (pixels (and default (max 1 (min (frame-char-height frame)
+         (pixels (and default (max 1 (min line
                                          (round (* (aref default 2)
                                                    (plist-get spec :height) size))))))
          (key (list 'face set spec pixels frame default)))
@@ -240,12 +241,12 @@ Typography and decorations cannot override an icon's line-height contract."
   "Return non-nil when the current graphical frame supports SVG."
   (and (display-graphic-p) (image-type-available-p 'svg)))
 
-(defun etaf-ui--icon-image (spec name size lines font)
+(defun etaf-ui--icon-image (spec name size lines font line)
   "Return cached SVG image for SPEC, NAME, SIZE and LINES.
-FONT supplies the exact family for a font glyph.  Images use a
-single centered canvas, sliced at standard row boundaries by the caller."
-  (let* ((line (frame-char-height))
-         (box (* line lines))
+FONT supplies the exact family for a font glyph and LINE the canvas row the
+caller slices it at.  Images use a single centered canvas, sliced at standard
+row boundaries by the caller."
+  (let* ((box (* line lines))
          (inset (or (plist-get spec :inset) 2))
          (extent (max 1 (min box (round (* (max 1 (- box inset)) size)))))
          (height (if (= lines 2) box extent))
@@ -271,7 +272,10 @@ single centered canvas, sliced at standard row boundaries by the caller."
   "Resolve NAME through SET and return SIZE/LINES text values with PAINT."
   (when set (etaf-ui--icon-spec set))
   (etaf-ui--icon-spec etaf-ui-icon-default-set)
-  (let* ((requested (and set (etaf-ui-icon-set-spec set)))
+  ;; One read for the whole icon: the glyph clamp, the image canvas and the
+  ;; slice rows all use the row height the canvas draws.
+  (let* ((line (cdr (etaf-ui--canvas-cell)))
+         (requested (and set (etaf-ui-icon-set-spec set)))
          (text-display (not (display-graphic-p)))
          (terminal-set (and text-display etaf-ui-terminal-icon-set))
          (candidates
@@ -292,7 +296,7 @@ single centered canvas, sliced at standard row boundaries by the caller."
             (let ((fontp (eq (plist-get entry :kind) 'font)))
               (setq presentation
                     (and fontp (etaf-ui--icon-font-presentation
-                                candidate entry size (selected-frame))))
+                                candidate entry size (selected-frame) line)))
               (when (or (not fontp) (not (display-graphic-p))
                         (and presentation
                              (font-has-char-p (cadr presentation)
@@ -304,7 +308,7 @@ single centered canvas, sliced at standard row boundaries by the caller."
                        ;; ink often exceeds its declared ascent and descent, so
                        ;; a glyph set as text is clipped by its row.
                        (or (eq (plist-get spec :kind) 'svg) presentation)
-                       (etaf-ui--icon-image spec name size lines presentation)))
+                       (etaf-ui--icon-image spec name size lines presentation line)))
            (text (cond
                   ((and presentation (not image))
                    (propertize (copy-sequence (cdr (assq name (plist-get spec :glyphs))))
@@ -328,8 +332,8 @@ single centered canvas, sliced at standard row boundaries by the caller."
               (put-text-property
                0 (length value) 'display
                (if (= lines 1) image
-                 (list (list 'slice 0 (* row (frame-char-height))
-                             (car (image-size image t)) (frame-char-height)) image))
+                 (list (list 'slice 0 (* row line)
+                             (car (image-size image t)) line) image))
                value)
             ;; A text frame has no font metrics to clamp.  Inheriting the
             ;; default face there would paint the default background behind
