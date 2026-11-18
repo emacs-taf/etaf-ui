@@ -1654,9 +1654,13 @@ Only a known name matches, and only as a whole token: `12:30:45' is a time and
                (or (= position 0)
                    (not (etaf-ui-markdown--word-char-p (aref text (1- position)))))
                (let ((char (aref text start)))
+                 ;; `+1' and `-1' are names too: the table carries both, and
+                 ;; the trailing colon and the word boundaries still keep a
+                 ;; time or a `:-)' out of this path.
                  (or (and (>= char ?a) (<= char ?z))
                      (and (>= char ?A) (<= char ?Z))
-                     (and (>= char ?0) (<= char ?9)))))
+                     (and (>= char ?0) (<= char ?9))
+                     (memq char '(?+ ?-)))))
       (let ((index start))
         (while (and (< index end)
                     (let ((char (aref text index)))

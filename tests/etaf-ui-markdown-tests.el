@@ -298,6 +298,8 @@ colons, so the syntax can never eat prose."
          (after-colon (funcall nodes "表情：:tada: 完成\n"))
          (before-han (funcall nodes ":rocket: 起飞\n"))
          (prose (funcall nodes "a:b: is prose\n"))
+         ;; `:+1:' starts with a sign, and its name is in the table.
+         (signed (funcall nodes "加一 :+1: 就够了\n"))
          (narrow (funcall nodes "nice :tada:\n" 'gfm)))
     (should (equal '("🎉" "🚀")
                    (mapcar (lambda (node) (plist-get node :char))
@@ -323,6 +325,10 @@ colons, so the syntax can never eat prose."
                    (mapconcat (lambda (node) (or (plist-get node :char)
                                                  (plist-get node :text)))
                               prose "")))
+    (should (equal "加一 👍 就够了"
+                   (mapconcat (lambda (node) (or (plist-get node :char)
+                                                 (plist-get node :text)))
+                              signed "")))
     (should-not (seq-find (lambda (node) (eq (plist-get node :type) 'emoji)) narrow))))
 
 (ert-deftest etaf-ui-markdown-parse-marks-icons-keys-and-badges ()
