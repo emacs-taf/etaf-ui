@@ -162,7 +162,7 @@ estimate height from the declared ratio and standard row height; no font
 availability claim is made.  Unknown SET signals `user-error'."
   (let* ((spec (etaf-ui--icon-spec set))
          (frame (or frame (selected-frame)))
-         (line (frame-char-height frame))
+         (line (frame-char-height frame)) ;; frame metric
          (height (or (plist-get spec :height) 1.0))
          (default (etaf-ui--icon-default-info frame))
          (font (and default (eq (plist-get spec :kind) 'font)
